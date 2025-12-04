@@ -1,0 +1,24 @@
+{
+    "table": "users",
+    "relations": {
+        "phone": {
+            "table": "phones",
+            "foreign_key": "user_id",
+            "local_key": "id",
+            "type": "HasOne"
+        },
+        "roles": {
+            "table": "roles",
+            "pivot": {
+                "name": "role_user",
+                "timestamps": {
+                    "created_at": "created_at",
+                    "_comment": "Pivot is a model so it have the same JSON structure, anyway, relations will be ignored"
+                }
+            },
+            "foreign_key": "user_id",
+            "owner_key": "role_id",
+            "type": "BelongsToMany"
+        }
+    }
+}

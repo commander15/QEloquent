@@ -1,0 +1,11 @@
+{
+    "table": "comments",
+    "relations": {
+        "post": {
+            "table": "posts",
+            "foreign_key": "post_id",
+            "owner_key": "id",
+            "type": "BelongsToOne"
+        }
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "table": "applications",
+    "primary_key": "id",
+    "foreign_key": "application_id",
+    "fillable": [ "name" ],
+    "with": [ "environments", "deployments" ],
+    "relations": {
+        "deployments": {
+            "table": "deployments",
+            "pivot": "intermediate",
+            "foreign_key": "environment_id",
+            "local_key": "application_id",
+            "type": "HasManyThrough"
+        }
+    }
+}

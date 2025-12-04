@@ -1,0 +1,11 @@
+{
+    "table": "posts",
+    "relations": {
+        "comments": {
+            "table": "comments",
+            "foreign_key": "post_id",
+            "local_key": "id",
+            "type": "HasMany"
+        }
+    }
+}

@@ -1,0 +1,42 @@
+{
+    "table": "Products",
+    "primary_key": "id",
+    "foreign_key": "product_id",
+    "hidden": [ "category_id" ],
+    "fillable": [ "name", "barcode", "description", "price" ],
+    "timestamps": {
+        "created_at": "created_at",
+        "updated_at": "updated_at",
+        "deleted_at": null
+    },
+    "with": [ "category" ],
+    "relations": {
+        "category": {
+            "table": "Categories",
+            "foreign_key": "category_id",
+            "owner_key": "id",
+            "type": "BelongsToOne"
+        },
+        "stock": {
+            "table": "Stocks",
+            "foreign_key": "product_id",
+            "local_key": "id",
+            "type": "HasOne"
+        },
+        "sales": {
+            "table": "Sales",
+            "foreign_key": "product_id",
+            "local_key": "sale_id",
+            "pivot": "SaleItems",
+            "type": "HasManyThrough"
+        },
+        "sellers": {
+            "table": "Users",
+            "foreign_key": "seller_id",
+            "owner_key": "product_id",
+            "pivot": "SaleItems",
+            "intermediate": "Sales",
+            "type": "BelongsToManyThrough"
+        }
+    }
+}

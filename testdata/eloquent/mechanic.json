@@ -1,0 +1,12 @@
+{
+    "table": "mechanics",
+    "relations": {
+        "carOwner": {
+            "table": "owners",
+            "intermediate": "cars",
+            "foreign_key": "mechanic_id",
+            "owner_key": "car_id",
+            "type": "HasOneThrough"
+        }
+    }
+}
