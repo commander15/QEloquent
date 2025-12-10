@@ -1,11 +1,14 @@
 target_headers(QEloquent
     PUBLIC
-        querybuilder.h
-        queryrunner.h
+        dictionary.h
+        result.h
+        namingconvention.h
+    PRIVATE
+        namingconvention_p.h
 )
 
 target_sources(QEloquent
     PRIVATE
-        querybuilder.cpp
-        queryrunner.cpp
+        dictionary.cpp
+        namingconvention.cpp
 )

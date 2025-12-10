@@ -1,8 +1,5 @@
 #include "connection.h"
 
-#include <QEloquent/modelinfo.h>
-#include <QEloquent/modelinfobuilder.h>
-
 #include <QMap>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -16,8 +13,6 @@ class ConnectionData : public QSharedData
 {
 public:
     QString connectionName;
-    QMap<QString, ModelInfo> models;
-
     QString databaseConnectionName;
     bool databaseConnectionOwned = false;
 };
@@ -58,28 +53,6 @@ Connection::~Connection()
 QString Connection::name() const
 {
     return data->connectionName;
-}
-
-bool Connection::hasModelInfo(const QString &table) const
-{
-    return data->models.contains(table);
-}
-
-ModelInfo Connection::modelInfo(const QString &table) const
-{
-    return data->models.value(table);
-}
-
-ModelInfo Connection::registerModel(const ModelInfoBuilder &info)
-{
-    const ModelInfo modelInfo = info.build(*this);
-    registerModel(modelInfo);
-    return modelInfo;
-}
-
-void Connection::registerModel(const ModelInfo &info)
-{
-    data->models.insert(info.table(), info);
 }
 
 bool Connection::isOpen() const

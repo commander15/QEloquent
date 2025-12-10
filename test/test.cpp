@@ -12,7 +12,7 @@ using namespace QEloquent;
 
 void Test::SetUp()
 {
-    connection = QEloquent::Connection::addConnection("DB", QUrl("sqlite:///:memory:"));
+    connection = QEloquent::Connection::addConnection("DB", "QSQLITE", ":memory:");
     ASSERT_TRUE(connection.open()) << "Can't open connection";
 }
 

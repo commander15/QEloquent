@@ -3,10 +3,6 @@
 
 #include <QEloquent/global.h>
 
-#include <QSharedData>
-
-#define ENTITY_INFO_DATA(Class) Class##Data &data = *static_cast<Class##Data *>(EntityInfo::data.get());
-
 namespace QEloquent {
 
 class QELOQUENT_EXPORT Entity
@@ -20,40 +16,38 @@ public:
         DeleteOperation
     };
 
-    virtual ~Entity();
+    virtual ~Entity() = default;
 
     virtual bool exists() const = 0;
     virtual bool get() = 0;
 
-    virtual bool save();
+    virtual bool save() { return (exists() ? update() : insert()); }
     virtual bool insert() = 0;
     virtual bool update() = 0;
 
     virtual bool deleteData() = 0;
 
-    bool run(Operation op);
-};
+    bool run(Operation op)
+    {
+        switch (op) {
+        case GetOperation:
+            return get();
 
-class EntityInfoData;
-class QELOQUENT_EXPORT EntityInfo
-{
-public:
-    EntityInfo();
-    EntityInfo(const EntityInfo &other);
-    EntityInfo(EntityInfo &&other);
-    EntityInfo &operator=(const EntityInfo &other);
-    EntityInfo &operator=(EntityInfo &&other);
-    ~EntityInfo();
+        case InsertOperation:
+            return insert();
 
-    QString table() const;
-    QString foreignKey() const;
-    QStringList with() const;
+        case UpdateOperation:
+            return update();
 
-protected:
-    EntityInfo(EntityInfoData *data);
-    EntityInfo(const QSharedDataPointer<EntityInfoData> &data);
+        case SaveOperation:
+            return save();
 
-    QSharedDataPointer<EntityInfoData> data;
+        case DeleteOperation:
+            return deleteData();
+        }
+
+        return false;
+    }
 };
 
 } // namespace QEloquent

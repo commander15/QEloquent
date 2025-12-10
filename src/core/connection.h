@@ -12,11 +12,7 @@ class QUrl;
 
 namespace QEloquent {
 
-class ModelInfo;
-class ModelInfoBuilder;
-
 class ConnectionData;
-
 class QELOQUENT_EXPORT Connection
 {
 public:
@@ -28,11 +24,6 @@ public:
     ~Connection();
 
     QString name() const;
-
-    bool hasModelInfo(const QString &table) const;
-    ModelInfo modelInfo(const QString &table) const;
-    ModelInfo registerModel(const ModelInfoBuilder &info);
-    void registerModel(const ModelInfo &info);
 
     bool isOpen() const;
     bool open();

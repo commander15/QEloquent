@@ -1,13 +1,15 @@
 target_headers(QEloquent
     PUBLIC
-        metatable.h
-        namingconvention.h
+        metaobjectregistry.h
+        metaobject.h metaproperty.h metarelation.h
+        #metaobjectbuilder.h
     PRIVATE
-        metatable_p.h
+        metaobject_p.h metaproperty_p.h
 )
 
 target_sources(QEloquent
     PRIVATE
-        metatable.cpp
-        namingconvention.cpp
+        metaobjectregistry.cpp
+        metaobject.cpp metaproperty.cpp metarelation.cpp
+        #metaobjectbuilder.cpp
 )

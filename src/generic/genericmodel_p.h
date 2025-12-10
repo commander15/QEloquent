@@ -9,7 +9,7 @@ class GenericModelData final : public ModelData
 {
 public:
     GenericModelData(const ModelInfo &info)
-    { this->info = info; }
+    { this->metaObject = info; }
 
     QStringList fieldNames() const override
     { return values.keys(); }

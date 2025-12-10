@@ -1,12 +1,12 @@
-qt_add_library(QEloquent
-    meta/metatable.h meta/metatable.cpp
-    meta/namingconvention.h meta/namingconvention.cpp)
+qt_add_library(QEloquent)
 
 add_subdirectory(core)
-add_subdirectory(meta)
-add_subdirectory(model)
 add_subdirectory(utils)
+add_subdirectory(query)
+add_subdirectory(meta)
 add_subdirectory(orm)
+#add_subdirectory(generic)
+#add_subdirectory(model)
 
 target_compile_definitions(QEloquent
     PUBLIC

@@ -11,9 +11,9 @@ class QSqlRecord;
 
 namespace QEloquent {
 
-class ModelInfo;
-class ModelQuery;
-class ModelError;
+class MetaObject;
+class Query;
+class Error;
 class Connection;
 
 template<typename T>
@@ -34,13 +34,6 @@ public:
     QVariant primary() const;
     void setPrimary(const QVariant &value);
 
-    QDateTime createdAt() const;
-    QDateTime updatedAt() const;
-    QDateTime deletedAt() const;
-
-    QVariant value(const QString &field) const;
-    void setValue(const QString &field, const QVariant &value);
-
     QVariant property(const QString &name) const;
     void setProperty(const QString &name, const QVariant &value);
 
@@ -56,10 +49,10 @@ public:
     bool load(const QString &relation);
     bool load(const QStringList &relations);
 
-    ModelQuery lastQuery() const;
-    ModelError lastError() const;
+    Query lastQuery() const;
+    Error lastError() const;
 
-    ModelInfo modelInfo() const;
+    MetaObject metaObject() const;
     Connection connection() const;
 
     QJsonObject toJsonObject() const;
@@ -72,12 +65,17 @@ protected:
 
     template<typename T>
     Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString()) const
-    { return QList<T>(); }
+    { return Relation<T>(); }
 
     QSharedDataPointer<ModelData> data;
 
 private:
     //RelationBase relation(RelationImpl *) const;
+
+    Query newQuery(bool filter = true) const;
+
+    friend class MetaProperty;
+    friend class MetaRelation;
 };
 
 template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>

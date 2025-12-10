@@ -1,29 +1,58 @@
 #include "querybuilder.h"
 
-#include <QEloquent/modelquery.h>
-#include <QEloquent/modelinfo.h>
+#include <QEloquent/query.h>
 #include <QEloquent/connection.h>
 
 #include <QSqlDatabase>
 #include <QSqlDriver>
 #include <QSqlField>
+#include <QFile>
 
 namespace QEloquent {
 
-QString QueryBuilder::selectStatement(const ModelQuery &query, const ModelInfo &info)
+QString QueryBuilder::selectStatement(const Query &query)
 {
-    const Connection connection = info.connection();
+    return selectStatement("*", query);
+}
 
-    QString statement = "SELECT * FROM " + escapeTableName(info.table(), connection);
+QString QueryBuilder::selectStatement(const QList<QPair<QString, QString>> &fields, const Query &query)
+{
+    const Connection connection = query.connection();
+
+    QStringList merged;
+    std::transform(fields.begin(), fields.end(), std::back_inserter(merged), [&connection](const QPair<QString, QString> &item) {
+        if (item.second.isEmpty())
+            return escapeFieldName(item.first, connection);
+        else
+            return escapeFieldName(item.first, connection) + " AS " + escapeFieldName(item.second, connection);
+    });
+    return selectStatement(merged.join(", "), query);
+}
+
+QString QueryBuilder::selectStatement(const QStringList fields, const Query &query)
+{
+    const Connection connection = query.connection();
+
+    QStringList all = fields;
+    for (QString &field : all)
+        field = escapeFieldName(field, connection);
+    return selectStatement(all.join(", "), query);
+}
+
+QString QueryBuilder::selectStatement(const QString fields, const Query &query)
+{
+    const Connection connection = query.connection();
+
+    QString statement = "SELECT " + fields + " FROM " + escapeTableName(query.tableName(), connection);
     const QString extra = query.toString(connection);
     if (!extra.isEmpty())
         statement.append(' ' + extra);
     return statement;
 }
 
-QString QueryBuilder::insertStatement(const QVariantMap &data, const ModelInfo &info)
+QString QueryBuilder::insertStatement(const QVariantMap &data, const Query &query)
 {
-    const Connection connection = info.connection();
+    const Connection connection = query.connection();
 
     QStringList fields = data.keys();
     QStringList values;
@@ -32,22 +61,23 @@ QString QueryBuilder::insertStatement(const QVariantMap &data, const ModelInfo &
         field = escapeFieldName(field, connection);
     });
 
-    QString statement = "INSERT INTO " + escapeTableName(info.table(), connection);
+    QString statement = "INSERT INTO " + escapeTableName(query.tableName(), connection);
     statement.append(" (" + fields.join(", ") + ") VALUES (" + values.join(", ") + ')');
     return statement;
 }
 
-QString QueryBuilder::updateStatement(const ModelQuery &query, const QVariantMap &data, const ModelInfo &info)
+QString QueryBuilder::updateStatement(const QVariantMap &data, const Query &query)
 {
-    const Connection connection = info.connection();
+    const Connection connection = query.connection();
 
     QStringList fields = data.keys();
     QStringList values;
-    std::for_each(fields.begin(), fields.end(), [&connection, &values, &data](const QString &field) {
-        values.append(escapeFieldName(field, connection) + " = " + formatValue(data.value(field), connection));
+    std::for_each(fields.begin(), fields.end(), [&connection, &values, &data](QString &field) {
+        values.append(formatValue(data.value(field), connection));
+        field = escapeFieldName(field, connection);
     });
 
-    QString statement = "UPDATE " + escapeTableName(info.table(), connection);
+    QString statement = "UPDATE " + escapeTableName(query.tableName(), connection);
     statement.append(" SET " + values.join(", "));
 
     if (query.hasWhere())
@@ -56,32 +86,16 @@ QString QueryBuilder::updateStatement(const ModelQuery &query, const QVariantMap
     return statement;
 }
 
-QString QueryBuilder::deleteStatement(const ModelQuery &query, const ModelInfo &info)
+QString QueryBuilder::deleteStatement(const Query &query)
 {
-    const Connection connection = info.connection();
+    const Connection connection = query.connection();
 
-    QString statement = "DELETE FROM " + escapeTableName(info.table(), connection);
+    QString statement = "DELETE FROM " + escapeTableName(query.tableName(), connection);
 
     if (query.hasWhere())
         statement.append(' ' + query.whereClause(connection));
 
     return statement;
-}
-
-QString QueryBuilder::whereClause(const ModelQuery &query, const Connection &connection)
-{
-    return query.whereClause(connection);
-}
-
-QString QueryBuilder::singularise(const QString &tableName)
-{
-    if (tableName.endsWith("ies"))
-        return tableName.left(tableName.size() - 3);
-
-    if (tableName.endsWith("s"))
-        return tableName.left(tableName.size() - 1);
-
-    return tableName;
 }
 
 QString QueryBuilder::escapeFieldName(const QString &name, const Connection &connection)
@@ -119,10 +133,19 @@ QString QueryBuilder::formatValue(const QVariant &value, const QMetaType &type, 
     return connection.database().driver()->formatValue(field);
 }
 
-QStringList QueryBuilder::statementsFromScript(const QString &script)
+QStringList QueryBuilder::statementsFromScript(const QString &fileName)
+{
+    QFile file(fileName);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return statementsFromScriptContent(file.readAll());
+    else
+        return QStringList();
+}
+
+QStringList QueryBuilder::statementsFromScriptContent(const QByteArray &content)
 {
     QStringList statements;
-    QStringList input = script.trimmed().split('\n');
+    QStringList input = QString::fromUtf8(content.trimmed()).split('\n');
 
     QString statement;
     QString delimiter = ";";
@@ -143,9 +166,12 @@ QStringList QueryBuilder::statementsFromScript(const QString &script)
             delimiter = line.trimmed();
         }
 
+        // We append reading to the current statement
         statement.append(line);
 
+        // If delimiter found, we complete the current statement and move to the next
         if (line.endsWith(delimiter)) {
+            statement.removeLast(); // We remove delimiter
             statements.append(statement);
             statement.clear();
         }
