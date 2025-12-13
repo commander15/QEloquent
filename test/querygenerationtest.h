@@ -3,7 +3,7 @@
 
 #include "test.h"
 
-#include <QEloquent/modelinfobuilder.h>
+#include <QEloquent/metaobject.h>
 
 class QueryGenerationTest : public Test
 {
@@ -12,13 +12,9 @@ protected:
     {
         Test::SetUp();
         ASSERT_TRUE(migrate());
-
-        QEloquent::ModelInfoBuilder product;
-        product.table("Products");
-        productModel = connection.registerModel(product);
     }
 
-    QEloquent::ModelInfo productModel;
+    QEloquent::MetaObject productMetaObject;
 };
 
 #endif // QUERYGENERATIONTEST_H

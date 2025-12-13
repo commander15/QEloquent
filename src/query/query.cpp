@@ -25,6 +25,8 @@ public:
         Qt::SortOrder order = Qt::DescendingOrder;
     };
 
+    ModelQueryData() : connectionName(Connection::defaultConnection().name()) {}
+
     QString tableName;
     QStringList relations;
 
@@ -175,6 +177,11 @@ Query &Query::with(const QStringList &relations)
 Connection Query::connection() const
 {
     return Connection::connection(data->connectionName);
+}
+
+QString Query::connectionName() const
+{
+    return data->connectionName;
 }
 
 Query &Query::connection(const QString &connectionName)

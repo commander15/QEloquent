@@ -19,7 +19,7 @@ template<typename Model>
 class ModelMaker {
 public:
     static Model make() { return Model(); }
-    static MetaObject metaobject() { return Model().metaObject(); }
+    static MetaObject metaObject() { return Model().metaObject(); }
 };
 
 template<typename Model, typename Maker = ModelMaker<Model>>
@@ -38,6 +38,10 @@ public:
     static Result<QList<Model>, Error> create(const QList<QJsonObject> &objects);
 
     static Result<int, Error> remove(Query query);
+
+    static Query query();
+    static Query &fixQuery(Query &query);
+    static Query &fixQuery(Query &query, const MetaObject &metaObject);
 };
 
 template<typename Model, typename Maker>
@@ -64,7 +68,7 @@ template<typename Model, typename Maker>
 inline Result<Model, Error> ModelHelpers<Model, Maker>::find(const QVariant &primary)
 {
     Query query;
-    query.where(Maker::metaobject().primaryKey(), primary);
+    query.where(Maker::metaObject().primaryProperty().fieldName(), primary);
     query.limit(1);
 
     Result<QList<Model>, Error> result = find(query);
@@ -79,17 +83,14 @@ inline Result<Model, Error> ModelHelpers<Model, Maker>::find(const QVariant &pri
 template<typename Model, typename Maker>
 inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
 {
-    const MetaObject metaobject = Maker::metaobject();
-    const Connection con = metaobject.connection();
+    const MetaObject metaObject = Maker::metaObject();
+    const QString statement = QueryBuilder::selectStatement(fixQuery(query, metaObject));
 
-    query.table(metaobject.tableName()).connection(con.name());
-    const QString statement = QueryBuilder::selectStatement(query);
-
-    auto result = QueryRunner::exec(statement, con);
+    auto result = QueryRunner::exec(statement, query.connectionName());
     if (result) {
         QList<Model> models;
 
-        QStringList relations = metaobject.relations() + query.relations();
+        QStringList relations = metaObject.relations() + query.relations();
         relations.removeDuplicates();
 
         while (result->next()) {
@@ -110,13 +111,9 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
 template<typename Model, typename Maker>
 inline Result<int, Error> ModelHelpers<Model, Maker>::count(Query query)
 {
-    const MetaObject metaobject = Maker::metaobject();
-    const Connection con = metaobject.connection();
+    const QString statement = QueryBuilder::selectStatement("COUNT(1)", fixQuery(query));
 
-    query.table(metaobject.tableName()).connection(con.name());
-    const QString statement = QueryBuilder::selectStatement("COUNT(1)", query);
-
-    auto result = QueryRunner::exec(statement, con);
+    auto result = QueryRunner::exec(statement, query.connectionName());
     if (result)
         return (result->next() ? result->value(0).toInt() : 0);
     else
@@ -153,17 +150,33 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::create(const QLis
 template<typename Model, typename Maker>
 inline Result<int, Error> ModelHelpers<Model, Maker>::remove(Query query)
 {
-    const MetaObject metaobject = Maker::metaobject();
-    const Connection con = metaobject.connection();
+    const QString statement = QueryBuilder::deleteStatement(fixQuery(query));
 
-    query.table(metaobject.tableName()).connection(con.name());
-    const QString statement = QueryBuilder::deleteStatement(query);
-
-    auto result = QueryRunner::exec(statement, con);
+    auto result = QueryRunner::exec(statement, query.connectionName());
     if (result)
         return result->numRowsAffected();
     else
         return unexpected(Error(Error::DatabaseError, QString(), result.error()));
+}
+
+template<typename Model, typename Maker>
+inline Query ModelHelpers<Model, Maker>::query()
+{
+    Query query;
+    return fixQuery(query, Maker::metaObject());
+}
+
+template<typename Model, typename Maker>
+inline Query &ModelHelpers<Model, Maker>::fixQuery(Query &query)
+{
+    return fixQuery(query, Maker::metaObject());
+}
+
+template<typename Model, typename Maker>
+inline Query &ModelHelpers<Model, Maker>::fixQuery(Query &query, const MetaObject &metaObject)
+{
+    query.table(metaObject.tableName()).connection(metaObject.connectionName());
+    return query;
 }
 
 } // namespace QEloquent

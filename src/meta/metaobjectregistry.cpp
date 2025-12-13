@@ -7,6 +7,24 @@
 
 namespace QEloquent {
 
+bool MetaObjectRegistry::contains(const QString &className)
+{
+    auto it = std::find_if(s_metaObjects.constBegin(), s_metaObjects.constEnd(), [&className](const MetaObject &metaObject) {
+        return metaObject.className() == metaObject.className();
+    });
+
+    return (it == s_metaObjects.end() ? false : true);
+}
+
+MetaObject MetaObjectRegistry::metaObject(const QString &className)
+{
+    auto it = std::find_if(s_metaObjects.constBegin(), s_metaObjects.constEnd(), [&className](const MetaObject &metaObject) {
+        return metaObject.className() == metaObject.className();
+    });
+
+    return (it == s_metaObjects.constEnd() ? MetaObject() : *it);
+}
+
 MetaObject MetaObjectRegistry::tableMetaObject(const QString &tableName)
 {
     return tableMetaObject(tableName, Connection::defaultConnection().name());

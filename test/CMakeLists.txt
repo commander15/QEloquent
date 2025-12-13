@@ -8,6 +8,8 @@ qt_add_executable(QEloquentTest main.cpp
     simplecrudtest.h simplecrudtest.cpp
     querygenerationtest.h querygenerationtest.cpp
     testmodel.h testmodel.cpp
+    user.h user.cpp
+    product.h product.cpp
 )
 
 target_link_libraries(QEloquentTest PRIVATE GTest::gtest QEloquent Qt::Test)

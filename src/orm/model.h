@@ -3,11 +3,14 @@
 
 #include <QEloquent/global.h>
 #include <QEloquent/entity.h>
+#include <QEloquent/result.h>
 
 #include <QObject>
 #include <QSharedDataPointer>
 
 class QSqlRecord;
+class QSqlQuery;
+class QSqlError;
 
 namespace QEloquent {
 
@@ -37,10 +40,11 @@ public:
     QVariant property(const QString &name) const;
     void setProperty(const QString &name, const QVariant &value);
 
+    void fill(const QVariantMap &values);
     void fill(const QJsonObject &object);
     void fill(const QSqlRecord &record);
 
-    bool exists() const override;
+    bool exists() override;
     bool get() override;
     bool insert() override;
     bool update() override;
@@ -73,6 +77,7 @@ private:
     //RelationBase relation(RelationImpl *) const;
 
     Query newQuery(bool filter = true) const;
+    Result<QSqlQuery, QSqlError> exec(const QString &statement, const Query &query);
 
     friend class MetaProperty;
     friend class MetaRelation;

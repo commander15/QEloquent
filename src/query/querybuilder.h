@@ -3,6 +3,8 @@
 
 #include <QEloquent/global.h>
 
+class QIODevice;
+
 namespace QEloquent {
 
 class Query;
@@ -28,7 +30,8 @@ public:
     static QString formatValue(const QVariant &value, const Connection &connection);
     static QString formatValue(const QVariant &value, const QMetaType &type, const Connection &connection);
 
-    static QStringList statementsFromScript(const QString &fileName);
+    static QStringList statementsFromScriptFile(const QString &fileName);
+    static QStringList statementsFromScriptDevice(QIODevice *device);
     static QStringList statementsFromScriptContent(const QByteArray &content);
 };
 

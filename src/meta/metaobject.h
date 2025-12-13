@@ -2,6 +2,7 @@
 #define QELOQUENT_METAOBJECT_H
 
 #include <QEloquent/global.h>
+#include <QEloquent/metaproperty.h>
 
 #include <QSharedDataPointer>
 
@@ -14,7 +15,6 @@ class QSqlField;
 
 namespace QEloquent {
 
-class MetaProperty;
 class MetaRelation;
 class Model;
 class Connection;
@@ -23,10 +23,18 @@ class MetaObjectPrivate;
 class QELOQUENT_EXPORT MetaObject
 {
 public:
-    enum PropertyResolution {
+    enum PropertyNameResolution {
         ResolveByPropertyName,
         ResolveByFieldName
     };
+
+    enum PropertyFilterFlag {
+        StandardProperties = 0x1,
+        AppendedProperties = 0x2,
+        RelationProperties = 0x4,
+        AllProperties = StandardProperties | AppendedProperties | RelationProperties
+    };
+    Q_DECLARE_FLAGS(PropertyFilters, PropertyFilterFlag)
 
     MetaObject();
     MetaObject(const MetaObject &);
@@ -50,11 +58,19 @@ public:
     bool hasDeletionTimestamp() const;
     MetaProperty deletionTimestamp() const;
 
-    MetaProperty property(const QString &name, PropertyResolution resolution = ResolveByPropertyName) const;
+    MetaProperty property(const QString &name, PropertyNameResolution resolution = ResolveByPropertyName) const;
+    QList<MetaProperty> properties(MetaProperty::PropertyAttributes attributes,
+                                   PropertyFilters filters = AllProperties) const;
     QList<MetaProperty> properties() const;
 
+    QVariantMap readProperties(const Model *model,
+                               MetaProperty::PropertyAttributes attributes,
+                               PropertyFilters filters = AllProperties,
+                               PropertyNameResolution resolution = ResolveByPropertyName) const;
+    int writeProperties(Model *model, const QVariantMap &data, PropertyNameResolution resolution = ResolveByPropertyName) const;
+
     QVariantMap readFillableFields(const Model *model) const;
-    QVariantMap readAllFields(const Model *model, bool excludePrimary = false) const;
+    bool writeFillableFields(Model *model, const QVariantMap &data);
 
     QStringList hiddenFieldNames() const;
     QStringList fillableFieldNames() const;
@@ -75,7 +91,7 @@ private:
 
     QExplicitlySharedDataPointer<MetaObjectPrivate> d;
 
-    friend class MetaObjectBuilder;
+    friend class MetaObjectGenerator;
 };
 
 }

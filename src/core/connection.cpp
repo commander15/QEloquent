@@ -1,6 +1,5 @@
 #include "connection.h"
 
-#include <QMap>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>

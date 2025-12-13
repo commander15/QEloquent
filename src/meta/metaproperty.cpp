@@ -73,40 +73,47 @@ MetaProperty::PropertyType MetaProperty::propertyType() const
 
 QVariant MetaProperty::read(const Model *model) const
 {
-    if (!data->isReadable())
-        return QVariant();
-
-    if (data->metaProperty.isValid())
+    if (data->metaProperty.isValid() && data->metaProperty.isReadable())
         return data->metaProperty.readOnGadget(model);
 
-    if (data->getter.isValid())
-        return data->getter.invokeOnGadget(const_cast<Model *>(model));
+    if (data->getter.isValid()) {
+        QVariant value;
+        data->getter.invokeOnGadget(const_cast<Model *>(model), Q_RETURN_ARG(QVariant, value));
+        return value;
+    }
 
     return model->data->dynamicProperties.value(data->propertyName);
 }
 
 bool MetaProperty::write(Model *model, const QVariant &value) const
 {
-    if (!data->isWritable())
-        return false;
-
     if (data->metaProperty.isValid())
-        return data->metaProperty.writeOnGadget(model, value);
+        return (data->metaProperty.isWritable() ? data->metaProperty.writeOnGadget(model, value) : false);
+
+    if (data->getter.isValid() && data->propertyType == RelationProperty) {
+        QVariant relation;
+        data->getter.invokeOnGadget(model, Q_RETURN_ARG(QVariant, relation));
+        return false;
+    }
 
     if (data->setter.isValid())
         return data->setter.invokeOnGadget(model, value);
 
-    QVariantMap *properties = &model->data->dynamicProperties;
-    if ((!value.isValid() || value.isNull()) && properties->contains(data->propertyName))
-        properties->remove(data->propertyName);
-    else
-        properties->insert(data->propertyName, value);
-    return true;
+    if (data->propertyType != AppendedProperty) {
+        QVariantMap *properties = &model->data->dynamicProperties;
+        if ((!value.isValid() || value.isNull()) && properties->contains(data->propertyName))
+            properties->remove(data->propertyName);
+        else
+            properties->insert(data->propertyName, value);
+        return true;
+    }
+
+    return false;
 }
 
 bool MetaProperty::isValid() const
 {
-    return !data->propertyName.isEmpty() && data->metaType.isValid();
+    return !data->propertyName.isEmpty() && data->metaType.isValid() && data->isReadable();
 }
 
 } // namespace QEloquent

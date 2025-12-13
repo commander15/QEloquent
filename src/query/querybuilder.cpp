@@ -24,7 +24,7 @@ QString QueryBuilder::selectStatement(const QList<QPair<QString, QString>> &fiel
         if (item.second.isEmpty())
             return escapeFieldName(item.first, connection);
         else
-            return escapeFieldName(item.first, connection) + " AS " + escapeFieldName(item.second, connection);
+            return item.first + " AS " + escapeFieldName(item.second, connection);
     });
     return selectStatement(merged.join(", "), query);
 }
@@ -70,11 +70,10 @@ QString QueryBuilder::updateStatement(const QVariantMap &data, const Query &quer
 {
     const Connection connection = query.connection();
 
-    QStringList fields = data.keys();
+    const QStringList fields = data.keys();
     QStringList values;
-    std::for_each(fields.begin(), fields.end(), [&connection, &values, &data](QString &field) {
-        values.append(formatValue(data.value(field), connection));
-        field = escapeFieldName(field, connection);
+    std::transform(fields.begin(), fields.end(), std::back_inserter(values), [&connection, &data](const QString &field) {
+        return escapeFieldName(field, connection) + " = " + formatValue(data.value(field), connection);
     });
 
     QString statement = "UPDATE " + escapeTableName(query.tableName(), connection);
@@ -133,13 +132,18 @@ QString QueryBuilder::formatValue(const QVariant &value, const QMetaType &type, 
     return connection.database().driver()->formatValue(field);
 }
 
-QStringList QueryBuilder::statementsFromScript(const QString &fileName)
+QStringList QueryBuilder::statementsFromScriptFile(const QString &fileName)
 {
     QFile file(fileName);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
         return statementsFromScriptContent(file.readAll());
     else
         return QStringList();
+}
+
+QStringList QueryBuilder::statementsFromScriptDevice(QIODevice *device)
+{
+    return statementsFromScriptContent(device->readAll());
 }
 
 QStringList QueryBuilder::statementsFromScriptContent(const QByteArray &content)

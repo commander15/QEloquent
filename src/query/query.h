@@ -47,6 +47,7 @@ public:
     Query &with(const QStringList &relations);
 
     Connection connection() const;
+    QString connectionName() const;
     Query &connection(const QString &connectionName);
 
     bool hasWhere() const;

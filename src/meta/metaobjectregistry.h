@@ -10,9 +10,11 @@ class MetaObject;
 class QELOQUENT_EXPORT MetaObjectRegistry
 {
 public:
+    static bool contains(const QString &className);
+    static MetaObject metaObject(const QString &className);
+
     static MetaObject tableMetaObject(const QString &tableName);
     static MetaObject tableMetaObject(const QString &tableName, const QString &connectionName);
-    //static MetaObject classMetaObject(const QString &className);
     static void registerMetaObject(const MetaObject &object);
 
 private:

@@ -33,8 +33,7 @@ std::expected<bool, QSqlError> Test::seed()
 
 std::expected<bool, QSqlError> Test::exec(const QString &sqlFileName)
 {
-    const QByteArray script = readFile(sqlFileName);
-    const QStringList statements = QEloquent::QueryBuilder::statementsFromScript(script);
+    const QStringList statements = QEloquent::QueryBuilder::statementsFromScriptFile(sqlFileName);
 
     for (const QString &statement : statements) {
         auto result = QEloquent::QueryRunner::exec(statement, connection);

@@ -18,7 +18,7 @@ public:
 
     virtual ~Entity() = default;
 
-    virtual bool exists() const = 0;
+    virtual bool exists() = 0;
     virtual bool get() = 0;
 
     virtual bool save() { return (exists() ? update() : insert()); }

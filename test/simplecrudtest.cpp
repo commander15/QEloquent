@@ -1,6 +1,7 @@
 #include "simplecrudtest.h"
 
-#include <QEloquent/genericmodel.h>
+#include "product.h"
+
 #include <QEloquent/queryrunner.h>
 
 #include <QVariant>
@@ -12,26 +13,39 @@ using namespace QEloquent;
 
 TEST_F(SimpleCRUDTest, metadataRetrieval)
 {
-    auto migrationResult = migrate();
-    ASSERT_TRUE(migrationResult) << "Migration failed";
-
-    RegisterProductModel(true);
+    const MetaObject product = Product::make().metaObject();
 
     const std::list<std::string> fillables = {
         "name", "description", "price", "barcode", "category_id"
     };
+
+    const std::list<std::string> hidden = {
+        "category_id"
+    };
+
     const std::list<std::string> fields = {
         "id", "name", "description", "price", "barcode",
         "category_id", "created_at", "updated_at"
     };
 
-    const ModelInfo product = connection.modelInfo("Products");
-    ASSERT_EQ(TEST_STR(product.table()), "Products");
-    ASSERT_EQ(TEST_STR(product.primaryKey()), "id");
-    ASSERT_EQ(TEST_STR(product.foreignKey()), "product_id");
-    ASSERT_EQ(TEST_STR_LIST(product.hidden()), std::list<std::string>());
-    ASSERT_EQ(TEST_STR_LIST(product.fillables()), fillables);
-    ASSERT_EQ(TEST_STR_LIST(product.fields()), fields);
+    auto fieldNames = [](const QList<MetaProperty> &properties) {
+        QStringList names;
+        std::transform(properties.begin(), properties.end(), std::back_inserter(names), [](const MetaProperty &property) {
+            return property.fieldName();
+        });
+        return names;
+    };
+
+    ASSERT_EQ(TEST_STR(product.className()), "Product");
+    ASSERT_EQ(TEST_STR(product.tableName()), "Products");
+    ASSERT_EQ(TEST_STR(product.primaryProperty().fieldName()), "id");
+    ASSERT_EQ(TEST_STR(product.foreignProperty().fieldName()), "product_id");
+    ASSERT_EQ(TEST_STR(product.creationTimestamp().fieldName()), "created_at");
+    ASSERT_EQ(TEST_STR(product.updateTimestamp().fieldName()), "updated_at");
+    ASSERT_EQ(TEST_STR_LIST(fieldNames(product.properties(MetaProperty::FillableProperty))), fillables);
+    ASSERT_EQ(TEST_STR_LIST(fieldNames(product.properties(MetaProperty::HiddenProperty))), hidden);
+    ASSERT_EQ(TEST_STR_LIST(fieldNames(product.properties())), fields);
+    ASSERT_EQ(TEST_STR(product.connectionName()), "DB");
 }
 
 TEST_F(SimpleCRUDTest, retrievingSingleModel)
@@ -40,15 +54,15 @@ TEST_F(SimpleCRUDTest, retrievingSingleModel)
     auto seedingResult = seed();
     ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
 
-    auto result = Generic<"Products">::find(1);
+    auto result = Product::find(1);
     ASSERT_TRUE(result) << (result ? "" : TEST_STR(result.error().text()));
 
-    const GenericModel product = result.value();
-    ASSERT_EQ(TEST_STR(product.value("name").toString()), "Apple");
-    ASSERT_EQ(TEST_STR(product.value("description").toString()), "Fresh red apple");
-    ASSERT_EQ(product.value("price").toDouble(), 0.50);
-    ASSERT_EQ(TEST_STR(product.value("barcode").toString()), "1234567890123");
-    ASSERT_EQ(product.value("category_id").toInt(), 1);
+    const Product product = result.value();
+    ASSERT_EQ(TEST_STR(product.property("name").toString()), "Apple");
+    ASSERT_EQ(TEST_STR(product.property("description").toString()), "Fresh red apple");
+    ASSERT_EQ(product.property("price").toDouble(), 0.50);
+    ASSERT_EQ(TEST_STR(product.property("barcode").toString()), "1234567890123");
+    ASSERT_EQ(product.property("categoryId").toInt(), 1);
 }
 
 TEST_F(SimpleCRUDTest, creatingSingleModel)
@@ -64,7 +78,7 @@ TEST_F(SimpleCRUDTest, creatingSingleModel)
     object.insert("category_id", 1);
 
     // Storing data
-    auto result = Generic<"Products">::create(object);
+    auto result = Product::create(object);
     ASSERT_TRUE(result) << (result ? "" : TEST_STR(result.error().text()));
 
     // Cheking if data had been stored though SQL
@@ -88,7 +102,7 @@ TEST_F(SimpleCRUDTest, editSingleModel)
     ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
 
     // Retrieving first
-    auto result = Generic<"Products">::find(1);
+    auto result = Product::find(1);
     ASSERT_TRUE(result) << (result ? "" : TEST_STR(result.error().text()));
 
     // Filling data
@@ -98,9 +112,9 @@ TEST_F(SimpleCRUDTest, editSingleModel)
     object.insert("description", "Fresh oranges");
 
     // Storing
-    Model product = result.value();
+    Product product = result.value();
     product.fill(object);
-    ASSERT_TRUE(product.save()) << (product.exists() ? "" : TEST_STR(product.lastError().text()));
+    ASSERT_TRUE(product.save()) << TEST_STR(product.lastError().text());
 
     // Cheking if data had been stored though SQL
     QString statement = "SELECT * FROM Products WHERE id = 1";
@@ -121,10 +135,10 @@ TEST_F(SimpleCRUDTest, deleteSingleModel)
     auto seedingResult = seed();
     ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
 
-    ModelQuery query;
+    Query query;
     query.where("id", 1);
 
-    auto result = Generic<"Products">::remove(query);
+    auto result = Product::remove(query);
     ASSERT_TRUE(result) << (result ? "" : TEST_STR(result.error().text()));
 
     ASSERT_EQ(result.value(), 1);
@@ -142,7 +156,7 @@ TEST_F(SimpleCRUDTest, countTest)
     auto seedingResult = seed();
     ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
 
-    auto result = Generic<"Products">::count();
+    auto result = Product::count();
     ASSERT_TRUE(result) << (result ? "" : TEST_STR(result.error().text()));
     ASSERT_EQ(result.value(), 3);
 

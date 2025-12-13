@@ -19,11 +19,13 @@ public:
     virtual QString foreignFieldName(const QString &primaryFieldName, const QString &tableName) const = 0;
 
     virtual QString propertyName(const QString &fieldName, const QString &tableName) const = 0;
-    virtual QString foreignPropertyName(const QString &primaryFieldName, const QString &tableName) const;
+    virtual QString foreignPropertyName(const QString &primaryPropertyName, const QString &className) const;
 
     static NamingConvention *convention(const QString &name = QStringLiteral("Laravel"));
 
+    static QString pascalFromCamel(const QString &str);
     static QString pascalFromSnake(const QString &str);
+    static QString camelFromPascal(const QString &str);
     static QString camelFromSnake(const QString &str);
     static QString snakeFromPascal(const QString &str);
     static QString snakeFromCamel(const QString &str);

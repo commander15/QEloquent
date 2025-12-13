@@ -51,6 +51,7 @@ public:
     QVariant read(const Model *model) const;
     bool write(Model *model, const QVariant &value) const;
 
+    bool isWritable() const;
     bool isValid() const;
 
     bool operator==(const MetaProperty &other) const;
@@ -61,6 +62,7 @@ private:
     QExplicitlySharedDataPointer<MetaPropertyData> data;
 
     friend class MetaObject;
+    friend class MetaObjectGenerator;
 };
 
 } // namespace QEloquent

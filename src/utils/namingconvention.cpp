@@ -3,9 +3,22 @@
 
 namespace QEloquent {
 
+QString NamingConvention::foreignPropertyName(const QString &primaryPropertyName, const QString &className) const
+{
+    return camelFromPascal(className) + pascalFromCamel(primaryPropertyName);
+}
+
 NamingConvention *NamingConvention::convention(const QString &name)
 {
     return s_conventions.value(name, s_conventions.value(name, nullptr));
+}
+
+QString NamingConvention::pascalFromCamel(const QString &str)
+{
+    QString camel = str;
+    if (!camel.isEmpty())
+        camel[0] = camel.at(0).toUpper();
+    return camel;
 }
 
 QString NamingConvention::pascalFromSnake(const QString &str)
@@ -32,6 +45,15 @@ QString NamingConvention::pascalFromSnake(const QString &str)
         result[0] = result[0].toUpper();
     }
     return result;
+}
+
+QString NamingConvention::camelFromPascal(const QString &str)
+{
+    QString pascal = str;
+    if (!pascal.isEmpty()) {
+        pascal[0] = pascal[0].toLower();
+    }
+    return pascal;
 }
 
 QString NamingConvention::camelFromSnake(const QString &str)

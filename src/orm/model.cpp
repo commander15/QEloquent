@@ -26,19 +26,6 @@ Model::Model(ModelData *data)
     : data(data)
 {}
 
-Query Model::newQuery(bool filter) const
-{
-    Query query;
-    query.table(data->metaObject.tableName())
-        .connection(data->metaObject.connectionName());
-
-    const MetaProperty primaryProperty = data->metaObject.primaryProperty();
-    const QVariant primary = primaryProperty.read(this);
-    if (filter)
-        query.where(primaryProperty.fieldName(), primary);
-    return query;
-}
-
 Model::Model(const Model &rhs)
     : data{rhs.data}
 {}
@@ -77,24 +64,36 @@ void Model::setPrimary(const QVariant &value)
 QVariant Model::property(const QString &name) const
 {
     MODEL_DATA(const Model);
-    return data.metaObject.property(name).read(this);
+    const MetaProperty property = data.metaObject.property(name);
+    return (property.isValid() ? property.read(this) : data.dynamicProperties.value(name));
 }
 
 void Model::setProperty(const QString &name, const QVariant &value)
 {
     MODEL_DATA(Model);
-    data.metaObject.property(name).write(this, value);
+    const MetaProperty property = data.metaObject.property(name);
+    if (property.isValid())
+        property.write(this, value);
+    else if (value.isNull() && data.dynamicProperties.contains(name))
+        data.dynamicProperties.remove(name);
+    else
+        data.dynamicProperties.insert(name, value);
+}
+
+void Model::fill(const QVariantMap &values)
+{
+    MODEL_DATA(Model);
+    const QStringList fields = values.keys();
+    for (const QString &field : fields) {
+        const MetaProperty property = data.metaObject.property(field, MetaObject::ResolveByFieldName);
+        if (property.isValid())
+            property.write(this, values.value(field));
+    }
 }
 
 void Model::fill(const QJsonObject &object)
 {
-    MODEL_DATA(Model);
-    const QStringList fields = object.keys();
-    for (const QString &field : fields) {
-        const MetaProperty property = data.metaObject.property(field, MetaObject::ResolveByFieldName);
-        if (property.isValid())
-            property.write(this, object.value(field));
-    }
+    fill(object.toVariantMap());
 }
 
 void Model::fill(const QSqlRecord &record)
@@ -107,10 +106,14 @@ void Model::fill(const QSqlRecord &record)
     }
 }
 
-bool Model::exists() const
+bool Model::exists()
 {
-    MODEL_DATA(const Model);
-    return primary().isValid();
+    const Query query = newQuery(true);
+    auto result = exec(QueryBuilder::selectStatement("COUNT(1)", query), query);
+    if (result && result->next())
+        return result->value(0).toInt() > 0;
+    else
+        return false;
 }
 
 bool Model::get()
@@ -122,11 +125,8 @@ bool Model::get()
         return false;
     }
 
-    Query query = newQuery(true);
-    data.lastQuery = query;
-
-    const QString statement = QueryBuilder::selectStatement(query);
-    auto result = QueryRunner::exec(statement, data.metaObject.connection());
+    const Query query = newQuery(true);
+    auto result = exec(QueryBuilder::selectStatement(query), query);
 
     if (result) {
         if (result->next()) {
@@ -148,11 +148,8 @@ bool Model::insert()
 
     const QVariantMap values = data.metaObject.readFillableFields(this);
 
-    Query query;
-    query.table(data.metaObject.tableName()).connection(data.metaObject.connectionName());
-
-    const QString statement = QueryBuilder::insertStatement(values, query);
-    auto result = QueryRunner::exec(statement, data.metaObject.connection());
+    const Query query = newQuery(true);
+    auto result = exec(QueryBuilder::insertStatement(values, query), query);
 
     if (result) {
         setPrimary(result->lastInsertId());
@@ -168,13 +165,8 @@ bool Model::update()
 
     const QVariantMap values = data.metaObject.readFillableFields(this);
 
-    Query query;
-    query.table(data.metaObject.tableName()).connection(data.metaObject.connectionName());
-    query.where(data.metaObject.primaryProperty().fieldName(), primary());
-
-    const QString statement = QueryBuilder::updateStatement(values, query);
-
-    auto result = QueryRunner::exec(statement, data.metaObject.connection());
+    const Query query = newQuery(true);
+    auto result = exec(QueryBuilder::updateStatement(values, query), query);
     return (result ? result->numRowsAffected() > 0 : false);
 }
 
@@ -182,12 +174,8 @@ bool Model::deleteData()
 {
     MODEL_DATA(Model);
 
-    Query query;
-    query.where(data.metaObject.primaryProperty().fieldName(), primary());
-
-    const QString statement = QueryBuilder::deleteStatement(query);
-
-    auto result = QueryRunner::exec(statement, data.metaObject.connection());
+    const Query query = newQuery(true);
+    auto result = exec(QueryBuilder::deleteStatement(query), query);
     return (result ? result->numRowsAffected() > 0 : false);
 }
 
@@ -225,6 +213,11 @@ Error Model::lastError() const
     return data.lastError;
 }
 
+MetaObject Model::metaObject() const
+{
+    return data->metaObject;
+}
+
 Connection Model::connection() const
 {
     MODEL_DATA(const Model);
@@ -239,6 +232,31 @@ QJsonObject Model::toJsonObject() const
 QSqlRecord Model::toSqlRecord() const
 {
     return QSqlRecord();
+}
+
+Query Model::newQuery(bool filter) const
+{
+    Query query;
+    query.table(data->metaObject.tableName())
+        .connection(data->metaObject.connectionName());
+
+    if (filter) {
+        const MetaProperty primaryProperty = data->metaObject.primaryProperty();
+        const QVariant primary = primaryProperty.read(this);
+        query.where(primaryProperty.fieldName(), primary);
+    }
+
+    return query;
+}
+
+Result<QSqlQuery, QSqlError> Model::exec(const QString &statement, const Query &query)
+{
+    data->lastQuery = query;
+
+    auto result = QueryRunner::exec(statement, query.connection());
+    if (!result)
+        data->lastError = Error::fromSqlError(result.error());
+    return result;
 }
 
 } // namespace QEloquent

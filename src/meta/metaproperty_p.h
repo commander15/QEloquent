@@ -23,10 +23,10 @@ public:
     QMetaMethod setter;
 
     bool isReadable() const
-    { return !propertyName.isEmpty(); }
+    { return (metaProperty.isValid() && metaProperty.isReadable()) || getter.isValid(); }
 
     bool isWritable() const
-    { return !propertyName.isEmpty() && propertyType != MetaProperty::AppendedProperty; }
+    { return (metaProperty.isValid() && metaProperty.isWritable()) || setter.isValid() || propertyType == MetaProperty::RelationProperty; }
 };
 
 }

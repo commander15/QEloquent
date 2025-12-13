@@ -16,33 +16,16 @@ public:
     virtual ~MetaObjectPrivate() = default;
 
     QString tableName;
-    MetaProperty primaryProperty;
-    MetaProperty foreignProperty;
-    MetaProperty creationTimestamp;
-    MetaProperty updateTimestamp;
-    MetaProperty deletionTimestamp;
+
+    int primaryPropertyIndex = -1;
+    int creationTimestampIndex = -1;
+    int updateTimestampIndex = -1;
+    int deletionTimestampIndex = -1;
     QList<MetaProperty> properties;
+    MetaProperty foreignProperty;
     QString connectionName;
 
     const QMetaObject *metaObject = nullptr;
-
-    bool hasProperty(const QString &name) const
-    {
-        auto it = std::find_if(properties.begin(), properties.end(), [&name](const MetaProperty &property) {
-            return property.propertyName() == name;
-        });
-
-        return (it == properties.end() ? false : true);
-    }
-
-    MetaProperty property(const QString &name) const
-    {
-        auto it = std::find_if(properties.begin(), properties.end(), [&name](const MetaProperty &property) {
-            return property.propertyName() == name;
-        });
-
-        return (it == properties.end() ? MetaProperty() : *it);
-    }
 };
 
 }
