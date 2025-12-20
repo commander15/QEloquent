@@ -16,6 +16,7 @@ class ModelData : public QSharedData
 {
 public:
     QVariantMap dynamicProperties;
+    QMap<QString, QExplicitlySharedDataPointer<RelationData>> relationData;
     MetaObject metaObject;
 
     Query lastQuery;

@@ -4,6 +4,8 @@
 #include <QEloquent/model.h>
 #include <QEloquent/modelhelpers.h>
 
+class Stock;
+
 class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
 {
     Q_GADGET
@@ -19,9 +21,12 @@ class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
     Q_CLASSINFO("fillable", "name, description, price, barcode, categoryId")
     Q_CLASSINFO("hidden", "categoryId")
     Q_CLASSINFO("table", "Products")
+    Q_CLASSINFO("append", "stock")
 
 public:
     Product();
+
+    Q_INVOKABLE Stock stock() const;
 
     int id = 0;
     QString name;
@@ -29,6 +34,25 @@ public:
     double price = 0.0;
     QString barcode;
     int categoryId = 0;
+    QString createdAt;
+    QString updatedAt;
+};
+
+class Stock : public QEloquent::Model, public QEloquent::ModelHelpers<Stock>
+{
+    Q_GADGET
+    Q_PROPERTY(int id MEMBER id)
+    Q_PROPERTY(int productId MEMBER productId)
+    Q_PROPERTY(QString createdAt MEMBER createdAt)
+    Q_PROPERTY(QString updatedAt MEMBER updatedAt)
+
+    Q_CLASSINFO("table", "Stocks")
+
+public:
+    Stock();
+
+    int id = 0;
+    int productId = 0;
     QString createdAt;
     QString updatedAt;
 };

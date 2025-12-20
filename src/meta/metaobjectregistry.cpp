@@ -10,7 +10,7 @@ namespace QEloquent {
 bool MetaObjectRegistry::contains(const QString &className)
 {
     auto it = std::find_if(s_metaObjects.constBegin(), s_metaObjects.constEnd(), [&className](const MetaObject &metaObject) {
-        return metaObject.className() == metaObject.className();
+        return metaObject.className() == className;
     });
 
     return (it == s_metaObjects.end() ? false : true);
@@ -19,7 +19,7 @@ bool MetaObjectRegistry::contains(const QString &className)
 MetaObject MetaObjectRegistry::metaObject(const QString &className)
 {
     auto it = std::find_if(s_metaObjects.constBegin(), s_metaObjects.constEnd(), [&className](const MetaObject &metaObject) {
-        return metaObject.className() == metaObject.className();
+        return metaObject.className() == className;
     });
 
     return (it == s_metaObjects.constEnd() ? MetaObject() : *it);

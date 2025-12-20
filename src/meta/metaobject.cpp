@@ -274,7 +274,7 @@ bool MetaObject::isValid() const
 MetaObject MetaObject::fromQtMetaObject(const QMetaObject &metaObject)
 {
     static MetaObjectGenerator generator;
-    return generator.generate(metaObject);
+    return generator.generate(metaObject, true);
 }
 
 }

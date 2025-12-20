@@ -4,6 +4,7 @@
 #include <QEloquent/global.h>
 #include <QEloquent/entity.h>
 #include <QEloquent/result.h>
+#include <QEloquent/relation.h>
 
 #include <QObject>
 #include <QSharedDataPointer>
@@ -18,9 +19,6 @@ class MetaObject;
 class Query;
 class Error;
 class Connection;
-
-template<typename T>
-using Relation = QList<T>;
 
 class ModelData;
 class QELOQUENT_EXPORT Model : public Entity
@@ -68,8 +66,10 @@ protected:
     Model(ModelData *data);
 
     template<typename T>
-    Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString()) const
-    { return Relation<T>(); }
+    Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
+
+    template<typename T>
+    Relation<T> belongsTo() const;
 
     QSharedDataPointer<ModelData> data;
 
@@ -80,8 +80,16 @@ private:
     Result<QSqlQuery, QSqlError> exec(const QString &statement, const Query &query);
 
     friend class MetaProperty;
-    friend class MetaRelation;
+    friend class RelationData;
 };
+
+template<typename T>
+inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey) const
+{ return Relation<T>(); }
+
+template<typename T>
+inline Relation<T> Model::belongsTo() const
+{ return Relation<T>(); }
 
 template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
 inline Model::Model(T *) : Model(T::staticMetaObject) {}

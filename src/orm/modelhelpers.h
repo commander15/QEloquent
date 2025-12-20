@@ -19,7 +19,7 @@ template<typename Model>
 class ModelMaker {
 public:
     static Model make() { return Model(); }
-    static MetaObject metaObject() { return Model().metaObject(); }
+    static MetaObject metaObject() { return MetaObject::fromQtMetaObject(Model::staticMetaObject); }
 };
 
 template<typename Model, typename Maker = ModelMaker<Model>>

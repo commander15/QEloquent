@@ -65,7 +65,8 @@ MetaObjectGenerator::MetaObjectGenerator()
 MetaObject MetaObjectGenerator::generate(const QMetaObject &modelMetaObject, bool cache)
 {
     // If the meta object is already registered, we just return the cached version
-    if (MetaObjectRegistry::contains(modelMetaObject.className()))
+    const QString className(modelMetaObject.className());
+    if (MetaObjectRegistry::contains(className))
         return MetaObjectRegistry::metaObject(modelMetaObject.className());
 
     // We generate the meta object for first time use

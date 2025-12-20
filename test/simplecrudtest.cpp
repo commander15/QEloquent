@@ -63,6 +63,9 @@ TEST_F(SimpleCRUDTest, retrievingSingleModel)
     ASSERT_EQ(product.property("price").toDouble(), 0.50);
     ASSERT_EQ(TEST_STR(product.property("barcode").toString()), "1234567890123");
     ASSERT_EQ(product.property("categoryId").toInt(), 1);
+
+    const Stock stock = product.stock();
+    ASSERT_EQ(stock.id, 1);
 }
 
 TEST_F(SimpleCRUDTest, creatingSingleModel)
