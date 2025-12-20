@@ -17,6 +17,7 @@ namespace QEloquent {
 
 class MetaRelation;
 class Model;
+class NamingConvention;
 class Connection;
 
 class MetaObjectPrivate;
@@ -76,6 +77,9 @@ public:
     QStringList fillableFieldNames() const;
     QStringList appendFieldNames() const;
     QStringList relations() const;
+
+    NamingConvention *namingConvention() const;
+    QString nammingConventionName() const;
 
     QString connectionName() const;
     Connection connection() const;

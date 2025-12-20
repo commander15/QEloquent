@@ -249,7 +249,7 @@ Query Model::newQuery(bool filter) const
     return query;
 }
 
-Result<QSqlQuery, QSqlError> Model::exec(const QString &statement, const Query &query)
+Result<::QSqlQuery, ::QSqlError> Model::exec(const QString &statement, const Query &query)
 {
     data->lastQuery = query;
 

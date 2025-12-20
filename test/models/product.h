@@ -5,6 +5,7 @@
 #include <QEloquent/modelhelpers.h>
 
 class Stock;
+class Category;
 
 class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
 {
@@ -21,12 +22,12 @@ class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
     Q_CLASSINFO("fillable", "name, description, price, barcode, categoryId")
     Q_CLASSINFO("hidden", "categoryId")
     Q_CLASSINFO("table", "Products")
-    Q_CLASSINFO("append", "stock")
 
 public:
     Product();
 
-    Q_INVOKABLE Stock stock() const;
+    QEloquent::Relation<Stock> stock() const;
+    QEloquent::Relation<Category> category() const;
 
     int id = 0;
     QString name;
@@ -51,10 +52,31 @@ class Stock : public QEloquent::Model, public QEloquent::ModelHelpers<Stock>
 public:
     Stock();
 
+    QEloquent::Relation<Product> product() const;
+
     int id = 0;
     int productId = 0;
     QString createdAt;
     QString updatedAt;
+};
+
+class Category : public QEloquent::Model, public QEloquent::ModelHelpers<Category>
+{
+    Q_GADGET
+    Q_PROPERTY(int id MEMBER id)
+    Q_PROPERTY(QString name MEMBER name)
+    Q_PROPERTY(QString description MEMBER description)
+
+    Q_CLASSINFO("table", "Categories")
+
+public:
+    Category();
+
+    QEloquent::Relation<Product> products() const;
+
+    int id = 0;
+    QString name;
+    QString description;
 };
 
 #endif // PRODUCT_H

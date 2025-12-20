@@ -12,6 +12,10 @@ QExplicitlySharedDataPointer<RelationData> RelationData::fromParentModel(const Q
         return d->relationData.value(name);
     } else {
         auto p = QExplicitlySharedDataPointer<RelationData>(creationCallback());
+        if (p) {
+            p->parent = parent;
+            p->primaryObject = parent->metaObject();
+        }
         d->relationData.insert(name, p);
         return p;
     }

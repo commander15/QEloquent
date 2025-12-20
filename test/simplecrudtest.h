@@ -1,7 +1,7 @@
 #ifndef SIMPLECRUDTEST_H
 #define SIMPLECRUDTEST_H
 
-#include <test.h>
+#include "core/test.h"
 
 class SimpleCRUDTest : public Test
 {

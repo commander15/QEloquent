@@ -1,7 +1,7 @@
 #ifndef QUERYGENERATIONTEST_H
 #define QUERYGENERATIONTEST_H
 
-#include "test.h"
+#include "core/test.h"
 
 #include <QEloquent/metaobject.h>
 

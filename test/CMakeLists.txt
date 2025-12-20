@@ -4,13 +4,17 @@ set(TEST_DATA ${PROJECT_SOURCE_DIR}/testdata)
 find_package(GTest REQUIRED)
 
 qt_add_executable(QEloquentTest main.cpp
-    test.h test.cpp
+    main.cpp
+    core/test.h core/test.cpp
     simplecrudtest.h simplecrudtest.cpp
+    relationtest.h relationtest.cpp
     querygenerationtest.h querygenerationtest.cpp
-    testmodel.h testmodel.cpp
-    user.h user.cpp
-    product.h product.cpp
+    models/testmodel.h models/testmodel.cpp
+    models/user.h models/user.cpp
+    models/product.h models/product.cpp
 )
+
+target_include_directories(QEloquentTest PRIVATE . core models)
 
 target_link_libraries(QEloquentTest PRIVATE GTest::gtest QEloquent Qt::Test)
 

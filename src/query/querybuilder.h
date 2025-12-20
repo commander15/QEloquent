@@ -33,6 +33,8 @@ public:
     static QStringList statementsFromScriptFile(const QString &fileName);
     static QStringList statementsFromScriptDevice(QIODevice *device);
     static QStringList statementsFromScriptContent(const QByteArray &content);
+
+    static QString singularise(const QString &word);
 };
 
 } // namespace QEloquent

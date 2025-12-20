@@ -5,9 +5,8 @@ add_subdirectory(utils)
 add_subdirectory(query)
 add_subdirectory(meta)
 add_subdirectory(orm)
-add_subdirectory(relation)
-#add_subdirectory(generic)
-#add_subdirectory(model)
+#add_subdirectory(relation)
+
 
 target_compile_definitions(QEloquent
     PUBLIC

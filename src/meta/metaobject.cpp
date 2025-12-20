@@ -3,6 +3,7 @@
 
 #include <QEloquent/metaproperty.h>
 #include <QEloquent/metaobjectgenerator.h>
+#include <QEloquent/namingconvention.h>
 #include <QEloquent/connection.h>
 #include <QEloquent/private/metaproperty_p.h>
 
@@ -254,6 +255,16 @@ QStringList MetaObject::appendFieldNames() const
 QStringList MetaObject::relations() const
 {
     return QStringList();
+}
+
+NamingConvention *MetaObject::namingConvention() const
+{
+    return NamingConvention::convention(d->namingConvention);
+}
+
+QString MetaObject::nammingConventionName() const
+{
+    return d->namingConvention;
 }
 
 QString MetaObject::connectionName() const

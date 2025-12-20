@@ -1,6 +1,7 @@
 #include "simplecrudtest.h"
-
-#include "product.h"
+#include "models/product.h"
+#include "models/user.h"
+#include "models/testmodel.h"
 
 #include <QEloquent/queryrunner.h>
 
@@ -64,7 +65,9 @@ TEST_F(SimpleCRUDTest, retrievingSingleModel)
     ASSERT_EQ(TEST_STR(product.property("barcode").toString()), "1234567890123");
     ASSERT_EQ(product.property("categoryId").toInt(), 1);
 
-    const Stock stock = product.stock();
+    auto stockRelation = product.stock();
+    ASSERT_TRUE(stockRelation.get());
+    const Stock stock = stockRelation.related().first();
     ASSERT_EQ(stock.id, 1);
 }
 

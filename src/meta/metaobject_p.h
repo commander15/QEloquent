@@ -25,6 +25,7 @@ public:
     MetaProperty foreignProperty;
     QString connectionName;
 
+    QString namingConvention = QStringLiteral("Laravel");
     const QMetaObject *metaObject = nullptr;
 };
 

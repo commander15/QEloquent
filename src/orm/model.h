@@ -69,27 +69,62 @@ protected:
     Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
 
     template<typename T>
-    Relation<T> belongsTo() const;
+    Relation<T> belongsTo(const QString &foreignKey = QString(), const QString &ownerKey = QString()) const;
+
+    template<typename T>
+    Relation<T> hasMany(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
 
     QSharedDataPointer<ModelData> data;
 
 private:
-    //RelationBase relation(RelationImpl *) const;
-
     Query newQuery(bool filter = true) const;
-    Result<QSqlQuery, QSqlError> exec(const QString &statement, const Query &query);
+    Result<::QSqlQuery, ::QSqlError> exec(const QString &statement, const Query &query);
 
     friend class MetaProperty;
     friend class RelationData;
 };
 
-template<typename T>
-inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey) const
-{ return Relation<T>(); }
+} // namespace QEloquent
+
+#include "relation_impl.h"
+
+namespace QEloquent {
 
 template<typename T>
-inline Relation<T> Model::belongsTo() const
-{ return Relation<T>(); }
+inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey) const
+{
+    return Relation<T>("hasOne", const_cast<Model *>(this), [=]() {
+        auto d = new HasOneRelationData<T>();
+        d->name = "hasOne";
+        d->foreignKey = foreignKey;
+        d->localKey = localKey;
+        return d;
+    });
+}
+
+template<typename T>
+inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &localKey) const
+{
+    return Relation<T>("hasMany", const_cast<Model *>(this), [=]() {
+        auto d = new HasManyRelationData<T>();
+        d->name = "hasMany";
+        d->foreignKey = foreignKey;
+        d->localKey = localKey;
+        return d;
+    });
+}
+
+template<typename T>
+inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ownerKey) const
+{
+    return Relation<T>("belongsTo", const_cast<Model *>(this), [=]() {
+        auto d = new BelongsToRelationData<T>;
+        d->name = "belongsTo";
+        d->foreignKey = foreignKey;
+        d->ownerKey = ownerKey;
+        return d;
+    });
+}
 
 template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
 inline Model::Model(T *) : Model(T::staticMetaObject) {}

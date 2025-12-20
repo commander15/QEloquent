@@ -2,7 +2,7 @@
 #include "metaproperty_p.h"
 
 #include <QEloquent/model.h>
-#include <QEloquent/private/model_p.h>
+#include "../orm/model_p.h"
 
 #include <QMetaType>
 #include <QVariant>

@@ -1,5 +1,5 @@
-#ifndef QLOQUENT_MODEL_P_H
-#define QLOQUENT_MODEL_P_H
+#ifndef QLOQUENT_ORM_MODEL_P_H
+#define QLOQUENT_ORM_MODEL_P_H
 
 #include "model.h"
 
@@ -25,4 +25,4 @@ public:
 
 } // namespace QELoquent
 
-#endif // QLOQUENT_MODEL_P_H
+#endif // QLOQUENT_ORM_MODEL_P_H
