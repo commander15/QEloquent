@@ -15,32 +15,60 @@
 
 namespace QEloquent {
 
+/**
+ * @brief Internal helper to create model instances and access metadata.
+ * @tparam Model The model type.
+ */
 template<typename Model>
 class ModelMaker {
 public:
+    /** @brief Creates a default model instance */
     static Model make() { return Model(); }
+    /** @brief Returns the MetaObject for the model type */
     static MetaObject metaObject() { return MetaObject::fromQtMetaObject(Model::staticMetaObject); }
 };
 
+/**
+ * @brief Provides static CRUD and query helpers for Model types.
+ * 
+ * This class is intended to be used via multiple inheritance in your models:
+ * @code
+ * struct User : public Model, public ModelHelpers<User> { ... };
+ * @endcode
+ * 
+ * @tparam Model The model type.
+ * @tparam Maker Creation strategy (defaults to ModelMaker<Model>).
+ */
 template<typename Model, typename Maker = ModelMaker<Model>>
 class ModelHelpers
 {
 public:
+    /** @brief Creates a model instance with optional JSON data */
     static Model make(const QJsonObject &object = QJsonObject());
+    /** @brief Creates a list of model instances from a list of JSON objects */
     static QList<Model> make(const QList<QJsonObject> &objects);
 
+    /** @brief Finds a model by its primary key */
     static Result<Model, Error> find(const QVariant &primary);
+    /** @brief Finds models matching the given query */
     static Result<QList<Model>, Error> find(Query query);
 
+    /** @brief Returns the number of records matching the query */
     static Result<int, Error> count(Query query = Query());
 
+    /** @brief Creates and persists a new model from JSON data */
     static Result<Model, Error> create(const QJsonObject &object);
+    /** @brief Creates and persists multiple models from JSON data */
     static Result<QList<Model>, Error> create(const QList<QJsonObject> &objects);
 
+    /** @brief Deletes records matching the given query */
     static Result<int, Error> remove(Query query);
 
+    /** @brief Returns a new Query object initialized for this model's table */
     static Query query();
+    /** @brief Configures a Query object for this model's table and connection */
     static Query &fixQuery(Query &query);
+    /** @brief Configures a Query object using a specific MetaObject */
     static Query &fixQuery(Query &query, const MetaObject &metaObject);
 };
 

@@ -1,0 +1,36 @@
+PROJECT_NAME           = "@PROJECT_NAME@"
+PROJECT_NUMBER         = "@PROJECT_VERSION@"
+STRIP_FROM_PATH        = @PROJECT_SOURCE_DIR@
+INPUT                  = @PROJECT_SOURCE_DIR@/README.md \
+                         @PROJECT_SOURCE_DIR@/src/orm \
+                         @PROJECT_SOURCE_DIR@/src/core \
+                         @PROJECT_SOURCE_DIR@/src/query \
+                         @PROJECT_SOURCE_DIR@/src/utils \
+                         @PROJECT_SOURCE_DIR@/doc/introduction.md \
+                         @PROJECT_SOURCE_DIR@/doc/model_definition.md \
+                         @PROJECT_SOURCE_DIR@/doc/usage.md \
+                         @PROJECT_SOURCE_DIR@/doc/error_handling.md \
+                         @PROJECT_SOURCE_DIR@/doc/relations.md \
+                         @PROJECT_SOURCE_DIR@/doc/connections.md \
+                         @PROJECT_SOURCE_DIR@/doc/query_builder.md \
+                         @PROJECT_SOURCE_DIR@/doc/utilities.md
+
+FILE_PATTERNS          = *.h *.cpp *.md
+RECURSIVE              = YES
+USE_M_D_AS_MAINPAGE      = @PROJECT_SOURCE_DIR@/README.md
+
+# Layout and Style
+HTML_EXTRA_STYLESHEET  = 
+GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+
+# Features
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+GENERATE_TREEVIEW      = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+
+# Output
+OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@/doxygen
