@@ -117,7 +117,7 @@ TEST_F(RelationTest, apiEnhancements)
     }
     ASSERT_EQ(count, 2);
 
-    auto result = Product::find(Query().with("category"));
+    auto result = Category::find(Query().with("saleItems"));
     if (result) {
         QJsonArray array;
         for (const auto &c : std::as_const(result).value())
@@ -161,6 +161,27 @@ TEST_F(RelationTest, belongsToManyRelation)
         if (TEST_STR(user.name) == "Amadou Benjamain") foundUser = true;
     }
     ASSERT_TRUE(foundUser);
+}
+
+TEST_F(RelationTest, belongsToManyThroughRelation)
+{
+    ASSERT_TRUE(migrate());
+    ASSERT_TRUE(seed());
+
+    // Sale (1) -> seller_id (1) -> User (1) -> Groups (1, 2)
+    auto result = Sale::find(1);
+    ASSERT_TRUE(result);
+    Sale sale = result.value();
+
+    auto groupsRelation = sale.groups();
+    ASSERT_TRUE(groupsRelation.get());
+    ASSERT_EQ(groupsRelation.count(), 2);
+
+    bool foundManagers = false;
+    for (const auto &group : groupsRelation) {
+        if (TEST_STR(group.name) == "Stock Managers") foundManagers = true;
+    }
+    ASSERT_TRUE(foundManagers);
 }
 
 TEST_F(RelationTest, hasManyThroughRelation)

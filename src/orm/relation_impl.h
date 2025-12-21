@@ -216,6 +216,67 @@ public:
     QString relatedKey;
 };
 
+template<typename RelatedModel, typename ThroughModel>
+class BelongsToManyThroughRelationData final : public RelationBaseData<RelatedModel>
+{
+public:
+    void init(NamingConvention *convention) override
+    {
+        const MetaObject through = MetaObject::from<ThroughModel>();
+
+        if (table.isEmpty()) {
+            table = convention->pivotTableName(through.tableName(), this->relatedObject.tableName());
+        }
+
+        if (foreignPivotKey.isEmpty())
+            foreignPivotKey = through.foreignProperty().fieldName();
+
+        if (relatedPivotKey.isEmpty())
+            relatedPivotKey = this->relatedObject.foreignProperty().fieldName();
+
+        if (parentKey.isEmpty())
+            parentKey = through.foreignProperty().fieldName();
+
+        if (relatedKey.isEmpty())
+            relatedKey = this->relatedObject.primaryProperty().fieldName();
+    }
+
+    bool get() override
+    {
+        // SELECT related.* FROM related
+        // INNER JOIN pivot ON related.related_key = pivot.related_pivot_key
+        // WHERE pivot.foreign_pivot_key = parent.parent_key
+        
+        Query q;
+        q.join(table, 
+               this->relatedObject.tableName() + "." + relatedKey,
+               "=", 
+               table + "." + relatedPivotKey);
+        
+        q.where(table + "." + foreignPivotKey, this->parentField(parentKey));
+
+        auto result = RelatedModel::find(q);
+        if (result) {
+            this->related = result.value();
+            this->conserve(q);
+            return true;
+        } else {
+            this->conserve(q, result.error());
+            return false;
+        }
+    }
+
+    bool multiple() const override { return true; }
+
+    BelongsToManyThroughRelationData *clone() const override { return new BelongsToManyThroughRelationData(*this); }
+
+    QString table;
+    QString foreignPivotKey;
+    QString relatedPivotKey;
+    QString parentKey;
+    QString relatedKey;
+};
+
 } // namespace QEloquent
 
 #endif // QELOQUENT_RELATION_IMPL_H

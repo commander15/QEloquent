@@ -71,35 +71,33 @@ protected:
     Model(ModelData *data);
 
     template<typename T>
-    Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
+    Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString(),
+                       const std::source_location &location = std::source_location::current()) const;
 
     template<typename T>
-    Relation<T> hasMany(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
+    Relation<T> hasMany(const QString &foreignKey = QString(), const QString &localKey = QString(),
+                        const std::source_location &location = std::source_location::current()) const;
 
-    /*!
-     * \brief Defines a has-many-through relationship.
-     * \param foreignKey The foreign key of the intermediate model.
-     * \param localKey The local key of the parent model.
-     * \return A Relation object.
-     */
     template<typename T, typename Through>
     Relation<T> hasManyThrough(const QString &foreignKey = QString(), const QString &localKey = QString(),
-                               const QString &throughForeignKey = QString(), const QString &throughLocalKey = QString()) const;
+                               const QString &throughForeignKey = QString(), const QString &throughLocalKey = QString(),
+                               const std::source_location &location = std::source_location::current()) const;
 
-    /*!
-     * \brief Defines a many-to-many relationship.
-     * \param table The pivot table name.
-     * \param foreignPivotKey The foreign key of the current model in the pivot table.
-     * \param relatedPivotKey The foreign key of the related model in the pivot table.
-     * \return A Relation object.
-     */
+    template<typename T>
+    Relation<T> belongsTo(const QString &foreignKey = QString(), const QString &ownerKey = QString(),
+                          const std::source_location &location = std::source_location::current()) const;
+
     template<typename T>
     Relation<T> belongsToMany(const QString &table = QString(), const QString &foreignPivotKey = QString(),
                               const QString &relatedPivotKey = QString(), const QString &parentKey = QString(),
-                              const QString &relatedKey = QString()) const;
+                              const QString &relatedKey = QString(),
+                              const std::source_location &location = std::source_location::current()) const;
 
-    template<typename T>
-    Relation<T> belongsTo(const QString &foreignKey = QString(), const QString &ownerKey = QString()) const;
+    template<typename T, typename Through>
+    Relation<T> belongsToManyThrough(const QString &table = QString(), const QString &foreignPivotKey = QString(),
+                                     const QString &relatedPivotKey = QString(), const QString &parentKey = QString(),
+                                     const QString &relatedKey = QString(),
+                                     const std::source_location &location = std::source_location::current()) const;
 
     QSharedDataPointer<ModelData> data;
 
@@ -117,38 +115,6 @@ private:
 
 namespace QEloquent {
 
-template<typename T, typename Through>
-inline Relation<T> Model::hasManyThrough(const QString &foreignKey, const QString &localKey,
-                                         const QString &throughForeignKey, const QString &throughLocalKey) const
-{
-    return Relation<T>("hasManyThrough", const_cast<Model *>(this), [=]() {
-        auto d = new HasManyThroughRelationData<T, Through>();
-        d->name = "hasManyThrough";
-        d->foreignKey = foreignKey;
-        d->localKey = localKey;
-        d->throughForeignKey = throughForeignKey;
-        d->throughLocalKey = throughLocalKey;
-        return d;
-    });
-}
-
-template<typename T>
-inline Relation<T> Model::belongsToMany(const QString &table, const QString &foreignPivotKey,
-                                          const QString &relatedPivotKey, const QString &parentKey,
-                                          const QString &relatedKey) const
-{
-    return Relation<T>("belongsToMany", const_cast<Model *>(this), [=]() {
-        auto d = new BelongsToManyRelationData<T>();
-        d->name = "belongsToMany";
-        d->table = table;
-        d->foreignPivotKey = foreignPivotKey;
-        d->relatedPivotKey = relatedPivotKey;
-        d->parentKey = parentKey;
-        d->relatedKey = relatedKey;
-        return d;
-    });
-}
-
 template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
 inline Model::Model(T *) : Model(T::staticMetaObject) {}
 
@@ -159,11 +125,10 @@ inline Model::Model(T *) : Model(T::staticMetaObject) {}
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey) const
+inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey, const std::source_location &location) const
 {
-    return Relation<T>("hasOne", const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
         auto d = new HasOneRelationData<T>();
-        d->name = "hasOne";
         d->foreignKey = foreignKey;
         d->localKey = localKey;
         return d;
@@ -177,13 +142,32 @@ inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &local
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &localKey) const
+inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &localKey, const std::source_location &location) const
 {
-    return Relation<T>("hasMany", const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
         auto d = new HasManyRelationData<T>();
-        d->name = "hasMany";
         d->foreignKey = foreignKey;
         d->localKey = localKey;
+        return d;
+    });
+}
+
+/*!
+ * \brief Defines a has-many-through relationship.
+ * \param foreignKey The foreign key of the intermediate model.
+ * \param localKey The local key of the parent model.
+ * \return A Relation object.
+ */
+template<typename T, typename Through>
+inline Relation<T> Model::hasManyThrough(const QString &foreignKey, const QString &localKey,
+                                         const QString &throughForeignKey, const QString &throughLocalKey, const std::source_location &location) const
+{
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+        auto d = new HasManyThroughRelationData<T, Through>();
+        d->foreignKey = foreignKey;
+        d->localKey = localKey;
+        d->throughForeignKey = throughForeignKey;
+        d->throughLocalKey = throughLocalKey;
         return d;
     });
 }
@@ -195,13 +179,58 @@ inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &loca
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ownerKey) const
+inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ownerKey, const std::source_location &location) const
 {
-    return Relation<T>("belongsTo", const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
         auto d = new BelongsToRelationData<T>();
-        d->name = "belongsTo";
         d->foreignKey = foreignKey;
         d->ownerKey = ownerKey;
+        return d;
+    });
+}
+
+/*!
+ * \brief Defines a many-to-many relationship.
+ * \param table The pivot table name.
+ * \param foreignPivotKey The foreign key of the current model in the pivot table.
+ * \param relatedPivotKey The foreign key of the related model in the pivot table.
+ * \return A Relation object.
+ */
+template<typename T>
+inline Relation<T> Model::belongsToMany(const QString &table, const QString &foreignPivotKey,
+                                        const QString &relatedPivotKey, const QString &parentKey,
+                                        const QString &relatedKey, const std::source_location &location) const
+{
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+        auto d = new BelongsToManyRelationData<T>();
+        d->table = table;
+        d->foreignPivotKey = foreignPivotKey;
+        d->relatedPivotKey = relatedPivotKey;
+        d->parentKey = parentKey;
+        d->relatedKey = relatedKey;
+        return d;
+    });
+}
+
+/*!
+ * \brief Defines a belongs-to-many-through relationship.
+ * \param table The pivot table name.
+ * \param foreignPivotKey The foreign key of the intermediate model in the pivot table.
+ * \param relatedPivotKey The foreign key of the related model in the pivot table.
+ * \return A Relation object.
+ */
+template<typename T, typename Through>
+inline Relation<T> Model::belongsToManyThrough(const QString &table, const QString &foreignPivotKey,
+                                               const QString &relatedPivotKey, const QString &parentKey,
+                                               const QString &relatedKey, const std::source_location &location) const
+{
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+        auto d = new BelongsToManyThroughRelationData<T, Through>();
+        d->table = table;
+        d->foreignPivotKey = foreignPivotKey;
+        d->relatedPivotKey = relatedPivotKey;
+        d->parentKey = parentKey;
+        d->relatedKey = relatedKey;
         return d;
     });
 }

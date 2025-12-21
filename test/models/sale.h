@@ -6,6 +6,7 @@
 
 class User;
 class Product;
+class UserGroup;
 
 class Sale : public QEloquent::Model, public QEloquent::ModelHelpers<Sale>
 {
@@ -26,6 +27,7 @@ public:
     int sellerId = 0;
 
     Q_INVOKABLE QEloquent::Relation<User> seller() const;
+    Q_INVOKABLE QEloquent::Relation<UserGroup> groups() const;
 };
 
 class SaleItem : public QEloquent::Model, public QEloquent::ModelHelpers<SaleItem>
