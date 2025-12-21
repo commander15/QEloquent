@@ -16,24 +16,45 @@
 
 namespace QEloquent {
 
+/*!
+ * \class QEloquent::Model
+ * \brief The Model class is the base class for all ORM models.
+ *
+ * It provides the core functionality for attribute management, persistence,
+ * and relationship definition. Models are typically defined using Q_GADGET
+ * and Q_PROPERTY macros to enable reflection and database mapping.
+ */
+
 Model::Model(const QMetaObject &metaObject)
     : data(new ModelData())
 {
     data->metaObject = MetaObject::fromQtMetaObject(metaObject);
 }
 
+/*!
+ * \brief Constructor from internal data.
+ */
 Model::Model(ModelData *data)
     : data(data)
 {}
 
+/*!
+ * \brief Copy constructor.
+ */
 Model::Model(const Model &rhs)
     : data{rhs.data}
 {}
 
+/*!
+ * \brief Move constructor.
+ */
 Model::Model(Model &&rhs)
     : data{std::move(rhs.data)}
 {}
 
+/*!
+ * \brief Copy assignment operator.
+ */
 Model &Model::operator=(const Model &rhs)
 {
     if (this != &rhs)
@@ -41,6 +62,9 @@ Model &Model::operator=(const Model &rhs)
     return *this;
 }
 
+/*!
+ * \brief Move assignment operator.
+ */
 Model &Model::operator=(Model &&rhs)
 {
     if (this != &rhs)
@@ -48,19 +72,31 @@ Model &Model::operator=(Model &&rhs)
     return *this;
 }
 
+/*!
+ * \brief Virtual destructor.
+ */
 Model::~Model()
 {}
 
+/*!
+ * \brief Returns the value of the primary key.
+ */
 QVariant Model::primary() const
 {
     return data->metaObject.primaryProperty().read(this);
 }
 
+/*!
+ * \brief Sets the primary key value.
+ */
 void Model::setPrimary(const QVariant &value)
 {
     data->metaObject.primaryProperty().write(this, value);
 }
 
+/*!
+ * \brief Returns a property value by name.
+ */
 QVariant Model::property(const QString &name) const
 {
     MODEL_DATA(const Model);
@@ -68,6 +104,9 @@ QVariant Model::property(const QString &name) const
     return (property.isValid() ? property.read(this) : data.dynamicProperties.value(name));
 }
 
+/*!
+ * \brief Sets a property value by name.
+ */
 void Model::setProperty(const QString &name, const QVariant &value)
 {
     MODEL_DATA(Model);
@@ -80,6 +119,9 @@ void Model::setProperty(const QString &name, const QVariant &value)
         data.dynamicProperties.insert(name, value);
 }
 
+/*!
+ * \brief Fills the model with data from a map (field names as keys).
+ */
 void Model::fill(const QVariantMap &values)
 {
     MODEL_DATA(Model);
@@ -91,11 +133,17 @@ void Model::fill(const QVariantMap &values)
     }
 }
 
+/*!
+ * \brief Fills the model with data from a JSON object.
+ */
 void Model::fill(const QJsonObject &object)
 {
     fill(object.toVariantMap());
 }
 
+/*!
+ * \brief Fills the model with data from a SQL record.
+ */
 void Model::fill(const QSqlRecord &record)
 {
     MODEL_DATA(Model);
@@ -106,6 +154,9 @@ void Model::fill(const QSqlRecord &record)
     }
 }
 
+/*!
+ * \brief Returns true if the model exists in the database.
+ */
 bool Model::exists()
 {
     const Query query = newQuery(true);
@@ -116,6 +167,9 @@ bool Model::exists()
         return false;
 }
 
+/*!
+ * \brief Refreshes the model data from the database.
+ */
 bool Model::get()
 {
     MODEL_DATA(Model);
@@ -142,6 +196,9 @@ bool Model::get()
     return false;
 }
 
+/*!
+ * \brief Inserts the model into the database.
+ */
 bool Model::insert()
 {
     MODEL_DATA(Model);
@@ -159,6 +216,9 @@ bool Model::insert()
     }
 }
 
+/*!
+ * \brief Updates the model in the database.
+ */
 bool Model::update()
 {
     MODEL_DATA(Model);
@@ -170,6 +230,9 @@ bool Model::update()
     return (result ? result->numRowsAffected() > 0 : false);
 }
 
+/*!
+ * \brief Deletes the model from the database.
+ */
 bool Model::deleteData()
 {
     MODEL_DATA(Model);
@@ -179,11 +242,17 @@ bool Model::deleteData()
     return (result ? result->numRowsAffected() > 0 : false);
 }
 
+/*!
+ * \brief Eagerly loads a relationship.
+ */
 bool Model::load(const QString &relation)
 {
     return load(QStringList() << relation);
 }
 
+/*!
+ * \brief Eagerly loads multiple relationships.
+ */
 bool Model::load(const QStringList &relations)
 {
     for (const QString &relation : relations) {
@@ -201,34 +270,52 @@ bool Model::load(const QStringList &relations)
     return true;
 }
 
+/*!
+ * \brief Returns the last query executed by this model.
+ */
 Query Model::lastQuery() const
 {
     MODEL_DATA(const Model);
     return data.lastQuery;
 }
 
+/*!
+ * \brief Returns the last error encountered by this model.
+ */
 Error Model::lastError() const
 {
     MODEL_DATA(const Model);
     return data.lastError;
 }
 
+/*!
+ * \brief Returns the metadata object for this model.
+ */
 MetaObject Model::metaObject() const
 {
     return data->metaObject;
 }
 
+/*!
+ * \brief Returns the database connection used by this model.
+ */
 Connection Model::connection() const
 {
     MODEL_DATA(const Model);
     return data.metaObject.connection();
 }
 
+/*!
+ * \brief Converts the model to a JSON object.
+ */
 QJsonObject Model::toJsonObject() const
 {
     return QJsonObject::fromVariantMap(data->dynamicProperties);
 }
 
+/*!
+ * \brief Converts the model to a SQL record matching the table structure.
+ */
 QSqlRecord Model::toSqlRecord() const
 {
     return QSqlRecord();

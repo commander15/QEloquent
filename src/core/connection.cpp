@@ -16,14 +16,31 @@ public:
     bool databaseConnectionOwned = false;
 };
 
+/*!
+ * @class QEloquent::Connection
+ * @brief Manages database connections and transactions.
+ *
+ * Connection is a thin wrapper around QSqlDatabase that provides easy management
+ * of multiple named connections and support for default connections.
+ */
+
+/*!
+ * @brief Constructs a null connection.
+ */
 Connection::Connection()
     : data{new ConnectionData()}
 {}
 
+/*!
+ * @brief Copy constructor.
+ */
 Connection::Connection(const Connection &rhs)
     : data{rhs.data}
 {}
 
+/*!
+ * @brief Move constructor.
+ */
 Connection::Connection(Connection &&rhs)
     : data{std::move(rhs.data)}
 {}
@@ -32,6 +49,9 @@ Connection::Connection(ConnectionData *data)
     : data(data)
 {}
 
+/*!
+ * @brief Copy assignment operator.
+ */
 Connection &Connection::operator=(const Connection &rhs)
 {
     if (this != &rhs)
@@ -39,6 +59,9 @@ Connection &Connection::operator=(const Connection &rhs)
     return *this;
 }
 
+/*!
+ * @brief Move assignment operator.
+ */
 Connection &Connection::operator=(Connection &&rhs)
 {
     if (this != &rhs)
@@ -46,49 +69,79 @@ Connection &Connection::operator=(Connection &&rhs)
     return *this;
 }
 
+/*!
+ * @brief Destructor.
+ */
 Connection::~Connection()
 {}
 
+/*!
+ * @brief Returns the name of the connection.
+ */
 QString Connection::name() const
 {
     return data->connectionName;
 }
 
+/*!
+ * @brief Returns true if the connection is currently open.
+ */
 bool Connection::isOpen() const
 {
     return database().isOpen();
 }
 
+/*!
+ * @brief Opens the connection using pre-configured parameters.
+ */
 bool Connection::open()
 {
     return database().open();
 }
 
+/*!
+ * @brief Opens the connection with specific credentials.
+ */
 bool Connection::open(const QString &user, const QString &password)
 {
     return database().open(user, password);
 }
 
+/*!
+ * @brief Closes the connection.
+ */
 void Connection::close()
 {
     database().close();
 }
 
+/*!
+ * @brief Begins a SQL transaction.
+ */
 bool Connection::beginTransaction()
 {
     return database().transaction();
 }
 
+/*!
+ * @brief Commits the current SQL transaction.
+ */
 bool Connection::commitTransaction()
 {
     return database().commit();
 }
 
+/*!
+ * @brief Rolls back the current SQL transaction.
+ */
 bool Connection::rollbackTransaction()
 {
     return database().rollback();
 }
 
+/*!
+ * @brief Executes a raw SQL query on this connection.
+ */
 QSqlQuery Connection::exec(const QString &query, bool cache)
 {
     QSqlQuery q(database());
@@ -97,36 +150,57 @@ QSqlQuery Connection::exec(const QString &query, bool cache)
     return q;
 }
 
+/*!
+ * @brief Returns the last error encountered by this connection.
+ */
 QSqlError Connection::lastError() const
 {
     return database().lastError();
 }
 
+/*!
+ * @brief Returns the underlaying QSqlDatabase (const).
+ */
 const QSqlDatabase Connection::database() const
 {
     return QSqlDatabase::database(data->databaseConnectionName, false);
 }
 
+/*!
+ * @brief Returns the underlaying QSqlDatabase.
+ */
 QSqlDatabase Connection::database()
 {
     return QSqlDatabase::database(data->databaseConnectionName, false);
 }
 
+/*!
+ * @brief Returns true if this is a valid, initialized connection.
+ */
 bool Connection::isValid() const
 {
     return database().isValid();
 }
 
+/*!
+ * @brief Implicit conversion to QSqlDatabase.
+ */
 Connection::operator const QSqlDatabase() const
 {
     return database();
 }
 
+/*!
+ * @brief Implicit conversion to QSqlDatabase.
+ */
 Connection::operator QSqlDatabase()
 {
     return database();
 }
 
+/*!
+ * @brief Retrieves an existing connection by name.
+ */
 Connection Connection::connection(const QString &name)
 {
     if (s_connections.contains(name))
@@ -135,6 +209,9 @@ Connection Connection::connection(const QString &name)
         return Connection(new ConnectionData());
 }
 
+/*!
+ * @brief Adds a new connection using a URL.
+ */
 Connection Connection::addConnection(const QString &name, const QUrl &url)
 {
     // Creating db instance
@@ -183,6 +260,9 @@ Connection Connection::addConnection(const QString &name, const QUrl &url)
     return addConnection(name, db, true);
 }
 
+/*!
+ * @brief Adds a new connection with basic parameters.
+ */
 Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, int port)
 {
     QSqlDatabase db = QSqlDatabase::addDatabase(type, name);
@@ -193,6 +273,9 @@ Connection Connection::addConnection(const QString &name, const QString &type, c
     return addConnection(name, db, true);
 }
 
+/*!
+ * @brief Adds a new connection with full credentials.
+ */
 Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, int port, const QString &userName, const QString &password)
 {
     QSqlDatabase db = QSqlDatabase::addDatabase(type, name);
@@ -205,6 +288,9 @@ Connection Connection::addConnection(const QString &name, const QString &type, c
     return addConnection(name, db, true);
 }
 
+/*!
+ * @brief Adds a connection from an existing QSqlDatabase instance.
+ */
 Connection Connection::addConnection(const QString &name, const QSqlDatabase &db, bool ownDb)
 {
     ConnectionData *data = new ConnectionData();
@@ -221,6 +307,9 @@ Connection Connection::addConnection(const QString &name, const QSqlDatabase &db
     return con;
 }
 
+/*!
+ * @brief Removes a connection by name.
+ */
 void Connection::removeConnection(const QString &name)
 {
     if (s_connections.contains(name)) {
@@ -240,6 +329,9 @@ void Connection::removeConnection(const QString &name)
     }
 }
 
+/*!
+ * @brief Returns the default connection instance.
+ */
 Connection Connection::defaultConnection()
 {
     if (s_defaultConnection.isEmpty())
@@ -248,6 +340,9 @@ Connection Connection::defaultConnection()
         return s_connections.value(s_defaultConnection);
 }
 
+/*!
+ * @brief Sets the default connection.
+ */
 void Connection::setDefault(const Connection &connection)
 {
     s_defaultConnection = connection.name();

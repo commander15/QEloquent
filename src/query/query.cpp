@@ -40,21 +40,43 @@ public:
     QString connectionName;
 };
 
+/*!
+ * \class QEloquent::Query
+ * \brief Fluent SQL query builder.
+ *
+ * Query provides a chainable API to build SELECT, INSERT, UPDATE, and DELETE
+ * statements without writing raw SQL.
+ *
+ * \note Query use field names instead of property names.
+ */
+
+/*!
+ * \brief Constructs an empty query.
+ */
 Query::Query()
     : data(new ModelQueryData)
 {
 }
 
+/*!
+ * \brief Copy constructor.
+ */
 Query::Query(const Query &rhs)
     : data{rhs.data}
 {
 }
 
+/*!
+ * \brief Move constructor.
+ */
 Query::Query(Query &&rhs)
     : data{std::move(rhs.data)}
 {
 }
 
+/*!
+ * \brief Copy assignment operator.
+ */
 Query &Query::operator=(const Query &rhs)
 {
     if (this != &rhs)
@@ -62,6 +84,9 @@ Query &Query::operator=(const Query &rhs)
     return *this;
 }
 
+/*!
+ * \brief Move assignment operator.
+ */
 Query &Query::operator=(Query &&rhs)
 {
     if (this != &rhs)
@@ -69,21 +94,33 @@ Query &Query::operator=(Query &&rhs)
     return *this;
 }
 
+/*!
+ * \brief Destructor.
+ */
 Query::~Query()
 {
 }
 
+/*!
+ * \brief Returns the table name configured for this query.
+ */
 QString Query::tableName() const
 {
     return data->tableName;
 }
 
+/*!
+ * \brief Configures the table name for the query.
+ */
 Query &Query::table(const QString &tableName)
 {
     data->tableName = tableName;
     return *this;
 }
 
+/*!
+ * \brief Adds an AND WHERE clause with a custom operator.
+ */
 Query &Query::andWhere(const QString &name, const QString &op, const QVariant &value)
 {
     ModelQueryData::Filter f;
@@ -95,6 +132,9 @@ Query &Query::andWhere(const QString &name, const QString &op, const QVariant &v
     return *this;
 }
 
+/*!
+ * \brief Adds a raw AND WHERE expression.
+ */
 Query &Query::andWhere(const QString &expression)
 {
     ModelQueryData::Filter f;
@@ -104,6 +144,9 @@ Query &Query::andWhere(const QString &expression)
     return *this;
 }
 
+/*!
+ * \brief Adds an OR WHERE clause with a custom operator.
+ */
 Query &Query::orWhere(const QString &field, const QString &op, const QVariant &value)
 {
     ModelQueryData::Filter f;
@@ -115,6 +158,9 @@ Query &Query::orWhere(const QString &field, const QString &op, const QVariant &v
     return *this;
 }
 
+/*!
+ * \brief Adds a raw OR WHERE expression.
+ */
 Query &Query::orWhere(const QString &expression)
 {
     ModelQueryData::Filter f;
@@ -124,12 +170,18 @@ Query &Query::orWhere(const QString &expression)
     return *this;
 }
 
+/*!
+ * \brief Adds a GROUP BY clause.
+ */
 Query &Query::groupBy(const QString &field)
 {
     data->groups.append(field);
     return *this;
 }
 
+/*!
+ * \brief Adds an ORDER BY clause.
+ */
 Query &Query::orderBy(const QString &field, Qt::SortOrder order)
 {
     ModelQueryData::Sort s;
@@ -139,6 +191,9 @@ Query &Query::orderBy(const QString &field, Qt::SortOrder order)
     return *this;
 }
 
+/*!
+ * \brief Configures pagination (LIMIT/OFFSET).
+ */
 Query &Query::page(int page, int countPerPage)
 {
     if (countPerPage > 0)
@@ -150,56 +205,86 @@ Query &Query::page(int page, int countPerPage)
     return *this;
 }
 
+/*!
+ * \brief Adds a LIMIT clause.
+ */
 Query &Query::limit(int limit)
 {
     data->limit = limit;
     return *this;
 }
 
+/*!
+ * \brief Adds an OFFSET clause.
+ */
 Query &Query::offset(int offset)
 {
     data->offset = offset;
     return *this;
 }
 
+/*!
+ * \brief Adds a relationship for eager loading.
+ */
 Query &Query::with(const QString &relation)
 {
     data->relations.append(relation);
     return *this;
 }
 
+/*!
+ * \brief Adds multiple relationships for eager loading.
+ */
 Query &Query::with(const QStringList &relations)
 {
     data->relations.append(relations);
     return *this;
 }
 
+/*!
+ * \brief Returns the connection used by this query.
+ */
 Connection Query::connection() const
 {
     return Connection::connection(data->connectionName);
 }
 
+/*!
+ * \brief Returns the name of the connection.
+ */
 QString Query::connectionName() const
 {
     return data->connectionName;
 }
 
+/*!
+ * \brief Configures the connection name for the query.
+ */
 Query &Query::connection(const QString &connectionName)
 {
     data->connectionName = connectionName;
     return *this;
 }
 
+/*!
+ * \brief Returns true if the query has WHERE clauses.
+ */
 bool Query::hasWhere() const
 {
     return !data->filters.isEmpty();
 }
 
+/*!
+ * \brief Returns the generated WHERE clause string.
+ */
 QString Query::whereClause() const
 {
     return whereClause(Connection::connection(data->connectionName));
 }
 
+/*!
+ * \brief Returns the generated WHERE clause string for a specific connection.
+ */
 QString Query::whereClause(const Connection connection) const
 {
     QStringList expressions;
@@ -228,16 +313,25 @@ QString Query::whereClause(const Connection connection) const
     return (expressions.isEmpty() ? QString() : "WHERE " + expressions.join(' '));
 }
 
+/*!
+ * \brief Returns true if the query has GROUP BY clauses.
+ */
 bool Query::hasGroupBy() const
 {
     return !data->groups.isEmpty();
 }
 
+/*!
+ * \brief Returns the generated GROUP BY clause string.
+ */
 QString Query::groupByClause() const
 {
     return groupByClause(Connection::connection(data->connectionName));
 }
 
+/*!
+ * \brief Returns the generated GROUP BY clause string for a specific connection.
+ */
 QString Query::groupByClause(const Connection connection) const
 {
     QStringList groups = data->groups;
@@ -247,16 +341,25 @@ QString Query::groupByClause(const Connection connection) const
     return (groups.isEmpty() ? QString() : "GROUP BY " + groups.join(", "));
 }
 
+/*!
+ * \brief Returns true if the query has ORDER BY clauses.
+ */
 bool Query::hasOrderBy() const
 {
     return !data->sorts.isEmpty();
 }
 
+/*!
+ * \brief Returns the generated ORDER BY clause string.
+ */
 QString Query::orderByClause() const
 {
     return orderByClause(Connection::connection(data->connectionName));
 }
 
+/*!
+ * \brief Returns the generated ORDER BY clause string for a specific connection.
+ */
 QString Query::orderByClause(const Connection connection) const
 {
     QStringList sorts;
@@ -266,21 +369,33 @@ QString Query::orderByClause(const Connection connection) const
     return (sorts.isEmpty() ? QString() : "ORDER BY " + sorts.join(", "));
 }
 
+/*!
+ * \brief Returns the generated LIMIT clause string.
+ */
 QString Query::limitClause() const
 {
     return (data->limit > 0 ? "LIMIT " + QString::number(data->limit) : QString());
 }
 
+/*!
+ * \brief Returns the generated OFFSET clause string.
+ */
 QString Query::offsetClause() const
 {
     return (data->offset > 0 ? "OFFSET " + QString::number(data->offset) : QString());
 }
 
+/*!
+ * \brief Returns the full SQL statement (SELECT).
+ */
 QString Query::toString() const
 {
     return toString(Connection::connection(data->connectionName));
 }
 
+/*!
+ * \brief Returns the full SQL statement for a specific connection.
+ */
 QString Query::toString(const Connection connection) const
 {
     QStringList clauses;
@@ -308,6 +423,9 @@ QString Query::toString(const Connection connection) const
     return clauses.join(' ');
 }
 
+/*!
+ * \brief Returns the list of relations to be eager loaded.
+ */
 QStringList Query::relations() const
 {
     return data->relations;

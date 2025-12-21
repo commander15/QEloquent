@@ -1,12 +1,14 @@
-#include "querygenerationtest.h"
+#include <core/mytest.h>
 
 #include <QEloquent/query.h>
-#include <QEloquent/metaobject.h>
 #include <QEloquent/querybuilder.h>
 
 #include <QVariantMap>
 
 using namespace QEloquent;
+
+// Since we need a valid connection for query generation
+class QueryGenerationTest : public MyTest {};
 
 TEST_F(QueryGenerationTest, selectGenerationTest)
 {

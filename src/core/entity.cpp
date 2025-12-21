@@ -2,6 +2,9 @@
 
 namespace QEloquent {
 
+/*!
+ * \brief Persists the entity (executes insert or update).
+ */
 bool Entity::save()
 {
     return (exists() ? update() : insert());

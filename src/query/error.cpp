@@ -13,11 +13,22 @@ public:
     Error::ErrorType type = Error::NoError;
 };
 
+/*!
+ * \class QEloquent::Error
+ * \brief Represents an error in a database operation.
+ */
+
+/*!
+ * \brief Constructs a NoError object.
+ */
 Error::Error()
     : data(new ErrorData)
 {
 }
 
+/*!
+ * \brief Constructs an error with a type and message.
+ */
 Error::Error(ErrorType error, const QString &text, const QSqlError &sqlError)
     : data(new ErrorData)
 {
@@ -31,14 +42,23 @@ Error::Error(ErrorData *data)
 {
 }
 
+/*!
+ * \brief Copy constructor.
+ */
 Error::Error(const Error &rhs)
     : data{rhs.data}
 {}
 
+/*!
+ * \brief Move constructor.
+ */
 Error::Error(Error &&rhs)
     : data{std::move(rhs.data)}
 {}
 
+/*!
+ * \brief Copy assignment operator.
+ */
 Error &Error::operator=(const Error &rhs)
 {
     if (this != &rhs)
@@ -46,6 +66,9 @@ Error &Error::operator=(const Error &rhs)
     return *this;
 }
 
+/*!
+ * \brief Move assignment operator.
+ */
 Error &Error::operator=(Error &&rhs)
 {
     if (this != &rhs)
@@ -53,25 +76,40 @@ Error &Error::operator=(Error &&rhs)
     return *this;
 }
 
+/*!
+ * \brief Destructor.
+ */
 Error::~Error()
 {
 }
 
+/*!
+ * \brief Returns a human-readable error message.
+ */
 QString Error::text() const
 {
     return (data->text.isEmpty() ? data->sqlError.text() : data->text);
 }
 
+/*!
+ * \brief Returns the underlying QSqlError.
+ */
 QSqlError Error::sqlError() const
 {
     return data->sqlError;
 }
 
+/*!
+ * \brief Returns the error type.
+ */
 Error::ErrorType Error::type() const
 {
     return data->type;
 }
 
+/*!
+ * \brief Creates an Error object from a QSqlQuery results.
+ */
 Error Error::fromSqlQuery(const QSqlQuery &query)
 {
     const QSqlError sqlError = query.lastError();
@@ -84,6 +122,9 @@ Error Error::fromSqlQuery(const QSqlQuery &query)
     return Error();
 }
 
+/*!
+ * \brief Creates an Error object from a QSqlError.
+ */
 Error Error::fromSqlError(const QSqlError &error)
 {
     ErrorData *data = new ErrorData();

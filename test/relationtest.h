@@ -1,9 +1,9 @@
 #ifndef RELATIONTEST_H
 #define RELATIONTEST_H
 
-#include "core/test.h"
+#include "core/mytest.h"
 
-class RelationTest : public Test
+class RelationTest : public MyTest
 {
 };
 

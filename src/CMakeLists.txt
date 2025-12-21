@@ -15,7 +15,7 @@ target_compile_definitions(QEloquent
         QLOQUENT_BUILD
 )
 
-target_link_libraries(QEloquent PUBLIC Qt::Sql expected)
+target_link_libraries(QEloquent PUBLIC Qt::Sql)
 
 target_include_directories(QEloquent PUBLIC $<INSTALL_INTERFACE:include/Qloquent>)
 
@@ -31,21 +31,28 @@ generate_target_headers(QEloquent FOLDER QEloquent)
 
 include(CMakePackageConfigHelpers)
 
+set(PACKAGE_DIR ${PROJECT_BINARY_DIR}/lib/cmake/QEloquent)
+
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/QEloquentConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/QEloquentConfig.cmake"
+    "${PACKAGE_DIR}/QEloquentConfig.cmake"
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/QEloquent"
 )
 
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/QEloquentConfigVersion.cmake"
+    "${PACKAGE_DIR}/QEloquentConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
 
+export(EXPORT QEloquentExport
+    FILE "${PACKAGE_DIR}/QEloquentTargets.cmake"
+    NAMESPACE QEloquent::
+)
+
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/QEloquentConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/QEloquentConfigVersion.cmake"
+    "${PACKAGE_DIR}/QEloquentConfig.cmake"
+    "${PACKAGE_DIR}/QEloquentConfigVersion.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/QEloquent"
 )
 

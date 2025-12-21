@@ -1,10 +1,7 @@
 #ifndef SIMPLECRUDTEST_H
 #define SIMPLECRUDTEST_H
 
-#include "core/test.h"
+#include "core/mytest.h"
 
-class SimpleCRUDTest : public Test
-{
-};
 
 #endif // SIMPLECRUDTEST_H

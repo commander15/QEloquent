@@ -7,7 +7,8 @@ project(
     LANGUAGES CXX C
 )
 
-option(QELOQUENT_BUILD_TESTS "Build tests" OFF)
+option(QELOQUENT_BUILD_TESTS "Build tests"         OFF)
+option(QELOQUENT_BUILD_DOC   "Build documentation" OFF)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,5 +43,8 @@ if (QELOQUENT_BUILD_TESTS AND Qt6Test_FOUND)
     enable_testing()
     set(ENV{CTEST_OUTPUT_ON_FAILURE} ON)
     add_subdirectory(test)
-add_subdirectory(doc)
+endif()
+
+if (QELOQUENT_BUILD_DOC)
+    add_subdirectory(doc)
 endif()

@@ -16,9 +16,9 @@ TEST_F(RelationTest, hasOneRelation)
     auto stockRelation = product.stock();
     
     ASSERT_TRUE(stockRelation.get());
-    ASSERT_EQ(stockRelation.related().count(), 1);
-    ASSERT_EQ(stockRelation.related().first().id, 1);
-    ASSERT_EQ(stockRelation.related().first().productId, 1);
+    ASSERT_EQ(stockRelation.count(), 1);
+    ASSERT_EQ(stockRelation->id, 1);
+    ASSERT_EQ(stockRelation->productId, 1);
 }
 
 TEST_F(RelationTest, belongsToRelation)
@@ -34,9 +34,9 @@ TEST_F(RelationTest, belongsToRelation)
     auto productRelation = stock.product();
 
     ASSERT_TRUE(productRelation.get());
-    ASSERT_EQ(productRelation.related().count(), 1);
-    ASSERT_EQ(productRelation.related().first().id, 1);
-    ASSERT_EQ(TEST_STR(productRelation.related().first().name), "Apple");
+    ASSERT_EQ(productRelation.count(), 1);
+    ASSERT_EQ(productRelation->id, 1);
+    ASSERT_EQ(TEST_STR(productRelation->name), "Apple");
 }
 
 TEST_F(RelationTest, hasManyRelation)
@@ -52,10 +52,10 @@ TEST_F(RelationTest, hasManyRelation)
     auto productsRelation = category.products();
 
     ASSERT_TRUE(productsRelation.get());
-    ASSERT_EQ(productsRelation.related().count(), 2); // Apple and Banana
+    ASSERT_EQ(productsRelation.count(), 2); // Apple and Banana
     
     QStringList productNames;
-    for (const auto &product : productsRelation.related()) {
+    for (const auto &product : productsRelation) {
         productNames << product.name;
     }
     ASSERT_TRUE(productNames.contains("Apple"));
@@ -75,9 +75,10 @@ TEST_F(RelationTest, belongsToReverseRelation)
     auto categoryRelation = product.category();
 
     ASSERT_TRUE(categoryRelation.get());
-    ASSERT_EQ(categoryRelation.related().count(), 1);
-    ASSERT_EQ(TEST_STR(categoryRelation.related().first().name), "Fruits");
+    ASSERT_EQ(categoryRelation.count(), 1);
+    ASSERT_EQ(TEST_STR(categoryRelation->name), "Fruits");
 }
+
 TEST_F(RelationTest, apiEnhancements)
 {
     auto migrationResult = migrate();
@@ -90,7 +91,7 @@ TEST_F(RelationTest, apiEnhancements)
     // 1. QList-like methods
     auto stockRelation = apple.stock();
     ASSERT_EQ(stockRelation.count(), 1);
-    ASSERT_EQ(stockRelation.first().id, 1);
+    ASSERT_EQ(stockRelation->id, 1);
     ASSERT_FALSE(stockRelation.isEmpty());
 
     // 2. operator-> and operator*

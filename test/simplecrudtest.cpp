@@ -1,7 +1,5 @@
-#include "simplecrudtest.h"
+#include <core/mytest.h>
 #include "models/product.h"
-#include "models/user.h"
-#include "models/testmodel.h"
 
 #include <QEloquent/queryrunner.h>
 
@@ -11,6 +9,9 @@
 #include <QSqlRecord>
 
 using namespace QEloquent;
+
+// We need a connection and migration and seeding facilities
+class SimpleCRUDTest : public MyTest {};
 
 TEST_F(SimpleCRUDTest, metadataRetrieval)
 {
@@ -67,7 +68,7 @@ TEST_F(SimpleCRUDTest, retrievingSingleModel)
 
     auto stockRelation = product.stock();
     ASSERT_TRUE(stockRelation.get());
-    const Stock stock = stockRelation.related().first();
+    const Stock stock = stockRelation;
     ASSERT_EQ(stock.id, 1);
 }
 

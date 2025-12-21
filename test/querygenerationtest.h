@@ -1,16 +1,16 @@
 #ifndef QUERYGENERATIONTEST_H
 #define QUERYGENERATIONTEST_H
 
-#include "core/test.h"
+#include "core/mytest.h"
 
 #include <QEloquent/metaobject.h>
 
-class QueryGenerationTest : public Test
+class QueryGenerationTest : public MyTest
 {
 protected:
     void SetUp() override
     {
-        Test::SetUp();
+        MyTest::SetUp();
         ASSERT_TRUE(migrate());
     }
 
