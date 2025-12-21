@@ -52,7 +52,12 @@ public:
     static Result<Model, Error> find(const QVariant &primary);
     /** @brief Finds models matching the given query */
     static Result<QList<Model>, Error> find(Query query);
-    static Result<QList<Model>, Error> all();
+
+    /** @brief Finds models matching the given query and limit output using pagination */
+    static Result<QList<Model>, Error> paginate(int page = 1, int itemsPerPage = 20, Query query = Query());
+
+    /** @brief Finds all models, optionaly matching the given query */
+    static Result<QList<Model>, Error> all(Query query = Query());
 
     /** @brief Returns the number of records matching the query */
     static Result<int, Error> count(Query query = Query());
@@ -138,9 +143,15 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
 }
 
 template<typename Model, typename Maker>
-inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::all()
+inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::paginate(int page, int itemsPerPage, Query query)
 {
-    return find(Query());
+    return find(query.page(page, itemsPerPage));
+}
+
+template<typename Model, typename Maker>
+inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::all(Query query)
+{
+    return find(query);
 }
 
 template<typename Model, typename Maker>
