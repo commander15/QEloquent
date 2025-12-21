@@ -7,5 +7,6 @@ target_headers(QEloquent
 
 target_sources(QEloquent
     PRIVATE
+        entity.cpp
         connection.cpp
 )

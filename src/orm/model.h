@@ -19,6 +19,7 @@ class MetaObject;
 class Query;
 class Error;
 class Connection;
+class ModelData;
 
 /**
  * @brief The Model class is the base class for all ORM models.

@@ -13,4 +13,6 @@
 #   define QELOQUENT_EXPORT
 #endif
 
+namespace QEloquent {}
+
 #endif // QELOQUENT_GLOBAL_H
