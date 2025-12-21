@@ -1,125 +1,90 @@
 #ifndef QELOQUENT_RELATION_IMPL_H
 #define QELOQUENT_RELATION_IMPL_H
 
-#include "relation.h"
+#include <QEloquent/relation.h>
 #include <QEloquent/namingconvention.h>
 #include <QEloquent/query.h>
 
 namespace QEloquent {
 
 template<typename RelatedModel>
-class BelongsToRelationData : public RelationBaseData<RelatedModel>
+class HasOneRelationData : public RelationBaseData<RelatedModel>
 {
 public:
-    BelongsToRelationData *clone() const override { return new BelongsToRelationData(*this); }
+    void init(NamingConvention *) override
+    {
+        if (foreignKey.isEmpty())
+            foreignKey = this->primaryObject.foreignProperty().fieldName();
 
-    QString foreignKey;
-    QString ownerKey;
+        if (localKey.isEmpty())
+            localKey = this->primaryObject.primaryProperty().fieldName();
+    }
 
     bool get() override
     {
-        NamingConvention *convention = this->primaryObject.namingConvention();
-        QString fk = foreignKey;
-        if (fk.isEmpty()) {
-            fk = convention->foreignPropertyName(this->relatedObject.primaryProperty().propertyName(), this->relatedObject.className());
+        Query q;
+        q.where(foreignKey, this->parentField(localKey));
+        if (!multiple()) q.limit(1);
+        
+        auto result = RelatedModel::find(q);
+        if (result) {
+            this->related = result.value();
+            this->conserve(q);
+            return true;
+        } else {
+            this->conserve(q, result.error());
+            return false;
         }
+    }
 
-        QVariant keyVal = this->parent->property(fk);
-        if (!keyVal.isValid() || keyVal.isNull()) {
-            MetaProperty prop = this->primaryObject.property(fk, MetaObject::ResolveByFieldName);
-            if (prop.isValid()) keyVal = prop.read(this->parent);
-        }
+    bool multiple() const override { return false; }
 
-        if (!keyVal.isValid() || keyVal.isNull()) return false;
+    HasOneRelationData *clone() const override { return new HasOneRelationData(*this); }
 
-        auto result = RelatedModel::find(keyVal);
+    QString foreignKey;
+    QString localKey;
+};
+
+template<typename RelatedModel>
+class HasManyRelationData : public HasOneRelationData<RelatedModel>
+{
+public:
+    bool multiple() const override { return true; }
+    HasManyRelationData *clone() const override { return new HasManyRelationData(*this); }
+};
+
+template<typename RelatedModel>
+class BelongsToRelationData : public RelationBaseData<RelatedModel>
+{
+public:
+    void init(NamingConvention *) override
+    {
+        if (foreignKey.isEmpty())
+            foreignKey = this->relatedObject.foreignProperty().fieldName();
+
+        if (ownerKey.isEmpty())
+            ownerKey = this->relatedObject.primaryProperty().fieldName();
+    }
+
+    bool get() override
+    {
+        Query q;
+        q.where(ownerKey, this->parentField(foreignKey));
+
+        auto result = RelatedModel::find(q);
         if (result) {
             this->related = { result.value() };
             return true;
         }
         return false;
     }
-};
 
-template<typename RelatedModel>
-class HasOneRelationData : public RelationBaseData<RelatedModel>
-{
-public:
-    HasOneRelationData *clone() const override { return new HasOneRelationData(*this); }
+    bool multiple() const override { return false; }
+
+    BelongsToRelationData *clone() const override { return new BelongsToRelationData(*this); }
 
     QString foreignKey;
-    QString localKey;
-
-    bool get() override
-    {
-        NamingConvention *convention = this->primaryObject.namingConvention();
-        QString fk = foreignKey;
-        if (fk.isEmpty()) {
-            fk = convention->foreignFieldName(this->primaryObject.primaryProperty().fieldName(), this->primaryObject.tableName());
-        }
-
-        QString lk = localKey;
-        if (lk.isEmpty()) {
-            lk = this->primaryObject.primaryProperty().propertyName();
-        }
-        
-        QVariant localKeyVal = this->parent->property(lk);
-        if (!localKeyVal.isValid() || localKeyVal.isNull()) {
-            MetaProperty prop = this->primaryObject.property(lk, MetaObject::ResolveByFieldName);
-            if (prop.isValid()) localKeyVal = prop.read(this->parent);
-        }
-
-        Query q;
-        q.where(fk, localKeyVal);
-        q.limit(1);
-        
-        auto result = RelatedModel::find(q);
-        if (result && !result.value().isEmpty()) {
-            this->related = { result.value().first() };
-            return true;
-        }
-        return false;
-    }
-};
-
-template<typename RelatedModel>
-class HasManyRelationData : public RelationBaseData<RelatedModel>
-{
-public:
-    HasManyRelationData *clone() const override { return new HasManyRelationData(*this); }
-
-    QString foreignKey;
-    QString localKey;
-
-    bool get() override
-    {
-        NamingConvention *convention = this->primaryObject.namingConvention();
-        QString fk = foreignKey;
-        if (fk.isEmpty()) {
-            fk = convention->foreignFieldName(this->primaryObject.primaryProperty().fieldName(), this->primaryObject.tableName());
-        }
-
-        QString lk = localKey;
-        if (lk.isEmpty()) {
-            lk = this->primaryObject.primaryProperty().propertyName();
-        }
-        
-        QVariant localKeyVal = this->parent->property(lk);
-        if (!localKeyVal.isValid() || localKeyVal.isNull()) {
-            MetaProperty prop = this->primaryObject.property(lk, MetaObject::ResolveByFieldName);
-            if (prop.isValid()) localKeyVal = prop.read(this->parent);
-        }
-
-        Query q;
-        q.where(fk, localKeyVal);
-        
-        auto result = RelatedModel::find(q);
-        if (result) {
-            this->related = result.value();
-            return true;
-        }
-        return false;
-    }
+    QString ownerKey;
 };
 
 } // namespace QEloquent

@@ -23,6 +23,7 @@ public:
     int deletionTimestampIndex = -1;
     QList<MetaProperty> properties;
     MetaProperty foreignProperty;
+    QStringList relations;
     QString connectionName;
 
     QString namingConvention = QStringLiteral("Laravel");

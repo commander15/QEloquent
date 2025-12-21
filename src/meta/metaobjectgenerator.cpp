@@ -14,6 +14,7 @@
 #define META_DELETED_AT     "deletedAt"
 #define META_FILLABLE       "fillable"
 #define META_HIDDEN         "hidden"
+#define META_APPEND         "append"
 #define META_PROPERTY_FIELD "%1Field"
 #define META_WITH           "with"
 #define META_NAMING         "naming"
@@ -89,6 +90,7 @@ void MetaObjectGenerator::initGeneration(MetaObjectGeneration *generation)
     const QString className = QString(generation->qtMetaObject->className()).section("::", -1);
     generation->object->tableName = (generation->hasInfo(META_TABLE) ? generation->info(META_TABLE) : generation->convention->tableName(className));
     generation->object->connectionName = generation->connection.name();
+    generation->object->relations = generation->infoList("with");
 
     generation->fillable = generation->infoList(META_FILLABLE);
     generation->hidden = generation->infoList(META_HIDDEN);
@@ -111,38 +113,30 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
         tuneProperty(index, property, generation, true);
     }
 
-    // Appended properties
-    const QStringList append = generation->infoList("append");
-    for (const QString &appendItem : append) {
-        const int methodIndex = generation->qtMetaObject->indexOfMethod(appendItem.toStdString().c_str());
-        if (methodIndex < 0)
+    // Appended and relations properties
+    const QStringList append = generation->infoList(META_APPEND);
+    for (int i(0); i < generation->qtMetaObject->methodCount(); ++i) {
+        const QMetaMethod method = generation->qtMetaObject->method(i);
+
+        if (append.contains(method.name())) {
+            MetaPropertyData *property = new MetaPropertyData();
+            property->propertyName = method.name();
+            property->metaType = method.returnMetaType();
+            property->getter = method;
+            property->propertyType = MetaProperty::AppendedProperty;
+            tuneProperty(index, property, generation, true);
             continue;
+        }
 
-        const QMetaMethod method = generation->qtMetaObject->method(methodIndex);
-
-        MetaPropertyData *property = new MetaPropertyData();
-        property->propertyName = appendItem;
-        property->metaType = method.returnMetaType();
-        property->getter = method;
-        property->propertyType = MetaProperty::AppendedProperty;
-        tuneProperty(index, property, generation, true);
-    }
-
-    // Relations properties
-    const QStringList with = generation->infoList("with");
-    for (const QString &relation : with) {
-        const int methodIndex = generation->qtMetaObject->indexOfMethod(relation.toStdString().c_str());
-        if (methodIndex < 0)
+        if (QByteArray(method.returnMetaType().name()).startsWith("QEloquent::Relation")) {
+            MetaPropertyData *property = new MetaPropertyData();
+            property->propertyName = method.name();
+            property->metaType = method.returnMetaType();
+            property->getter = method;
+            property->propertyType = MetaProperty::RelationProperty;
+            tuneProperty(index, property, generation, true);
             continue;
-
-        const QMetaMethod method = generation->qtMetaObject->method(methodIndex);
-
-        MetaPropertyData *property = new MetaPropertyData();
-        property->propertyName = relation;
-        property->metaType = method.returnMetaType();
-        property->getter = method;
-        property->propertyType = MetaProperty::RelationProperty;
-        tuneProperty(index, property, generation, true);
+        }
     }
 }
 

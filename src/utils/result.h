@@ -1,7 +1,7 @@
 #ifndef QELOQUENT_RESULT_H
 #define QELOQUENT_RESULT_H
 
-#include <expected>
+#include <tl/expected.hpp>
 
 namespace QEloquent {
 
@@ -11,14 +11,14 @@ namespace QEloquent {
  * @tparam Error The type of the error on failure.
  */
 template<typename Value, typename Error>
-using Result = std::expected<Value, Error>;
+using Result = tl::expected<Value, Error>;
 
 /**
  * @brief Helper to create an unexpected result (error).
  * @tparam Error The error type.
  */
 template<typename Error>
-using unexpected = std::unexpected<Error>;
+using unexpected = tl::unexpected<Error>;
 
 } // namespace QEloquent
 

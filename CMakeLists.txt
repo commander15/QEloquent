@@ -10,7 +10,9 @@ project(
 option(QELOQUENT_BUILD_TESTS "Build tests"         OFF)
 option(QELOQUENT_BUILD_DOC   "Build documentation" OFF)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_AUTOMOC ON)
+
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(cmake/Utils.cmake)

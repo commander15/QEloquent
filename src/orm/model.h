@@ -9,6 +9,8 @@
 #include <QObject>
 #include <QSharedDataPointer>
 
+#include <source_location>
+
 class QSqlRecord;
 class QSqlQuery;
 class QSqlError;
@@ -38,6 +40,9 @@ public:
     QVariant property(const QString &name) const;
     void setProperty(const QString &name, const QVariant &value);
 
+    QVariant field(const QString &name) const;
+    void setField(const QString &name, const QVariant &value);
+
     void fill(const QVariantMap &values);
     void fill(const QJsonObject &object);
     void fill(const QSqlRecord &record);
@@ -66,13 +71,13 @@ protected:
     Model(ModelData *data);
 
     template<typename T>
-    Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
+    Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString(), const std::source_location location = std::source_location::current()) const;
 
     template<typename T>
-    Relation<T> hasMany(const QString &foreignKey = QString(), const QString &localKey = QString()) const;
+    Relation<T> hasMany(const QString &foreignKey = QString(), const QString &localKey = QString(), const std::source_location location = std::source_location::current()) const;
 
     template<typename T>
-    Relation<T> belongsTo(const QString &foreignKey = QString(), const QString &ownerKey = QString()) const;
+    Relation<T> belongsTo(const QString &foreignKey = QString(), const QString &ownerKey = QString(), const std::source_location location = std::source_location::current()) const;
 
     QSharedDataPointer<ModelData> data;
 
@@ -100,11 +105,10 @@ inline Model::Model(T *) : Model(T::staticMetaObject) {}
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey) const
+inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey, const std::source_location location) const
 {
-    return Relation<T>("hasOne", const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
         auto d = new HasOneRelationData<T>();
-        d->name = "hasOne";
         d->foreignKey = foreignKey;
         d->localKey = localKey;
         return d;
@@ -118,11 +122,10 @@ inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &local
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &localKey) const
+inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &localKey, const std::source_location location) const
 {
-    return Relation<T>("hasMany", const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
         auto d = new HasManyRelationData<T>();
-        d->name = "hasMany";
         d->foreignKey = foreignKey;
         d->localKey = localKey;
         return d;
@@ -136,11 +139,10 @@ inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &loca
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ownerKey) const
+inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ownerKey, const std::source_location location) const
 {
-    return Relation<T>("belongsTo", const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, const_cast<Model *>(this), [=]() {
         auto d = new BelongsToRelationData<T>;
-        d->name = "belongsTo";
         d->foreignKey = foreignKey;
         d->ownerKey = ownerKey;
         return d;

@@ -54,7 +54,7 @@ QString MetaObject::tableName() const
 
 MetaProperty MetaObject::primaryProperty() const
 {
-    if (d->primaryPropertyIndex < d->properties.size())
+    if (d->primaryPropertyIndex > -1 && d->primaryPropertyIndex < d->properties.size())
         return d->properties.at(d->primaryPropertyIndex);
     else
         return MetaProperty();
@@ -254,7 +254,7 @@ QStringList MetaObject::appendFieldNames() const
 
 QStringList MetaObject::relations() const
 {
-    return QStringList();
+    return d->relations;
 }
 
 NamingConvention *MetaObject::namingConvention() const

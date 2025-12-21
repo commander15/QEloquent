@@ -113,4 +113,12 @@ TEST_F(RelationTest, apiEnhancements)
         ASSERT_FALSE(p.name.isEmpty());
     }
     ASSERT_EQ(count, 2);
+
+    auto result = Product::find(Query().with("category"));
+    if (result) {
+        QJsonArray array;
+        for (const auto &c : std::as_const(result).value())
+            array.append(c.toJsonObject());
+        writeFile("categories.json", QJsonDocument(array).toJson());
+    }
 }

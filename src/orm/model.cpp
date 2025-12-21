@@ -3,14 +3,11 @@
 
 #include <QEloquent/metaproperty.h>
 #include <QEloquent/querybuilder.h>
-#include <QEloquent/queryrunner.h>
-#include <QEloquent/connection.h>
 
 #include <QVariant>
 #include <QDateTime>
 #include <QJsonObject>
 #include <QSqlRecord>
-#include <QSqlQuery>
 
 #define MODEL_DATA(Class) Class##Data &data = *static_cast<Class##Data *>(Model::data.get());
 
@@ -119,18 +116,27 @@ void Model::setProperty(const QString &name, const QVariant &value)
         data.dynamicProperties.insert(name, value);
 }
 
+QVariant Model::field(const QString &name) const
+{
+    MODEL_DATA(const Model);
+    const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByFieldName);
+    return (property.isValid() ? property.read(this) : QVariant());
+}
+
+void Model::setField(const QString &name, const QVariant &value)
+{
+    MODEL_DATA(Model);
+    const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByFieldName);
+    if (property.isValid())
+        property.write(this, value);
+}
+
 /*!
  * \brief Fills the model with data from a map (field names as keys).
  */
 void Model::fill(const QVariantMap &values)
 {
-    MODEL_DATA(Model);
-    const QStringList fields = values.keys();
-    for (const QString &field : fields) {
-        const MetaProperty property = data.metaObject.property(field, MetaObject::ResolveByFieldName);
-        if (property.isValid())
-            property.write(this, values.value(field));
-    }
+    fill(QJsonObject::fromVariantMap(values));
 }
 
 /*!
@@ -138,7 +144,27 @@ void Model::fill(const QVariantMap &values)
  */
 void Model::fill(const QJsonObject &object)
 {
-    fill(object.toVariantMap());
+    MODEL_DATA(Model);
+    const QStringList fields = object.keys();
+    for (const QString &field : fields) {
+        const MetaProperty property = data.metaObject.property(field, MetaObject::ResolveByFieldName);
+        if (!property.isValid())
+            continue;
+
+        switch (property.propertyType()) {
+        case MetaProperty::StandardProperty:
+            property.write(this, object.value(field).toVariant());
+            break;
+
+        case MetaProperty::AppendedProperty:
+            break;
+
+        case MetaProperty::RelationProperty:
+            if (data.relationData.contains(property.propertyName()))
+                data.relationData.value(property.propertyName());
+            break;
+        }
+    }
 }
 
 /*!
@@ -258,13 +284,15 @@ bool Model::load(const QStringList &relations)
     for (const QString &relation : relations) {
         const MetaProperty property = data->metaObject.property(relation);
         if (property.isValid()) {
-            // We just need to call the function to load relations
-            const QVariant value = property.read(this);
-
-            // Something wired happened, we stop here
-            if (value.isNull())
-                return false;
+            property.read(this); // We just read to init the relation
         }
+
+        if (!data->relationData.contains(relation))
+            continue;
+
+        auto r = data->relationData.value(relation);
+        r->parent = this; // We make sure that the relation is linked to 'this' instance
+        if (!r->get()) return false;
     }
 
     return true;
@@ -310,7 +338,36 @@ Connection Model::connection() const
  */
 QJsonObject Model::toJsonObject() const
 {
-    return QJsonObject::fromVariantMap(data->dynamicProperties);
+    QJsonObject object;
+
+    // static properties
+    auto p = data->metaObject.properties();
+    for (const MetaProperty &property : std::as_const(p)) {
+        const QString field = property.fieldName();
+
+        switch (property.propertyType()) {
+        case MetaProperty::StandardProperty:
+        case MetaProperty::AppendedProperty:
+            if (!property.hasAttribute(MetaProperty::HiddenProperty))
+                object.insert(field, QJsonValue::fromVariant(property.read(this)));
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    // Relations
+    auto r = data->relationData.keys();
+    for (const QString &relation : std::as_const(r))
+        object.insert(relation, data->relationData.value(relation)->extract());
+
+    // Dynamic
+    auto d = data->dynamicProperties.keys();
+    for (const QString &property : std::as_const(d))
+        object.insert(property, QJsonValue::fromVariant(data->dynamicProperties.value(property)));
+
+    return object;
 }
 
 /*!
@@ -338,12 +395,7 @@ Query Model::newQuery(bool filter) const
 
 Result<::QSqlQuery, ::QSqlError> Model::exec(const QString &statement, const Query &query)
 {
-    data->lastQuery = query;
-
-    auto result = QueryRunner::exec(statement, query.connection());
-    if (!result)
-        data->lastError = Error::fromSqlError(result.error());
-    return result;
+    return data->exec(statement, query);
 }
 
 } // namespace QEloquent

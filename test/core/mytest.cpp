@@ -30,6 +30,19 @@ QByteArray MyTest::cacheFile(const QString &fileName)
     return QByteArray();
 }
 
+bool MyTest::writeFile(const QString &fileName, const QByteArray &data)
+{
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(data);
+        file.flush();
+        file.close();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 std::string MyTest::convertString(const QString &str)
 {
     return str.toStdString();
@@ -59,13 +72,13 @@ void MyTest::TearDown()
         QFile::remove(TEST_DB_NAME);
 }
 
-std::expected<bool, QSqlError> MyTest::migrate()
+Result<bool, QSqlError> MyTest::migrate()
 { return exec(QStringLiteral(TEST_DATA_DIR) + "/store/structure.sql"); }
 
-std::expected<bool, QSqlError> MyTest::seed()
+Result<bool, QSqlError> MyTest::seed()
 { return exec(QStringLiteral(TEST_DATA_DIR) + "/store/content.sql"); }
 
-std::expected<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
+Result<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
 {
     const QByteArray fileContent = readFile(sqlFileName);
     const QStringList statements = QEloquent::QueryBuilder::statementsFromScriptContent(fileContent);
@@ -73,7 +86,7 @@ std::expected<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
     for (const QString &statement : statements) {
         auto result = QEloquent::QueryRunner::exec(statement, connection);
         if (!result)
-            return std::unexpected(result.error());
+            return unexpected(result.error());
     }
 
     return true;

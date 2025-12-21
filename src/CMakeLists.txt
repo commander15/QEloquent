@@ -15,7 +15,7 @@ target_compile_definitions(QEloquent
         QLOQUENT_BUILD
 )
 
-target_link_libraries(QEloquent PUBLIC Qt::Sql)
+target_link_libraries(QEloquent PUBLIC Qt::Sql PUBLIC expected)
 
 target_include_directories(QEloquent PUBLIC $<INSTALL_INTERFACE:include/Qloquent>)
 
@@ -45,10 +45,10 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-export(EXPORT QEloquentExport
-    FILE "${PACKAGE_DIR}/QEloquentTargets.cmake"
-    NAMESPACE QEloquent::
-)
+# export(EXPORT QEloquentExport
+#     FILE "${PACKAGE_DIR}/QEloquentTargets.cmake"
+#     NAMESPACE QEloquent::
+# )
 
 install(FILES
     "${PACKAGE_DIR}/QEloquentConfig.cmake"

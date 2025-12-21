@@ -21,13 +21,12 @@ class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
 
     Q_CLASSINFO("fillable", "name, description, price, barcode, categoryId")
     Q_CLASSINFO("hidden", "categoryId")
+    Q_CLASSINFO("append", "fullDescription, priced")
     Q_CLASSINFO("table", "Products")
+    Q_CLASSINFO("with", "stock")
 
 public:
     Product();
-
-    QEloquent::Relation<Stock> stock() const;
-    QEloquent::Relation<Category> category() const;
 
     int id = 0;
     QString name;
@@ -37,6 +36,12 @@ public:
     int categoryId = 0;
     QString createdAt;
     QString updatedAt;
+
+    Q_INVOKABLE QString fullDescription() const;
+    Q_INVOKABLE QString priced() const;
+
+    Q_INVOKABLE QEloquent::Relation<Stock> stock() const;
+    Q_INVOKABLE QEloquent::Relation<Category> category() const;
 };
 
 class Stock : public QEloquent::Model, public QEloquent::ModelHelpers<Stock>
@@ -68,11 +73,13 @@ class Category : public QEloquent::Model, public QEloquent::ModelHelpers<Categor
     Q_PROPERTY(QString description MEMBER description)
 
     Q_CLASSINFO("table", "Categories")
+    Q_CLASSINFO("append", "productCount")
 
 public:
     Category();
 
-    QEloquent::Relation<Product> products() const;
+    Q_INVOKABLE QEloquent::Relation<Product> products() const;
+    Q_INVOKABLE int productCount() const;
 
     int id = 0;
     QString name;

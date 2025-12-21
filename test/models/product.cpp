@@ -1,12 +1,25 @@
 #include "product.h"
 
+using namespace QEloquent;
+
 Product::Product()
     : QEloquent::Model(this)
-{}
+{
+}
+
+QString Product::fullDescription() const
+{
+    return name + " - " + description + " - at " + QString::number(price) + " XAF";
+}
+
+QString Product::priced() const
+{
+    return QString::number(price) + " XAF";
+}
 
 QEloquent::Relation<Stock> Product::stock() const
 {
-    return hasOne<Stock>("product_id");
+    return hasOne<Stock>();
 }
 
 QEloquent::Relation<Category> Product::category() const
@@ -20,7 +33,7 @@ Stock::Stock()
 
 QEloquent::Relation<Product> Stock::product() const
 {
-    return belongsTo<Product>("product_id");
+    return belongsTo<Product>();
 }
 
 Category::Category()
@@ -29,5 +42,11 @@ Category::Category()
 
 QEloquent::Relation<Product> Category::products() const
 {
-    return hasMany<Product>("category_id");
+    return hasMany<Product>();
+}
+
+int Category::productCount() const
+{
+    auto result = Product::count(Query().where("category_id", id));
+    return (result ? result.value() : 0);
 }

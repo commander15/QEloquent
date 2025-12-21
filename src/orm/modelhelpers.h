@@ -52,6 +52,7 @@ public:
     static Result<Model, Error> find(const QVariant &primary);
     /** @brief Finds models matching the given query */
     static Result<QList<Model>, Error> find(Query query);
+    static Result<QList<Model>, Error> all();
 
     /** @brief Returns the number of records matching the query */
     static Result<int, Error> count(Query query = Query());
@@ -134,6 +135,12 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
     } else {
         return unexpected(Error::fromSqlError(result.error()));
     }
+}
+
+template<typename Model, typename Maker>
+inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::all()
+{
+    return find(Query());
 }
 
 template<typename Model, typename Maker>

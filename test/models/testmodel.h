@@ -53,7 +53,7 @@ public:
 
     // A well defined relation
     Q_INVOKABLE QEloquent::Relation<TestModel> subTests()
-    { return hasOne<TestModel>(); }
+    { return hasOne<TestModel>("subTests"); }
 
     int id = 0;
 

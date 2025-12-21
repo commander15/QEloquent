@@ -6,9 +6,12 @@
 #include <QEloquent/query.h>
 #include <QEloquent/error.h>
 #include <QEloquent/metaobject.h>
+#include <QEloquent/queryrunner.h>
+#include <QEloquent/connection.h>
 
 #include <QVariant>
 #include <QMetaProperty>
+#include <QSqlQuery>
 
 namespace QEloquent {
 
@@ -21,6 +24,16 @@ public:
 
     Query lastQuery;
     Error lastError;
+
+    Result<::QSqlQuery, ::QSqlError> exec(const QString &statement, const Query &query)
+    {
+        lastQuery = query;
+
+        auto result = QueryRunner::exec(statement, query.connection());
+        if (!result)
+            lastError = Error::fromSqlError(result.error());
+        return result;
+    }
 };
 
 } // namespace QELoquent

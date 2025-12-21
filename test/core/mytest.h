@@ -7,6 +7,7 @@
 #include <list>
 #include <string>
 
+#include <QEloquent/result.h>
 #include <QEloquent/connection.h>
 
 #include <QSqlError>
@@ -24,6 +25,7 @@ class MyTest : public testing::Test
 public:
     static QByteArray readFile(const QString &fileName);
     static QByteArray cacheFile(const QString &fileName);
+    static bool writeFile(const QString &fileName, const QByteArray &data);
 
     static std::string convertString(const QString &str);
     static std::list<std::string> convertStringList(const QStringList &list);
@@ -32,9 +34,9 @@ protected:
     void SetUp() override;
     void TearDown() override;
 
-    std::expected<bool, QSqlError> migrate();
-    std::expected<bool, QSqlError> seed();
-    std::expected<bool, QSqlError> exec(const QString &sqlFileName);
+    QEloquent::Result<bool, QSqlError> migrate();
+    QEloquent::Result<bool, QSqlError> seed();
+    QEloquent::Result<bool, QSqlError> exec(const QString &sqlFileName);
 
     QEloquent::Connection connection;
 

@@ -15,7 +15,7 @@ class SimpleCRUDTest : public MyTest {};
 
 TEST_F(SimpleCRUDTest, metadataRetrieval)
 {
-    const MetaObject product = Product::make().metaObject();
+    const MetaObject product = MetaObject::from<Product>();
 
     const std::list<std::string> fillables = {
         "name", "description", "price", "barcode", "category_id"
@@ -27,7 +27,8 @@ TEST_F(SimpleCRUDTest, metadataRetrieval)
 
     const std::list<std::string> fields = {
         "id", "name", "description", "price", "barcode",
-        "category_id", "created_at", "updated_at"
+        "category_id", "created_at", "updated_at",
+        "full_description", "priced", "stock", "category"
     };
 
     auto fieldNames = [](const QList<MetaProperty> &properties) {

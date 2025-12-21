@@ -77,9 +77,11 @@ QVariant MetaProperty::read(const Model *model) const
         return data->metaProperty.readOnGadget(model);
 
     if (data->getter.isValid()) {
-        QVariant value;
-        data->getter.invokeOnGadget(const_cast<Model *>(model), Q_RETURN_ARG(QVariant, value));
-        return value;
+        void *value = data->metaType.create();
+        data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
+        const QVariant var = QVariant::fromMetaType(data->metaType, value);
+        data->metaType.destroy(value);
+        return var;
     }
 
     return model->data->dynamicProperties.value(data->propertyName);

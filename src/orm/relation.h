@@ -7,38 +7,59 @@
 
 #include <QList>
 #include <QVariant>
+#include <QJsonValue>
+#include <QJsonObject>
+#include <QJsonArray>
+
+#include <source_location>
 
 namespace QEloquent {
 
-/**
- * @brief Base class for internal relation data storage.
- * 
- * This class is managed by Relation objects using QExplicitlySharedDataPointer.
- */
+class Query;
+class Error;
+class ModelData;
+
 class RelationData : public Entity, public QSharedData
 {
 public:
-    virtual ~RelationData() = default;
+    RelationData();
+    RelationData(const RelationData &other) = default;
+    virtual ~RelationData();
+
+    virtual void init(NamingConvention *convention) = 0;
+    virtual bool multiple() const = 0;
+
+    virtual void fill(const QJsonValue &value) = 0;
+    virtual QJsonValue extract() const = 0;
 
     // No need for full CRUD for now
     bool insert() override { return false; }
     bool update() override { return false; };
     bool deleteData() override { return false; }
 
-    /** @brief Creates a deep copy of the relation data */
     virtual RelationData *clone() const = 0;
 
-    QString name;        /**< @brief Name of the relationship */
-    Model *parent;       /**< @brief The parent model owning this relation */
-    QMap<int, QVariantMap> associatedData; /**< @brief Metadata for many-to-many pivots */
+    QString name;
+    Model *parent = nullptr;
+    QMap<int, QVariantMap> associatedData;
 
-    MetaObject primaryObject; /**< @brief MetaObject of the parent model */
-    MetaObject relatedObject; /**< @brief MetaObject of the related model */
+    MetaObject primaryObject;
+    MetaObject relatedObject;
 
-    bool isLoaded = false;    /**< @brief True if related data has been fetched from DB */
+    bool isLoaded = false;
 
-    /** @brief Internal factory to create relation data associated with a parent model */
     static QExplicitlySharedDataPointer<RelationData> fromParentModel(const QString &name, Model *parent, const std::function<RelationData *()> &creationCallback);
+    static QExplicitlySharedDataPointer<RelationData> fromParentModel(const std::source_location &location, Model *parent, const std::function<RelationData *()> &creationCallback);
+
+protected:
+    QVariant parentPrimary() const;
+    void setParentPrimary(const QVariant &value);
+
+    QVariant parentField(const QString &name) const;
+    void setParentField(const QString &name, const QVariant &value);
+
+    void conserve(const Query &query);
+    void conserve(const Query &query, const Error &error);
 };
 
 /**
@@ -54,6 +75,40 @@ public:
 
     /** @brief Returns true if any related models have been fetched */
     bool exists() override { return related.count() > 0; }
+
+    void fill(const QJsonValue &value) override
+    {
+        if (value.type() == QJsonValue::Object) {
+            RelatedModel m;
+            m.fill(value.toObject());
+            related = { m };
+            return;
+        }
+
+        if (value.type() == QJsonValue::Array) {
+            related.clear();
+
+            const QJsonArray array = value.toArray();
+            for (const QJsonValue &value : array) {
+                RelatedModel m;
+                m.fill(value.toObject());
+                related.append(m);
+            }
+            return;
+        }
+    }
+
+    QJsonValue extract() const override
+    {
+        if (!multiple()) {
+            return (related.isEmpty() ? QJsonObject() : related.first().toJsonObject());
+        } else {
+            QJsonArray array;
+            for (const RelatedModel &m : related)
+                array.append(m.toJsonObject());
+            return array;
+        }
+    }
 
     QList<RelatedModel> related; /**< @brief The list of related model instances */
 };
@@ -82,6 +137,9 @@ public:
     /** @brief Internal constructor used by Model factory methods */
     Relation(const QString &name, ParentModel *parent, const std::function<RelationData *()> &creationCallback)
         : data(RelationData::fromParentModel(name, parent, creationCallback)) {}
+    /** @brief Constructor */
+    Relation(const std::source_location &location, ParentModel *parent, const std::function<RelationData *()> &creationCallback)
+        : data(RelationData::fromParentModel(location, parent, creationCallback)) {}
     /** @brief Internal constructor */
     Relation(const QString &name, ParentModel *parent)
         : data(RelationData::fromParentModel(name, parent, [] { return nullptr; })) {}
@@ -165,6 +223,12 @@ public:
     Model first() const { return count() > 0 ? at(0) : Model(); }
     /** @brief Returns the last related model or a default instance if none found */
     Model last() const { return count() > 0 ? at(count() - 1) : Model(); }
+
+    QJsonObject toJsonObhect() const
+    { return data->extract().toObject(); }
+
+    QJsonArray toJsonArray() const
+    { return data->extract().toArray(); }
 
     /** @brief Member access operator pointing to the first related model */
     Model* operator->() {
