@@ -147,6 +147,6 @@ inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ow
     });
 }
 
-} // namespace QELoquent
+} // namespace QEloquent
 
 #endif // QELOQUENT_MODEL_H
