@@ -209,7 +209,7 @@ int MetaObject::writeProperties(Model *model, const QVariantMap &data, PropertyN
 
 QVariantMap MetaObject::readFillableFields(const Model *model) const
 {
-    return readProperties(model, MetaProperty::FillableProperty, AllProperties, ResolveByFieldName);
+    return readProperties(model, MetaProperty::FillableProperty, StandardProperties, ResolveByFieldName);
 }
 
 bool MetaObject::writeFillableFields(Model *model, const QVariantMap &data)

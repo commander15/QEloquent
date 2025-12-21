@@ -155,6 +155,7 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
 
     if (property->propertyName == generation->info(META_PRIMARY, "id")) {
         property->attributes.setFlag(MetaProperty::PrimaryProperty);
+        property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->primaryPropertyIndex = index;
 
         // We generate foreign property name if not provided, camel cased
@@ -184,8 +185,8 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
         generation->object->deletionTimestampIndex = index;
     }
 
-    if (!generation->hasInfo(META_FILLABLE) || generation->fillable.contains(property->propertyName))
-        property->attributes.setFlag(MetaProperty::FillableProperty);
+    if (generation->fillable.contains(property->propertyName) || (property->propertyType == MetaProperty::StandardProperty && !generation->hasInfo(META_FILLABLE)))
+        property->attributes.setFlag(MetaProperty::FillableProperty, !property->attributes.testFlag(MetaProperty::PrimaryProperty));
 
     if (generation->hidden.contains(property->propertyName))
         property->attributes.setFlag(MetaProperty::HiddenProperty);

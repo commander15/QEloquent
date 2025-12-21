@@ -7,8 +7,9 @@ project(
     LANGUAGES CXX C
 )
 
-option(QELOQUENT_BUILD_TESTS "Build tests"         OFF)
-option(QELOQUENT_BUILD_DOC   "Build documentation" OFF)
+option(QELOQUENT_BUILD_TESTS    "Build tests"         OFF)
+option(QELOQUENT_BUILD_DOC      "Build documentation" OFF)
+option(QELOQUENT_BUILD_EXAMPLES "Build examples"      OFF)
 
 set(CMAKE_AUTOMOC ON)
 
@@ -21,6 +22,9 @@ include(cmake/Utils.cmake)
 set(REQUIRED_MODULES Core Sql)
 if (QELOQUENT_BUILD_TESTS)
     set(OPTIONAL_MODULES Test)
+endif()
+if (QELOQUENT_BUILD_EXAMPLES)
+    list(APPEND OPTIONAL_MODULES Widgets)
 endif()
 find_package(Qt6 REQUIRED COMPONENTS ${REQUIRED_MODULES} OPTIONAL_COMPONENTS ${OPTIONAL_MODULES})
 
@@ -49,4 +53,8 @@ endif()
 
 if (QELOQUENT_BUILD_DOC)
     add_subdirectory(doc)
+endif()
+
+if (QELOQUENT_BUILD_EXAMPLES AND Qt6Widgets_FOUND)
+    add_subdirectory(examples/store)
 endif()
