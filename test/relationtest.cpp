@@ -1,5 +1,8 @@
 #include "relationtest.h"
 #include "models/product.h"
+#include "models/user.h"
+#include "models/usergroup.h"
+#include "models/sale.h"
 
 using namespace QEloquent;
 
@@ -120,5 +123,67 @@ TEST_F(RelationTest, apiEnhancements)
         for (const auto &c : std::as_const(result).value())
             array.append(c.toJsonObject());
         writeFile("categories.json", QJsonDocument(array).toJson());
+    }
+}
+
+TEST_F(RelationTest, belongsToManyRelation)
+{
+    auto migrationResult = migrate();
+    auto seedingResult = seed();
+    ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
+
+    // Test User -> UserGroup
+    auto userResult = User::find(1); // Admin
+    ASSERT_TRUE(userResult);
+    User admin = userResult.value();
+    
+    auto groupsRelation = admin.groups();
+    ASSERT_TRUE(groupsRelation.get());
+    ASSERT_GE(groupsRelation.count(), 1);
+    
+    bool foundManagers = false;
+    for (const auto &group : groupsRelation) {
+        if (TEST_STR(group.name) == "Stock Managers") foundManagers = true;
+    }
+    ASSERT_TRUE(foundManagers);
+
+    // Test UserGroup -> User
+    auto groupResult = UserGroup::find(1); // Stock Managers
+    ASSERT_TRUE(groupResult);
+    UserGroup group = groupResult.value();
+    
+    auto usersRelation = group.users();
+    ASSERT_TRUE(usersRelation.get());
+    ASSERT_GE(usersRelation.count(), 1);
+    
+    bool foundUser = false;
+    for (const auto &user : usersRelation) {
+        if (TEST_STR(user.name) == "Amadou Benjamain") foundUser = true;
+    }
+    ASSERT_TRUE(foundUser);
+}
+
+TEST_F(RelationTest, hasManyThroughRelation)
+{
+    auto migrationResult = migrate();
+    auto seedingResult = seed();
+    ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
+
+    // Category -> SaleItem (through Product)
+    auto categoryResult = Category::find(1); // Fruits
+    ASSERT_TRUE(categoryResult);
+    Category fruits = categoryResult.value();
+    
+    auto saleItemsRelation = fruits.saleItems();
+    ASSERT_TRUE(saleItemsRelation.get());
+    
+    // Apple (id 1) belongs to Fruits (id 1)
+    // Seeding should have a sale with Apple
+    ASSERT_GE(saleItemsRelation.count(), 1);
+    
+    for (const auto &item : saleItemsRelation) {
+        auto productResult = item.product().get();
+        ASSERT_TRUE(productResult);
+        ASSERT_EQ(item.product()->categoryId, fruits.id);
     }
 }

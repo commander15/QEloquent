@@ -25,6 +25,14 @@ public:
         Qt::SortOrder order = Qt::DescendingOrder;
     };
 
+    struct Join {
+        QString table;
+        QString first;
+        QString op;
+        QString second;
+        QString type;
+    };
+
     ModelQueryData() : connectionName(Connection::defaultConnection().name()) {}
 
     QString tableName;
@@ -33,6 +41,7 @@ public:
     QList<Filter> filters;
     QStringList groups;
     QList<Sort> sorts;
+    QList<Join> joins;
 
     int limit = -1;
     int offset = -1;
@@ -176,6 +185,21 @@ Query &Query::orWhere(const QString &expression)
 Query &Query::groupBy(const QString &field)
 {
     data->groups.append(field);
+    return *this;
+}
+
+/*!
+ * \brief Adds a JOIN clause.
+ */
+Query &Query::join(const QString &table, const QString &first, const QString &op, const QString &second, const QString &type)
+{
+    ModelQueryData::Join j;
+    j.table = table;
+    j.first = first;
+    j.op = op;
+    j.second = second;
+    j.type = type;
+    data->joins.append(j);
     return *this;
 }
 
@@ -399,6 +423,15 @@ QString Query::toString() const
 QString Query::toString(const Connection connection) const
 {
     QStringList clauses;
+
+    if (!data->joins.isEmpty()) {
+        for (const auto &join : data->joins) {
+            QString joinClause = join.type + " JOIN " + QueryBuilder::escapeTableName(join.table, connection);
+            joinClause += " ON " + QueryBuilder::escapeFieldName(join.first, connection);
+            joinClause += " " + join.op + " " + QueryBuilder::escapeFieldName(join.second, connection);
+            clauses.append(joinClause);
+        }
+    }
 
     const QString whereClause = this->whereClause(connection);
     if (!whereClause.isEmpty())

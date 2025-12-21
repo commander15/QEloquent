@@ -6,6 +6,7 @@
 
 class Stock;
 class Category;
+class SaleItem;
 
 class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
 {
@@ -79,6 +80,7 @@ public:
     Category();
 
     Q_INVOKABLE QEloquent::Relation<Product> products() const;
+    Q_INVOKABLE QEloquent::Relation<SaleItem> saleItems() const;
     Q_INVOKABLE int productCount() const;
 
     int id = 0;

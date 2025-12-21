@@ -2,8 +2,11 @@
 #define USER_H
 
 #include <QEloquent/model.h>
+#include <QEloquent/modelhelpers.h>
 
-class User : public QEloquent::Model
+class UserGroup;
+
+class User : public QEloquent::Model, public QEloquent::ModelHelpers<User>
 {
     Q_GADGET
     Q_PROPERTY(int id MEMBER id)
@@ -21,6 +24,8 @@ public:
     QString name;
     QString email;
     QString password;
+
+    Q_INVOKABLE QEloquent::Relation<UserGroup> groups() const;
 };
 
 #endif // USER_H

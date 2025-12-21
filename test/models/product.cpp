@@ -1,4 +1,5 @@
 #include "product.h"
+#include "sale.h"
 
 using namespace QEloquent;
 
@@ -43,6 +44,11 @@ Category::Category()
 QEloquent::Relation<Product> Category::products() const
 {
     return hasMany<Product>();
+}
+
+QEloquent::Relation<SaleItem> Category::saleItems() const
+{
+    return hasManyThrough<SaleItem, Product>("category_id", "id", "product_id", "id");
 }
 
 int Category::productCount() const

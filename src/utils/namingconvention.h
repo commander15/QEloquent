@@ -29,6 +29,9 @@ public:
     /** @brief Returns the foreign key field name referring to another table */
     virtual QString foreignFieldName(const QString &primaryFieldName, const QString &tableName) const = 0;
 
+    /** @brief Returns the name of the pivot table for a many-to-many relationship */
+    virtual QString pivotTableName(const QString &table1, const QString &table2) const = 0;
+
     /** @brief Returns the property name for a given field name in a table */
     virtual QString propertyName(const QString &fieldName, const QString &tableName) const = 0;
     /** @brief Returns the foreign property name (e.g. for relations) */

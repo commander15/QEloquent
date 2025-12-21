@@ -35,6 +35,8 @@ public:
     Query &orWhere(const QString &field, const QString &op, const QVariant &value);
     Query &orWhere(const QString &expression);
 
+    Query &join(const QString &table, const QString &first, const QString &op, const QString &second, const QString &type = "INNER");
+
     Query &groupBy(const QString &field);
 
     Query &orderBy(const QString &field, Qt::SortOrder order = Qt::DescendingOrder);

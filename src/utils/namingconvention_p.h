@@ -22,6 +22,9 @@ public:
     QString foreignFieldName(const QString &primaryFieldName, const QString &tableName) const override
     { return tableName + '_' + primaryFieldName; }
 
+    QString pivotTableName(const QString &table1, const QString &table2) const override
+    { return table1 + '_' + table2; }
+
     QString propertyName(const QString &fieldName, const QString &) const override
     { return camelFromSnake(fieldName); }
 };
@@ -40,6 +43,9 @@ public:
 
     QString foreignFieldName(const QString &primaryFieldName, const QString &tableName) const override
     { return tableName + '_' + primaryFieldName; }
+
+    QString pivotTableName(const QString &table1, const QString &table2) const override
+    { return table1 + '_' + table2; }
 
     QString propertyName(const QString &fieldName, const QString &) const override
     { return fieldName; }
