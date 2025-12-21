@@ -17,7 +17,8 @@ INPUT                  = @PROJECT_SOURCE_DIR@/README.md \
 
 FILE_PATTERNS          = *.h *.cpp *.md
 RECURSIVE              = YES
-USE_M_D_AS_MAINPAGE      = @PROJECT_SOURCE_DIR@/README.md
+
+USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
 
 # Layout and Style
 HTML_EXTRA_STYLESHEET  = 
