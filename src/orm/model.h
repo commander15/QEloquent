@@ -119,9 +119,11 @@ template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
 inline Model::Model(T *) : Model(T::staticMetaObject) {}
 
 /*!
+ * \fn QEloquent::Model::hasOne
  * \brief Defines a one-to-one relationship.
  * \param foreignKey The foreign key of the related model.
  * \param localKey The local key of the parent model.
+ * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T>
@@ -136,9 +138,11 @@ inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &local
 }
 
 /*!
+ * \fn QEloquent::Model::hasMany
  * \brief Defines a one-to-many relationship.
  * \param foreignKey The foreign key of the related model.
  * \param localKey The local key of the parent model.
+ * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T>
@@ -153,9 +157,12 @@ inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &loca
 }
 
 /*!
+ * \fn QEloquent::Model::hasManyThrough
  * \brief Defines a has-many-through relationship.
  * \param foreignKey The foreign key of the intermediate model.
  * \param localKey The local key of the parent model.
+ * \param throughForeignKey The foreignKey referenced on the through table
+ * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T, typename Through>
@@ -173,9 +180,11 @@ inline Relation<T> Model::hasManyThrough(const QString &foreignKey, const QStrin
 }
 
 /*!
+ * \fn QEloquent::Model::belongsTo
  * \brief Defines an inverse one-to-one or many-to-one relationship.
  * \param foreignKey The foreign key of the current model.
  * \param ownerKey The owner key of the related model.
+ * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T>
@@ -190,10 +199,12 @@ inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ow
 }
 
 /*!
+ * \fn QEloquent::Model::belongsToMany
  * \brief Defines a many-to-many relationship.
  * \param table The pivot table name.
  * \param foreignPivotKey The foreign key of the current model in the pivot table.
  * \param relatedPivotKey The foreign key of the related model in the pivot table.
+ * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T>
@@ -213,10 +224,12 @@ inline Relation<T> Model::belongsToMany(const QString &table, const QString &for
 }
 
 /*!
+ * \fn QEloquent::Model::belongsToManyThrough
  * \brief Defines a belongs-to-many-through relationship.
  * \param table The pivot table name.
  * \param foreignPivotKey The foreign key of the intermediate model in the pivot table.
  * \param relatedPivotKey The foreign key of the related model in the pivot table.
+ * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T, typename Through>

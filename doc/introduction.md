@@ -16,6 +16,6 @@ QEloquent is built around several key pillars that make database management in Q
 - **Familiarity**: If you know Eloquent (Laravel) or ActiveRecord (Rails), you'll feel right at home.
 - **Qt Integration**: It doesn't fight against Qt; it embraces it. Using `Q_GADGET` means zero boilerplate for reflection.
 - **Performance**: Lightweight and built on top of the battle-tested `QSqlDatabase` module.
-- **Modern C++**: Built with C++23 standards for maximum safety and expressiveness.
+- **Modern C++**: Built with C++20 standards for maximum safety and expressiveness.
 
 Next, let's learn how to [define your first Model](@ref model_definition).

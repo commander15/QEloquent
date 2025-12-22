@@ -28,9 +28,6 @@ Model::Model(const QMetaObject &metaObject)
     data->metaObject = MetaObject::fromQtMetaObject(metaObject);
 }
 
-/*!
- * \brief Constructor from internal data.
- */
 Model::Model(ModelData *data)
     : data(data)
 {}

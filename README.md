@@ -23,7 +23,7 @@ Built on top of Qt's robust Meta-Object system, QEloquent allows you to define m
 ### Requirements
 - **Qt 6.x** (with Sql module)
 - **CMake 3.30+**
-- **C++23** compliant compiler (GCC 13+, Clang 16+, or MSVC 2022+)
+- **C++20** compliant compiler (GCC 13+, Clang 16+, or MSVC 2022+)
 
 ### Building from Source
 ```bash

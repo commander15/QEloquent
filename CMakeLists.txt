@@ -11,8 +11,10 @@ option(QELOQUENT_BUILD_TESTS    "Build tests"         OFF)
 option(QELOQUENT_BUILD_DOC      "Build documentation" OFF)
 option(QELOQUENT_BUILD_EXAMPLES "Build examples"      OFF)
 
+# Qt specifics
 set(CMAKE_AUTOMOC ON)
 
+# C++ 20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
