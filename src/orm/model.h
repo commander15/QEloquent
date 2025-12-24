@@ -102,8 +102,8 @@ protected:
     QSharedDataPointer<ModelData> data;
 
 private:
-    Query newQuery(bool filter = true) const;
-    Result<::QSqlQuery, ::QSqlError> exec(const QString &statement, const Query &query);
+    Query newQuery(const std::function<QString (const Query &)> &statementGenerator, bool filter) const;
+    Result<::QSqlQuery, QSqlError> exec(const std::function<QString (const Query &)> &statementGenerator, bool filter);
 
     friend class MetaProperty;
     friend class RelationData;

@@ -3,9 +3,8 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QTableWidget>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QFrame>
 
 namespace Store {
 
@@ -17,11 +16,15 @@ public:
     void refresh();
 
 private:
-    QLabel *m_totalSalesLabel;
-    QLabel *m_totalRevenueLabel;
+    QLabel *m_dateLabel;
+    QLabel *m_totalProductsLabel;
     QLabel *m_lowStockLabel;
+    QLabel *m_dailyRevenueLabel;
+    QLabel *m_userNameLabel;
+    QTableWidget *m_topProductsTable;
 
-    QWidget* createStatCard(const QString &title, QLabel *&valueLabel, const QString &color);
+    void setupUi();
+    QWidget* createStatCard(const QString &title, QLabel *&valueLabel, const QString &icon, const QString &color);
 };
 
 } // namespace Store

@@ -221,8 +221,10 @@ inline Query &ModelHelpers<Model, Maker>::fixQuery(Query &query)
 template<typename Model, typename Maker>
 inline Query &ModelHelpers<Model, Maker>::fixQuery(Query &query, const MetaObject &metaObject)
 {
-    query.table(metaObject.tableName()).connection(metaObject.connectionName());
-    return query;
+    return query
+        .table(metaObject.tableName())
+        .connection(metaObject.connectionName())
+        .raw(QString());
 }
 
 } // namespace QEloquent

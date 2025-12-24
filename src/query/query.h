@@ -23,6 +23,10 @@ public:
     QString tableName() const;
     Query &table(const QString &tableName);
 
+    bool hasRawSql() const;
+    QString rawSql() const;
+    Query &raw(const QString &statement);
+
     Query &where(const QString &field, const QVariant &value) { return andWhere(field, "=", value); }
     Query &where(const QString &field, const QString &op, const QVariant &value) { return andWhere(field, op, value); }
     Query &where(const QString &expression) { return andWhere(expression); }

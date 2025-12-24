@@ -12,6 +12,8 @@ class QUrl;
 
 namespace QEloquent {
 
+class Driver;
+
 class ConnectionData;
 class QELOQUENT_EXPORT Connection
 {
@@ -37,6 +39,8 @@ public:
     QSqlQuery exec(const QString &query, bool cache = false);
     QSqlError lastError() const;
 
+    Driver *driver() const;
+
     const QSqlDatabase database() const;
     QSqlDatabase database();
 
@@ -52,6 +56,7 @@ public:
     static Connection addConnection(const QString &name, const QSqlDatabase &db, bool ownDb = false);
     static void removeConnection(const QString &name);
 
+    static QString defaultConnectionName();
     static Connection defaultConnection();
     static void setDefault(const Connection &connection);
 

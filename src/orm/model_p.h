@@ -25,11 +25,15 @@ public:
     Query lastQuery;
     Error lastError;
 
-    Result<::QSqlQuery, ::QSqlError> exec(const QString &statement, const Query &query)
+    Result<::QSqlQuery, ::QSqlError> exec(const QString &statement, Query query, Model *model)
     {
-        lastQuery = query;
+        query
+            .raw(statement)
+            .table(metaObject.tableName())
+            .connection(metaObject.connectionName());
 
         auto result = QueryRunner::exec(statement, query.connection());
+        lastQuery = query.raw(statement);
         if (!result)
             lastError = Error::fromSqlError(result.error());
         return result;

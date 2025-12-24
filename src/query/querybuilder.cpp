@@ -2,6 +2,11 @@
 
 #include <QEloquent/query.h>
 #include <QEloquent/connection.h>
+#include <QEloquent/driver.h>
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+#   include <QEloquent/tableblueprint.h>
+#   include <QEloquent/private/tableblueprint_p.h>
+#endif
 
 #include <QSqlDatabase>
 #include <QSqlDriver>
@@ -96,6 +101,51 @@ QString QueryBuilder::deleteStatement(const Query &query)
 
     return statement;
 }
+
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+
+QString QueryBuilder::createTableStatement(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection)
+{
+    const Driver *driver = connection.driver();
+
+    const TableBlueprintData *data = blueprint.data.get();
+
+    QStringList fields;
+    QStringList constraints;
+    for (const QExplicitlySharedDataPointer<TableFieldBlueprintData> &field : data->fields) {
+        QString line = escapeFieldName(field->name, connection) + ' ' + driver->columnType(field->type, field->length);
+
+        // PRIMARY KEY or UNIQUE, not both
+        if (field->primaryKey)
+            line.append(" PRIMARY KEY");
+        else if (field->unique)
+            line.append(" UNIQUE");
+
+        if (!field->nullable)
+            line.append(" NOT NULL");
+
+        if (!field->defaultValue.isNull())
+            line.append(" DEFAULT " + formatValue(field->defaultValue, connection));
+
+        fields.append(line);
+
+        if (!field->refTable.isEmpty())
+            constraints.append(driver->foreignKeyConstraint(field->name, field->refTable, field->refColumn));
+    }
+
+    return QStringLiteral("CREATE TABLE %1 (%2)")
+        .arg(escapeTableName(tableName, connection), (fields + constraints).join(" "));
+}
+
+QString QueryBuilder::alterTableStatement(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection)
+{
+    // ...
+
+    return QStringLiteral("ALTER TABLE %1")
+        .arg(escapeTableName(tableName, connection));
+}
+
+#endif
 
 QString QueryBuilder::escapeFieldName(const QString &name, const Connection &connection)
 {

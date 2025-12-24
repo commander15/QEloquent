@@ -1,5 +1,5 @@
-#ifndef QELOQUEN_QUERYBUILDER_H
-#define QELOQUEN_QUERYBUILDER_H
+#ifndef QELOQUENT_QUERYBUILDER_H
+#define QELOQUENT_QUERYBUILDER_H
 
 #include <QEloquent/global.h>
 
@@ -24,6 +24,11 @@ public:
 
     static QString deleteStatement(const Query &query);
 
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+    static QString createTableStatement(const QString &tableName, const class TableBlueprint &blueprint, const Connection &connection);
+    static QString alterTableStatement(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection);
+#endif
+
     static QString escapeFieldName(const QString &name, const Connection &connection);
     static QString escapeTableName(const QString &name, const Connection &connection);
 
@@ -39,4 +44,4 @@ public:
 
 } // namespace QEloquent
 
-#endif // QELOQUEN_QUERYBUILDER_H
+#endif // QELOQUENT_QUERYBUILDER_H

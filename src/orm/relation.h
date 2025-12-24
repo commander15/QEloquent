@@ -89,10 +89,15 @@ public:
             related.clear();
 
             const QJsonArray array = value.toArray();
-            for (const QJsonValue &value : array) {
+            for (int i(0); i < array.count(); ++i) {
+                const QJsonObject object = array.at(i).toObject();
+
                 RelatedModel m;
-                m.fill(value.toObject());
+                m.fill(object);
                 related.append(m);
+
+                if (object.contains("pivot"))
+                    associatedData.insert(i, object.value("pivot").toObject().toVariantMap());
             }
             return;
         }
@@ -104,8 +109,13 @@ public:
             return (related.isEmpty() ? QJsonObject() : related.first().toJsonObject());
         } else {
             QJsonArray array;
-            for (const RelatedModel &m : related)
-                array.append(m.toJsonObject());
+            for (int i(0); i < related.count(); ++i) {
+                auto m = related.at(i);
+                QJsonObject object = m.toJsonObject();
+                if (associatedData.contains(i))
+                    object.insert("pivot", QJsonObject::fromVariantMap(associatedData.value(i)));
+                array.append(object);
+            }
             return array;
         }
     }

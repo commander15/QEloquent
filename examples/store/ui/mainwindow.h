@@ -3,13 +3,12 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
-#include <QListWidget>
+#include <QToolBar>
+#include <QAction>
 
 namespace Store {
 
 class DashboardView;
-class ProductCatalogView;
-class SalesHistoryView;
 
 class MainWindow : public QMainWindow
 {
@@ -18,17 +17,14 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
 
 private slots:
-    void onNavigationChanged(int index);
+    void switchView();
 
 private:
-    QListWidget *m_sidebar;
     QStackedWidget *m_contentArea;
-    
     DashboardView *m_dashboard;
-    ProductCatalogView *m_catalog;
-    SalesHistoryView *m_history;
-
+    
     void setupUi();
+    void addToolbarAction(QToolBar *toolbar, const QString &text, const QString &icon, int index);
 };
 
 } // namespace Store

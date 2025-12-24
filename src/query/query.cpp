@@ -37,6 +37,7 @@ public:
 
     QString tableName;
     QStringList relations;
+    QString rawSqlStatement;
 
     QList<Filter> filters;
     QStringList groups;
@@ -124,6 +125,22 @@ QString Query::tableName() const
 Query &Query::table(const QString &tableName)
 {
     data->tableName = tableName;
+    return *this;
+}
+
+bool Query::hasRawSql() const
+{
+    return data->rawSqlStatement.length() > 0;
+}
+
+QString Query::rawSql() const
+{
+    return data->rawSqlStatement;
+}
+
+Query &Query::raw(const QString &statement)
+{
+    data->rawSqlStatement = statement;
     return *this;
 }
 

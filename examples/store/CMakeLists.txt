@@ -8,8 +8,9 @@ qt_add_executable(Store
     models/sale.h models/sale.cpp
     ui/mainwindow.h ui/mainwindow.cpp
     ui/dashboardview.h ui/dashboardview.cpp
-    ui/productcatalogview.h ui/productcatalogview.cpp
-    ui/saleshistoryview.h ui/saleshistoryview.cpp
+    ui/logindialog.h ui/logindialog.cpp
+    ui/session.h
+    models/model.h models/model.cpp
 )
 
 target_link_libraries(Store PRIVATE Qt6::Widgets QEloquent)

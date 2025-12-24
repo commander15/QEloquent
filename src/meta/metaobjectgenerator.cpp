@@ -117,8 +117,9 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
     const QStringList append = generation->infoList(META_APPEND);
     for (int i(0); i < generation->qtMetaObject->methodCount(); ++i) {
         const QMetaMethod method = generation->qtMetaObject->method(i);
+        const QByteArray methodName(method.name());
 
-        if (append.contains(method.name())) {
+        if (append.contains(methodName)) {
             MetaPropertyData *property = new MetaPropertyData();
             property->propertyName = method.name();
             property->metaType = method.returnMetaType();
@@ -128,7 +129,8 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
             continue;
         }
 
-        if (QByteArray(method.returnMetaType().name()).startsWith("QEloquent::Relation")) {
+        const QByteArray typeName(method.returnMetaType().name());
+        if (typeName.startsWith("QEloquent::Relation<") || typeName.contains("Relation<")) {
             MetaPropertyData *property = new MetaPropertyData();
             property->propertyName = method.name();
             property->metaType = method.returnMetaType();

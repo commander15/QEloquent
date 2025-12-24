@@ -2,6 +2,7 @@
 #include <QEloquent/connection.h>
 #include <QEloquent/queryrunner.h>
 #include "ui/mainwindow.h"
+#include "ui/logindialog.h"
 #include "models/product.h"
 #include "models/user.h"
 #include "models/sale.h"
@@ -19,10 +20,20 @@ void initDatabase()
         qFatal("Could not open database connection");
     }
 
-    auto exec = [&conn](const char *statement) {
+    auto table = [&conn](const QString &name, QStringList fields, bool withTimestamps = true) {
+        fields.prepend("id INTEGER PRIMARY KEY");
+        if (withTimestamps) {
+            fields.append("created_at TIMESTAMP");
+            fields.append("updated_at TIMESTAMP");
+        }
+
+        const QString statement = "CREATE TABLE " + name + " (" + fields.join(", ") + ")";
+
         auto result = QueryRunner::exec(statement, conn);
-        if (!result)
+        if (!result) {
+            qDebug() << statement;
             qDebug() << result.error();
+        }
     };
 
     auto save = [](Model &model) {
@@ -32,14 +43,13 @@ void initDatabase()
         }
     };
 
-    // Create tables (minimal structure for the example)
-    exec("CREATE TABLE UserRoles (id INTEGER PRIMARY KEY, name TEXT)");
-    exec("CREATE TABLE Users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, password TEXT, role_id INTEGER)");
-    exec("CREATE TABLE Categories (id INTEGER PRIMARY KEY, name TEXT, description TEXT)");
-    exec("CREATE TABLE Products (id INTEGER PRIMARY KEY, name TEXT, description TEXT, price REAL, barcode TEXT, category_id INTEGER)");
-    exec("CREATE TABLE Stocks (id INTEGER PRIMARY KEY, quantity INTEGER, product_id INTEGER)");
-    exec("CREATE TABLE Sales (id INTEGER PRIMARY KEY, number INTEGER, amount REAL, seller_id INTEGER)");
-    exec("CREATE TABLE SaleItems (id INTEGER PRIMARY KEY, unit_price REAL, quantity INTEGER, sale_id INTEGER, product_id INTEGER)");
+    table("UserRoles", { "name TEXT" });
+    table("Users", { "name TEXT", "email TEXT", "password TEXT", "role_id INTEGER" });
+    table("Categories", { "name TEXT", "description TEXT" });
+    table("Products", { "name TEXT", "description TEXT", "price REAL", "barcode TEXT", "category_id INTEGER" });
+    table("Stocks", { "quantity INTEGER", "product_id INTEGER" });
+    table("Sales", { "number INTEGER", "amount REAL", "seller_id INTEGER" });
+    table("SaleItems", { "unit_price REAL", "quantity REAL", "sale_id INTEGER", "product_id INTEGER" });
 
     // Initial Seed
     UserRole adminRole;
@@ -99,6 +109,11 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     initDatabase();
+
+    LoginDialog login;
+    if (login.exec() != QDialog::Accepted) {
+        return 0;
+    }
 
     MainWindow w;
     w.show();

@@ -182,8 +182,10 @@ void Model::fill(const QSqlRecord &record)
  */
 bool Model::exists()
 {
-    const Query query = newQuery(true);
-    auto result = exec(QueryBuilder::selectStatement("COUNT(1)", query), query);
+    auto result = exec([](const Query &query) {
+        return QueryBuilder::selectStatement("COUNT(1)", query);
+    }, true);
+
     if (result && result->next())
         return result->value(0).toInt() > 0;
     else
@@ -202,8 +204,9 @@ bool Model::get()
         return false;
     }
 
-    const Query query = newQuery(true);
-    auto result = exec(QueryBuilder::selectStatement(query), query);
+    auto result = exec([](const Query &query) {
+        return QueryBuilder::selectStatement(query);
+    }, true);
 
     if (result) {
         if (result->next()) {
@@ -226,10 +229,13 @@ bool Model::insert()
 {
     MODEL_DATA(Model);
 
-    const QVariantMap values = data.metaObject.readFillableFields(this);
+    if (data.metaObject.hasCreationTimestamp())
+        data.metaObject.creationTimestamp().write(this, QDateTime::currentDateTime());
 
-    const Query query = newQuery(true);
-    auto result = exec(QueryBuilder::insertStatement(values, query), query);
+    const QVariantMap values = data.metaObject.readFillableFields(this);
+    auto result = exec([&values](const Query &query) {
+        return QueryBuilder::insertStatement(values, query);
+    }, false);
 
     if (result) {
         setPrimary(result->lastInsertId());
@@ -246,10 +252,14 @@ bool Model::update()
 {
     MODEL_DATA(Model);
 
-    const QVariantMap values = data.metaObject.readFillableFields(this);
+    if (data.metaObject.hasUpdateTimestamp())
+        data.metaObject.updateTimestamp().write(this, QDateTime::currentDateTime());
 
-    const Query query = newQuery(true);
-    auto result = exec(QueryBuilder::updateStatement(values, query), query);
+    const QVariantMap values = data.metaObject.readFillableFields(this);
+    auto result = exec([&values](const Query &query) {
+        return QueryBuilder::updateStatement(values, query);
+    }, true);
+
     return (result ? result->numRowsAffected() > 0 : false);
 }
 
@@ -260,8 +270,14 @@ bool Model::deleteData()
 {
     MODEL_DATA(Model);
 
-    const Query query = newQuery(true);
-    auto result = exec(QueryBuilder::deleteStatement(query), query);
+    if (data.metaObject.hasDeletionTimestamp()) {
+        data.metaObject.deletionTimestamp().write(this, QDateTime::currentDateTime());
+        return update();
+    }
+
+    auto result = exec([](const Query &query) {
+        return QueryBuilder::deleteStatement(query);
+    }, true);
     return (result ? result->numRowsAffected() > 0 : false);
 }
 
@@ -375,11 +391,9 @@ QSqlRecord Model::toSqlRecord() const
     return QSqlRecord();
 }
 
-Query Model::newQuery(bool filter) const
+Query Model::newQuery(const std::function<QString (const Query &)> &statementGenerator, bool filter = true) const
 {
     Query query;
-    query.table(data->metaObject.tableName())
-        .connection(data->metaObject.connectionName());
 
     if (filter) {
         const MetaProperty primaryProperty = data->metaObject.primaryProperty();
@@ -387,12 +401,19 @@ Query Model::newQuery(bool filter) const
         query.where(primaryProperty.fieldName(), primary);
     }
 
-    return query;
+    return query
+        .table(data->metaObject.tableName())
+        .connection(data->metaObject.connectionName())
+        .raw(statementGenerator(query));
 }
 
-Result<::QSqlQuery, ::QSqlError> Model::exec(const QString &statement, const Query &query)
+Result<QSqlQuery, QSqlError> Model::exec(const std::function<QString (const Query &)> &statementGenerator, bool filter)
 {
-    return data->exec(statement, query);
+    data->lastQuery = newQuery(statementGenerator, filter);
+    auto result = QueryRunner::exec(data->lastQuery.rawSql(), data->lastQuery.connection());
+    if (!result)
+        data->lastError = Error::fromSqlError(result.error());
+    return result;
 }
 
 } // namespace QEloquent

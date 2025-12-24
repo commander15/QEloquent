@@ -1,5 +1,7 @@
 #include "connection.h"
 
+#include <QEloquent/driver.h>
+
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -14,6 +16,8 @@ public:
     QString connectionName;
     QString databaseConnectionName;
     bool databaseConnectionOwned = false;
+
+    Driver *driver = nullptr;
 };
 
 /*!
@@ -158,6 +162,11 @@ QSqlError Connection::lastError() const
     return database().lastError();
 }
 
+Driver *Connection::driver() const
+{
+    return data->driver;
+}
+
 /*!
  * @brief Returns the underlaying QSqlDatabase (const).
  */
@@ -297,6 +306,7 @@ Connection Connection::addConnection(const QString &name, const QSqlDatabase &db
     data->connectionName = name;
     data->databaseConnectionName = db.connectionName();
     data->databaseConnectionOwned = ownDb;
+    data->driver = Driver::create(db.driverName(), db.driver());
 
     Connection con(data);
     s_connections.insert(name, con);
@@ -327,6 +337,11 @@ void Connection::removeConnection(const QString &name)
         if (con.data->databaseConnectionOwned)
             QSqlDatabase::removeDatabase(name);
     }
+}
+
+QString Connection::defaultConnectionName()
+{
+    return s_defaultConnection;
 }
 
 /*!
