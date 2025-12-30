@@ -8,6 +8,7 @@ class QIODevice;
 namespace QEloquent {
 
 class Query;
+class DataMap;
 class Connection;
 
 class QELOQUENT_EXPORT QueryBuilder
@@ -18,9 +19,9 @@ public:
     static QString selectStatement(const QStringList fields, const Query &query);
     static QString selectStatement(const QString fields, const Query &query);
 
-    static QString insertStatement(const QVariantMap &data, const Query &query);
+    static QString insertStatement(const DataMap &data, const Query &query);
 
-    static QString updateStatement(const QVariantMap &data, const Query &query);
+    static QString updateStatement(const DataMap &data, const Query &query);
 
     static QString deleteStatement(const Query &query);
 

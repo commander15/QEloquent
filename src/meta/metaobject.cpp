@@ -1,6 +1,7 @@
 #include "metaobject.h"
 #include "metaobject_p.h"
 
+#include <QEloquent/datamap.h>
 #include <QEloquent/metaproperty.h>
 #include <QEloquent/metaobjectgenerator.h>
 #include <QEloquent/namingconvention.h>
@@ -63,6 +64,19 @@ MetaProperty MetaObject::primaryProperty() const
 MetaProperty MetaObject::foreignProperty() const
 {
     return d->foreignProperty;
+}
+
+bool MetaObject::hasLabelProperty() const
+{
+    return d->labelPropertyIndex >= 0;
+}
+
+MetaProperty MetaObject::labelProperty() const
+{
+    if (d->labelPropertyIndex >= 0 && d->labelPropertyIndex < d->properties.size())
+        return d->properties.at(d->labelPropertyIndex);
+    else
+        return MetaProperty();
 }
 
 bool MetaObject::hasCreationTimestamp() const
@@ -128,41 +142,41 @@ MetaProperty MetaObject::property(const QString &name, PropertyNameResolution re
     return (it == d->properties.constEnd() ? MetaProperty() : *it);
 }
 
-QList<MetaProperty> MetaObject::properties(MetaProperty::PropertyAttributes attributes, PropertyFilters filters) const
+QList<MetaProperty> MetaObject::properties(
+    MetaProperty::PropertyAttributes attributes,
+    PropertyFilters filters) const
 {
-    QList<MetaProperty> properties = d->properties;
+    QList<MetaProperty> result;
 
-    properties.removeIf([&attributes, &filters](const MetaProperty &property) {
-        static const QList<MetaProperty::PropertyAttributeFlag> allAttributes = {
-            MetaProperty::PrimaryProperty,
-            MetaProperty::CreationTimestamp,
-            MetaProperty::UpdateTimestamp,
-            MetaProperty::DeletionTimestamp,
-            MetaProperty::FillableProperty,
-            MetaProperty::HiddenProperty
-        };
+    for (const MetaProperty& prop : std::as_const(d->properties)) {
+        bool keep = true;
 
-        static const QMap<PropertyFilterFlag, MetaProperty::PropertyType> allTypes = {
-            { StandardProperties, MetaProperty::StandardProperty },
-            { AppendedProperties, MetaProperty::AppendedProperty },
-            { RelationProperties, MetaProperty::RelationProperty }
-        };
+        // Filter by type
+        if (filters != PropertyFilters()) {
+            bool typeMatch = false;
+            if (filters.testFlag(StandardProperties) && prop.propertyType() == MetaProperty::StandardProperty)
+                typeMatch = true;
+            if (filters.testFlag(AppendedProperties) && prop.propertyType() == MetaProperty::AppendedProperty)
+                typeMatch = true;
+            if (filters.testFlag(RelationProperties) && prop.propertyType() == MetaProperty::RelationProperty)
+                typeMatch = true;
 
-        const QList<PropertyFilterFlag> allFilters = allTypes.keys();
-        for (PropertyFilterFlag filter : allFilters) {
-            MetaProperty::PropertyType propertyType = allTypes.value(filter);
-            if (!filters.testFlag(filter) && property.propertyType() == propertyType)
-                return true;
+            if (!typeMatch)
+                keep = false;
         }
 
-        for (MetaProperty::PropertyAttributeFlag attribute : allAttributes)
-            if (attributes.testFlag(attribute) && property.hasAttribute(attribute))
-                return false;
+        // Filter by attributes
+        if (attributes != MetaProperty::PropertyAttributes()) {
+            if ((prop.attributes() & attributes) == 0) {  // no matching attributes
+                keep = false;
+            }
+        }
 
-        return true;
-    });
+        if (keep)
+            result.append(prop);
+    }
 
-    return properties;
+    return result;
 }
 
 QList<MetaProperty> MetaObject::properties() const
@@ -170,27 +184,30 @@ QList<MetaProperty> MetaObject::properties() const
     return d->properties;
 }
 
-QVariantMap MetaObject::readProperties(const Model *model, MetaProperty::PropertyAttributes attributes, PropertyFilters filters, PropertyNameResolution resolution) const
+DataMap MetaObject::readProperties(const Model *model, MetaProperty::PropertyAttributes attributes, PropertyFilters filters, PropertyNameResolution resolution) const
 {
-    QVariantMap data;
+    DataMap data;
 
     const QList<MetaProperty> properties = this->properties(attributes, filters);
     for (const MetaProperty &property : properties) {
+        QString name;
         switch (resolution) {
         case ResolveByPropertyName:
-            data.insert(property.propertyName(), property.read(model));
+            name = property.propertyName();
             break;
 
         case ResolveByFieldName:
-            data.insert(property.fieldName(), property.read(model));
+            name = property.fieldName();
             break;
         }
+
+        data.insert(name, property.read(model));
     }
 
     return data;
 }
 
-int MetaObject::writeProperties(Model *model, const QVariantMap &data, PropertyNameResolution resolution) const
+int MetaObject::writeProperties(Model *model, const DataMap &data, PropertyNameResolution resolution) const
 {
     int written = true;
 
@@ -207,12 +224,12 @@ int MetaObject::writeProperties(Model *model, const QVariantMap &data, PropertyN
     return written;
 }
 
-QVariantMap MetaObject::readFillableFields(const Model *model) const
+DataMap MetaObject::readFillableFields(const Model *model) const
 {
     return readProperties(model, MetaProperty::FillableProperty, StandardProperties, ResolveByFieldName);
 }
 
-bool MetaObject::writeFillableFields(Model *model, const QVariantMap &data)
+bool MetaObject::writeFillableFields(Model *model, const DataMap &data)
 {
     bool allWritten = true;
 

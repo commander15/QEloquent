@@ -15,7 +15,8 @@ class QSqlField;
 
 namespace QEloquent {
 
-class MetaRelation;
+class MetaProperty;
+class DataMap;
 class Model;
 class NamingConvention;
 class Connection;
@@ -50,6 +51,9 @@ public:
     MetaProperty primaryProperty() const;
     MetaProperty foreignProperty() const;
 
+    bool hasLabelProperty() const;
+    MetaProperty labelProperty() const;
+
     bool hasCreationTimestamp() const;
     MetaProperty creationTimestamp() const;
 
@@ -64,14 +68,14 @@ public:
                                    PropertyFilters filters = AllProperties) const;
     QList<MetaProperty> properties() const;
 
-    QVariantMap readProperties(const Model *model,
+    DataMap readProperties(const Model *model,
                                MetaProperty::PropertyAttributes attributes,
                                PropertyFilters filters = AllProperties,
                                PropertyNameResolution resolution = ResolveByPropertyName) const;
-    int writeProperties(Model *model, const QVariantMap &data, PropertyNameResolution resolution = ResolveByPropertyName) const;
+    int writeProperties(Model *model, const DataMap &data, PropertyNameResolution resolution = ResolveByPropertyName) const;
 
-    QVariantMap readFillableFields(const Model *model) const;
-    bool writeFillableFields(Model *model, const QVariantMap &data);
+    DataMap readFillableFields(const Model *model) const;
+    bool writeFillableFields(Model *model, const DataMap &data);
 
     QStringList hiddenFieldNames() const;
     QStringList fillableFieldNames() const;

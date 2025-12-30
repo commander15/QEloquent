@@ -2,6 +2,7 @@
 #define QELOQUENT_ENTITY_H
 
 #include <QEloquent/global.h>
+
 #include <QSharedDataPointer>
 
 namespace QEloquent {

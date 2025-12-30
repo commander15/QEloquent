@@ -2,6 +2,7 @@
 
 #include <QEloquent/query.h>
 #include <QEloquent/connection.h>
+#include <QEloquent/datamap.h>
 #include <QEloquent/driver.h>
 #ifdef QELOQUENT_MIGRATIONS_SUPPORT
 #   include <QEloquent/tableblueprint.h>
@@ -55,7 +56,7 @@ QString QueryBuilder::selectStatement(const QString fields, const Query &query)
     return statement;
 }
 
-QString QueryBuilder::insertStatement(const QVariantMap &data, const Query &query)
+QString QueryBuilder::insertStatement(const DataMap &data, const Query &query)
 {
     const Connection connection = query.connection();
 
@@ -71,7 +72,7 @@ QString QueryBuilder::insertStatement(const QVariantMap &data, const Query &quer
     return statement;
 }
 
-QString QueryBuilder::updateStatement(const QVariantMap &data, const Query &query)
+QString QueryBuilder::updateStatement(const DataMap &data, const Query &query)
 {
     const Connection connection = query.connection();
 
@@ -193,7 +194,10 @@ QStringList QueryBuilder::statementsFromScriptFile(const QString &fileName)
 
 QStringList QueryBuilder::statementsFromScriptDevice(QIODevice *device)
 {
-    return statementsFromScriptContent(device->readAll());
+    if (device->isReadable())
+        return statementsFromScriptContent(device->readAll());
+    else
+        return QStringList();
 }
 
 QStringList QueryBuilder::statementsFromScriptContent(const QByteArray &content)

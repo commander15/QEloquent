@@ -18,6 +18,7 @@ class QELOQUENT_EXPORT MetaProperty
 public:
     enum PropertyAttributeFlag {
         PrimaryProperty = 0x1,
+        LabelProperty = 0x2,
         CreationTimestamp = 0x20,
         UpdateTimestamp = 0x40,
         DeletionTimestamp = 0x80,

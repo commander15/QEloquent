@@ -3,6 +3,7 @@
 
 #include "model.h"
 
+#include <QEloquent/datamap.h>
 #include <QEloquent/query.h>
 #include <QEloquent/error.h>
 #include <QEloquent/metaobject.h>
@@ -18,7 +19,7 @@ namespace QEloquent {
 class ModelData : public QSharedData
 {
 public:
-    QVariantMap dynamicProperties;
+    DataMap dynamicProperties;
     QMap<QString, QExplicitlySharedDataPointer<RelationData>> relationData;
     MetaObject metaObject;
 

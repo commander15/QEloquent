@@ -8,6 +8,7 @@
 
 #define META_TABLE          "table"
 #define META_PRIMARY        "primary"
+#define META_LABEL          "label"
 #define META_FOREIGN        "foreign"
 #define META_CREATED_AT     "createdAt"
 #define META_UPDATED_AT     "updatedAt"
@@ -110,6 +111,12 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
         property->metaType = base.metaType();
         property->metaProperty = base;
         property->metaType = base.metaType();
+
+        if (base.isUser()) {
+            property->attributes.setFlag(MetaProperty::LabelProperty, true);
+            generation->object->labelPropertyIndex = index;
+        }
+
         tuneProperty(index, property, generation, true);
     }
 
@@ -156,7 +163,7 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
         property->fieldName = generation->qtMetaObject->classInfo(fieldNameIndex).value();
 
     if (property->propertyName == generation->info(META_PRIMARY, "id")) {
-        property->attributes.setFlag(MetaProperty::PrimaryProperty);
+        property->attributes.setFlag(MetaProperty::PrimaryProperty, true);
         property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->primaryPropertyIndex = index;
 
@@ -170,6 +177,11 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
             tuneProperty(index, foreign, generation, false);
             generation->object->foreignProperty = MetaProperty(foreign);
         }
+    }
+
+    if (generation->object->labelPropertyIndex < 0 && property->propertyName == generation->info(META_LABEL, "label")) {
+        property->attributes.setFlag(MetaProperty::LabelProperty, true);
+        generation->object->labelPropertyIndex = index;
     }
 
     if (property->propertyName == generation->info(META_CREATED_AT, "createdAt")) {
@@ -187,7 +199,7 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
         generation->object->deletionTimestampIndex = index;
     }
 
-    if (generation->fillable.contains(property->propertyName) || (property->propertyType == MetaProperty::StandardProperty && !generation->hasInfo(META_FILLABLE)))
+    if (property->propertyType == MetaProperty::StandardProperty && (generation->fillable.contains(property->propertyName) || !generation->hasInfo(META_FILLABLE)))
         property->attributes.setFlag(MetaProperty::FillableProperty, !property->attributes.testFlag(MetaProperty::PrimaryProperty));
 
     if (generation->hidden.contains(property->propertyName))

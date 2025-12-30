@@ -3,6 +3,7 @@
 #include <QEloquent/query.h>
 #include <QEloquent/querybuilder.h>
 #include <QEloquent/connection.h>
+#include <QEloquent/datamap.h>
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -39,13 +40,13 @@ Result<QSqlQuery, QSqlError> QueryRunner::count(const Query &query)
     return exec(statement, query.connection());
 }
 
-Result<QSqlQuery, QSqlError> QueryRunner::insert(const QVariantMap &data, const Query &query)
+Result<QSqlQuery, QSqlError> QueryRunner::insert(const DataMap &data, const Query &query)
 {
     const QString statement = QueryBuilder::insertStatement(data, query);
     return exec(statement, query.connection());
 }
 
-Result<QSqlQuery, QSqlError> QueryRunner::update(const QVariantMap &data, const Query &query)
+Result<QSqlQuery, QSqlError> QueryRunner::update(const DataMap &data, const Query &query)
 {
     const QString statement = QueryBuilder::updateStatement(data, query);
     return exec(statement, query.connection());
@@ -56,6 +57,8 @@ Result<QSqlQuery, QSqlError> QueryRunner::deleteData(const Query &query)
     const QString statement = QueryBuilder::deleteStatement(query);
     return exec(statement, query.connection());
 }
+
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
 
 Result<QSqlQuery, QSqlError> QueryRunner::createTable(const QString &tableName, const TableBlueprint &blueprint)
 {
@@ -76,6 +79,8 @@ Result<QSqlQuery, QSqlError> QueryRunner::createTable(const QString &tableName, 
     const QString statement = QueryBuilder::createTableStatement(tableName, blueprint, connection);
     return exec(statement, connection);
 }
+
+#endif
 
 Result<QSqlQuery, QSqlError> QueryRunner::exec(const QString &statement)
 {

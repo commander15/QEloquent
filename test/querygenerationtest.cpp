@@ -2,8 +2,7 @@
 
 #include <QEloquent/query.h>
 #include <QEloquent/querybuilder.h>
-
-#include <QVariantMap>
+#include <QEloquent/datamap.h>
 
 using namespace QEloquent;
 
@@ -35,7 +34,7 @@ TEST_F(QueryGenerationTest, selectGenerationTest)
 
 TEST_F(QueryGenerationTest, insertGeneration)
 {
-    QVariantMap data = {
+    DataMap data = {
         { "name", "Apple" },
     };
 
@@ -48,12 +47,12 @@ TEST_F(QueryGenerationTest, insertGeneration)
     data.insert("description", "Red fruit");
     data.insert("price", 1.5);
     const QString statement2 = QueryBuilder::insertStatement(data, query);
-    ASSERT_EQ(TEST_STR(statement2), "INSERT INTO \"Products\" (\"description\", \"name\", \"price\") VALUES ('Red fruit', 'Apple', 1.5)");
+    ASSERT_EQ(TEST_STR(statement2), "INSERT INTO \"Products\" (\"name\", \"description\", \"price\") VALUES ('Apple', 'Red fruit', 1.5)");
 }
 
 TEST_F(QueryGenerationTest, updateGeneration)
 {
-    QVariantMap data = {
+    DataMap data = {
       { "name", "Apple" },
     };
 
@@ -67,7 +66,7 @@ TEST_F(QueryGenerationTest, updateGeneration)
     data.insert("description", "Red fruit");
     data.insert("price", 1.5);
     const QString statement2 = QueryBuilder::updateStatement(data, query);
-    ASSERT_EQ(TEST_STR(statement2), "UPDATE \"Products\" SET \"description\" = 'Red fruit', \"name\" = 'Apple', \"price\" = 1.5 WHERE \"id\" = 1");
+    ASSERT_EQ(TEST_STR(statement2), "UPDATE \"Products\" SET \"name\" = 'Apple', \"description\" = 'Red fruit', \"price\" = 1.5 WHERE \"id\" = 1");
 }
 
 TEST_F(QueryGenerationTest, deleteGeneration)

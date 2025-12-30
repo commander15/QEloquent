@@ -8,7 +8,35 @@
 namespace QEloquent {
 
 template<typename RelatedModel>
-class HasRelationData : public RelationBaseData<RelatedModel>
+class BasicRelationData : public RelationData
+{
+public:
+    BasicRelationData() { relatedObject = MetaObject::from<RelatedModel>(); }
+    virtual ~BasicRelationData() = default;
+
+    /** @brief Returns true if any related models have been fetched */
+    bool exists() override final { return related.count() > 0; }
+
+    void *relatedList() const override final
+    { return &const_cast<BasicRelationData<RelatedModel> *>(this)->related; }
+
+    QList<DataMap> serialize() const override final {
+        QList<DataMap> maps;
+
+        std::transform(related.begin(), related.end(), std::back_inserter(maps), [](const Serializable &model) {
+            const QList<DataMap> maps = model.serialize();
+            // Model always return a single map
+            return maps.first();
+        });
+
+        return maps;
+    }
+
+    QList<RelatedModel> related;
+};
+
+template<typename RelatedModel>
+class HasRelationData : public BasicRelationData<RelatedModel>
 {
 public:
     virtual ~HasRelationData() = default;
@@ -60,7 +88,7 @@ public:
 };
 
 template<typename RelatedModel, typename ThroughModel>
-class HasManyThroughRelationData final : public RelationBaseData<RelatedModel>
+class HasManyThroughRelationData final : public BasicRelationData<RelatedModel>
 {
 public:
     void init(NamingConvention *) override
@@ -122,7 +150,7 @@ public:
 };
 
 template<typename RelatedModel>
-class BelongsToRelationData final : public RelationBaseData<RelatedModel>
+class BelongsToRelationData final : public BasicRelationData<RelatedModel>
 {
 public:
     void init(NamingConvention *) override
@@ -156,7 +184,7 @@ public:
 };
 
 template<typename RelatedModel>
-class BelongsToManyRelationData final : public RelationBaseData<RelatedModel>
+class BelongsToManyRelationData final : public BasicRelationData<RelatedModel>
 {
 public:
     void init(NamingConvention *convention) override
@@ -217,7 +245,7 @@ public:
 };
 
 template<typename RelatedModel, typename ThroughModel>
-class BelongsToManyThroughRelationData final : public RelationBaseData<RelatedModel>
+class BelongsToManyThroughRelationData final : public BasicRelationData<RelatedModel>
 {
 public:
     void init(NamingConvention *convention) override

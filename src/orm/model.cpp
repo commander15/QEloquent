@@ -113,6 +113,12 @@ void Model::setProperty(const QString &name, const QVariant &value)
         data.dynamicProperties.insert(name, value);
 }
 
+QVariant Model::label() const
+{
+    const MetaProperty property = data->metaObject.labelProperty();
+    return (property.isValid() ? property.read(this) : QVariant());
+}
+
 QVariant Model::field(const QString &name) const
 {
     MODEL_DATA(const Model);
@@ -126,55 +132,6 @@ void Model::setField(const QString &name, const QVariant &value)
     const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByFieldName);
     if (property.isValid())
         property.write(this, value);
-}
-
-/*!
- * \brief Fills the model with data from a map (field names as keys).
- */
-void Model::fill(const QVariantMap &values)
-{
-    fill(QJsonObject::fromVariantMap(values));
-}
-
-/*!
- * \brief Fills the model with data from a JSON object.
- */
-void Model::fill(const QJsonObject &object)
-{
-    MODEL_DATA(Model);
-    const QStringList fields = object.keys();
-    for (const QString &field : fields) {
-        const MetaProperty property = data.metaObject.property(field, MetaObject::ResolveByFieldName);
-        if (!property.isValid())
-            continue;
-
-        switch (property.propertyType()) {
-        case MetaProperty::StandardProperty:
-            property.write(this, object.value(field).toVariant());
-            break;
-
-        case MetaProperty::AppendedProperty:
-            break;
-
-        case MetaProperty::RelationProperty:
-            if (data.relationData.contains(property.propertyName()))
-                data.relationData.value(property.propertyName());
-            break;
-        }
-    }
-}
-
-/*!
- * \brief Fills the model with data from a SQL record.
- */
-void Model::fill(const QSqlRecord &record)
-{
-    MODEL_DATA(Model);
-    for (int i(0); i < record.count(); ++i) {
-        const MetaProperty property = data.metaObject.property(record.fieldName(i), MetaObject::ResolveByFieldName);
-        if (property.isValid())
-            property.write(this, record.value(i));
-    }
 }
 
 /*!
@@ -232,7 +189,7 @@ bool Model::insert()
     if (data.metaObject.hasCreationTimestamp())
         data.metaObject.creationTimestamp().write(this, QDateTime::currentDateTime());
 
-    const QVariantMap values = data.metaObject.readFillableFields(this);
+    const DataMap values = data.metaObject.readFillableFields(this);
     auto result = exec([&values](const Query &query) {
         return QueryBuilder::insertStatement(values, query);
     }, false);
@@ -255,7 +212,7 @@ bool Model::update()
     if (data.metaObject.hasUpdateTimestamp())
         data.metaObject.updateTimestamp().write(this, QDateTime::currentDateTime());
 
-    const QVariantMap values = data.metaObject.readFillableFields(this);
+    const DataMap values = data.metaObject.readFillableFields(this);
     auto result = exec([&values](const Query &query) {
         return QueryBuilder::updateStatement(values, query);
     }, true);
@@ -346,49 +303,102 @@ Connection Model::connection() const
     return data.metaObject.connection();
 }
 
-/*!
- * \brief Converts the model to a JSON object.
- */
-QJsonObject Model::toJsonObject() const
+QString Model::serializationContext() const
 {
-    QJsonObject object;
+    const QString className = data->metaObject.className();
 
-    // static properties
-    auto p = data->metaObject.properties();
-    for (const MetaProperty &property : std::as_const(p)) {
-        const QString field = property.fieldName();
+    const QString id = primary().toString();
+    const QString label = this->label().toString();
+    if (id.isEmpty() && label.isEmpty())
+        return className;
+
+    QStringList context;
+    if (!id.isEmpty()) context.append('#' + id);
+    if (!label.isEmpty()) context.append(label);
+
+    return className + '(' + context.join(", ") + ')';
+}
+
+bool Model::isListSerializable() const
+{
+    return false;
+}
+
+QList<DataMap> Model::serialize() const
+{
+    const QList<MetaProperty> properties = data->metaObject.properties();
+
+    DataMap map;
+    for (const MetaProperty &property : properties) {
+        if (property.hasAttribute(MetaProperty::HiddenProperty))
+            continue; // We skip fields marked hidden
+
+        if (property.propertyType() == MetaProperty::RelationProperty) {
+            if (data->relationData.contains(property.propertyName())) {
+                auto relation = data->relationData.value(property.propertyName());
+                if (relation->isListSerializable())
+                    map.insert(property.fieldName(), relation->serialize());
+                else
+                    map.insert(property.fieldName(), relation->serialize().constFirst());
+            }
+
+            continue;
+        }
+
+        map.insert(property.propertyName(), property.read(this));
+    }
+
+    map.insert(data->dynamicProperties);
+    return { map };
+}
+
+void Model::deserialize(const QList<DataMap> &data, bool all)
+{
+    if (data.isEmpty()) return;
+
+    static const MetaProperty::PropertyAttributes allAttributes =
+        MetaProperty::PrimaryProperty | MetaProperty::FillableProperty |
+        MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp;
+    static const MetaProperty::PropertyAttributes fillableAttributes = MetaProperty::FillableProperty;
+    const MetaProperty::PropertyAttributes allowedAttributes = (all ? allAttributes : fillableAttributes);
+
+    const DataMap values = data.first();
+    for (const DataMap::Pair &pair : values) {
+        const MetaProperty property = this->data->metaObject.property(pair.first, MetaObject::ResolveByFieldName);
+        if (!property.isValid()) {
+            this->data->dynamicProperties.insert(pair.first, pair.second);
+            continue;
+        }
+
+        if ((allowedAttributes & property.attributes()) == 0) {
+            continue;
+        }
 
         switch (property.propertyType()) {
         case MetaProperty::StandardProperty:
-        case MetaProperty::AppendedProperty:
-            if (!property.hasAttribute(MetaProperty::HiddenProperty))
-                object.insert(field, QJsonValue::fromVariant(property.read(this)));
+            property.write(this, pair.second);
             break;
 
-        default:
+        case MetaProperty::AppendedProperty:
+            break;
+
+        case MetaProperty::RelationProperty:
+            if (this->data->relationData.contains(property.propertyName()))
+                this->data->relationData.value(property.propertyName());
             break;
         }
     }
-
-    // Relations
-    auto r = data->relationData.keys();
-    for (const QString &relation : std::as_const(r))
-        object.insert(relation, data->relationData.value(relation)->extract());
-
-    // Dynamic
-    auto d = data->dynamicProperties.keys();
-    for (const QString &property : std::as_const(d))
-        object.insert(property, QJsonValue::fromVariant(data->dynamicProperties.value(property)));
-
-    return object;
 }
 
-/*!
- * \brief Converts the model to a SQL record matching the table structure.
- */
-QSqlRecord Model::toSqlRecord() const
+DataMap Model::fullDataMap() const
 {
-    return QSqlRecord();
+    DataMap map = data->metaObject.readProperties(this,
+        MetaProperty::PrimaryProperty | MetaProperty::FillableProperty | MetaProperty::HiddenProperty |
+            MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
+        MetaObject::AllProperties, MetaObject::ResolveByFieldName);
+
+    map.insert(data->dynamicProperties);
+    return map;
 }
 
 Query Model::newQuery(const std::function<QString (const Query &)> &statementGenerator, bool filter = true) const

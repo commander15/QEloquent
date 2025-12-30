@@ -5,31 +5,35 @@
 
 namespace QEloquent {
 
-RelationData::RelationData()
-{}
+RelationData::RelationData() = default;
+RelationData::RelationData(const RelationData &other) = default;
+RelationData::~RelationData() = default;
 
-RelationData::~RelationData()
-{}
-
-QExplicitlySharedDataPointer<RelationData> RelationData::fromParentModel(const QString &name, Model *parent, const std::function<RelationData *()> &creationCallback)
+QString RelationData::serializationContext() const
 {
-    ModelData *d = parent->data.get();
+    return parent->serializationContext() + '.' + name;
+}
+
+QExplicitlySharedDataPointer<RelationData> RelationData::create(const QString &name, const Model *parent, const std::function<RelationData *()> &creationCallback)
+{
+    Model *pa = const_cast<Model *>(parent);
+    ModelData *d = pa->data.get();
     if (d->relationData.contains(name)) {
         auto p = d->relationData.value(name);
-        p->parent = parent; // we update the parent model
+        p->parent = pa; // we update the parent model
         return p;
     } else {
         auto p = QExplicitlySharedDataPointer<RelationData>(creationCallback());
         p->name = name;
-        p->parent = parent;
-        p->primaryObject = parent->metaObject();
+        p->parent = pa;
+        p->primaryObject = pa->metaObject();
         p->init(d->metaObject.namingConvention());
         d->relationData.insert(name, p);
         return p;
     }
 }
 
-QExplicitlySharedDataPointer<RelationData> RelationData::fromParentModel(const std::source_location &location, Model *parent, const std::function<RelationData *()> &creationCallback)
+QExplicitlySharedDataPointer<RelationData> RelationData::create(const std::source_location &location, const Model *parent, const std::function<RelationData *()> &creationCallback)
 {
     QString name(location.function_name());
 
@@ -42,7 +46,7 @@ QExplicitlySharedDataPointer<RelationData> RelationData::fromParentModel(const s
         name.remove(i, name.length() - i);
     }
 
-    return fromParentModel(name, parent, creationCallback);
+    return create(name, parent, creationCallback);
 }
 
 QVariant RelationData::parentPrimary() const

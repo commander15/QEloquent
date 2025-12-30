@@ -73,6 +73,37 @@ MetaProperty::PropertyType MetaProperty::propertyType() const
 
 QVariant MetaProperty::read(const Model *model) const
 {
+    if (data->propertyType == StandardProperty)
+        return (data->metaProperty.isValid() ? data->metaProperty.readOnGadget(model) : QVariant());
+
+    if (data->propertyType == AppendedProperty) {
+        if (data->getter.isValid()) {
+            void *value = data->metaType.create();
+            data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
+            const QVariant var = QVariant::fromMetaType(data->metaType, value);
+            data->metaType.destroy(value);
+            return var;
+        } else {
+            return QVariant();
+        }
+    }
+
+    if (data->propertyType == RelationProperty) {
+        if (data->getter.isValid()) {
+            void *value = data->metaType.create();
+            data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
+            const QVariant var = QVariant::fromMetaType(data->metaType, value);
+            data->metaType.destroy(value);
+
+            // We load now
+            auto relation = model->data->relationData.value(data->propertyName);
+            relation->parent = const_cast<Model *>(model);
+            relation.get();
+
+            return var;
+        }
+    }
+
     if (data->metaProperty.isValid() && data->metaProperty.isReadable())
         return data->metaProperty.readOnGadget(model);
 
@@ -102,7 +133,7 @@ bool MetaProperty::write(Model *model, const QVariant &value) const
         return data->setter.invokeOnGadget(model, value);
 
     if (data->propertyType != AppendedProperty) {
-        QVariantMap *properties = &model->data->dynamicProperties;
+        DataMap *properties = &model->data->dynamicProperties;
         if ((!value.isValid() || value.isNull()) && properties->contains(data->propertyName))
             properties->remove(data->propertyName);
         else

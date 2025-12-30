@@ -40,14 +40,16 @@ class TableFieldBlueprintData;
 class QELOQUENT_EXPORT TableFieldBlueprint
 {
 public:
+    TableFieldBlueprint &length(int len);
+
     TableFieldBlueprint &unique();
+    TableFieldBlueprint &nullable();
 
     TableFieldBlueprint &defaultValue(const QVariant &value);
     TableFieldBlueprint &defaultExpression(const QString &expr);
 
-    TableFieldBlueprint &min(int value);
-    TableFieldBlueprint &max(int val);
-    TableFieldBlueprint &length(int val);
+    TableFieldBlueprint &min(const QVariant &value);
+    TableFieldBlueprint &max(const QVariant &value);
     // ..
 
 private:

@@ -3,6 +3,8 @@
 
 #include <QEloquent/global.h>
 #include <QEloquent/entity.h>
+#include <QEloquent/serializable.h>
+#include <QEloquent/deserializable.h>
 #include <QEloquent/result.h>
 #include <QEloquent/relation.h>
 
@@ -23,7 +25,9 @@ class Error;
 class Connection;
 class ModelData;
 
-class QELOQUENT_EXPORT Model : public Entity
+class QELOQUENT_EXPORT Model : public Entity,
+                               public Serializable,
+                               public Deserializable
 {
     Q_GADGET
 
@@ -40,18 +44,16 @@ public:
     QVariant property(const QString &name) const;
     void setProperty(const QString &name, const QVariant &value);
 
+    QVariant label() const;
+
     QVariant field(const QString &name) const;
     void setField(const QString &name, const QVariant &value);
 
-    void fill(const QVariantMap &values);
-    void fill(const QJsonObject &object);
-    void fill(const QSqlRecord &record);
-
-    bool exists() override;
-    bool get() override;
-    bool insert() override;
-    bool update() override;
-    bool deleteData() override;
+    bool exists() override final;
+    bool get() override final;
+    bool insert() override final;
+    bool update() override final;
+    bool deleteData() override final;
 
     bool load(const QString &relation);
     bool load(const QStringList &relations);
@@ -62,8 +64,12 @@ public:
     MetaObject metaObject() const;
     Connection connection() const;
 
-    QJsonObject toJsonObject() const;
-    QSqlRecord toSqlRecord() const;
+    QString serializationContext() const override final;
+    bool isListSerializable() const override final;
+    QList<DataMap> serialize() const override final;
+    void deserialize(const QList<DataMap> &data, bool all = false) override final;
+
+    DataMap fullDataMap() const;
 
 protected:
     template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type* = nullptr> Model(T *self);
@@ -129,7 +135,7 @@ inline Model::Model(T *) : Model(T::staticMetaObject) {}
 template<typename T>
 inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &localKey, const std::source_location &location) const
 {
-    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, this, [=]() {
         auto d = new HasOneRelationData<T>();
         d->foreignKey = foreignKey;
         d->localKey = localKey;
@@ -148,7 +154,7 @@ inline Relation<T> Model::hasOne(const QString &foreignKey, const QString &local
 template<typename T>
 inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &localKey, const std::source_location &location) const
 {
-    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, this, [=]() {
         auto d = new HasManyRelationData<T>();
         d->foreignKey = foreignKey;
         d->localKey = localKey;
@@ -169,7 +175,7 @@ template<typename T, typename Through>
 inline Relation<T> Model::hasManyThrough(const QString &foreignKey, const QString &localKey,
                                          const QString &throughForeignKey, const QString &throughLocalKey, const std::source_location &location) const
 {
-    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, this, [=]() {
         auto d = new HasManyThroughRelationData<T, Through>();
         d->foreignKey = foreignKey;
         d->localKey = localKey;
@@ -190,7 +196,7 @@ inline Relation<T> Model::hasManyThrough(const QString &foreignKey, const QStrin
 template<typename T>
 inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ownerKey, const std::source_location &location) const
 {
-    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, this, [=]() {
         auto d = new BelongsToRelationData<T>();
         d->foreignKey = foreignKey;
         d->ownerKey = ownerKey;
@@ -212,7 +218,7 @@ inline Relation<T> Model::belongsToMany(const QString &table, const QString &for
                                         const QString &relatedPivotKey, const QString &parentKey,
                                         const QString &relatedKey, const std::source_location &location) const
 {
-    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, this, [=]() {
         auto d = new BelongsToManyRelationData<T>();
         d->table = table;
         d->foreignPivotKey = foreignPivotKey;
@@ -237,7 +243,7 @@ inline Relation<T> Model::belongsToManyThrough(const QString &table, const QStri
                                                const QString &relatedPivotKey, const QString &parentKey,
                                                const QString &relatedKey, const std::source_location &location) const
 {
-    return Relation<T>(location, const_cast<Model *>(this), [=]() {
+    return Relation<T>(location, this, [=]() {
         auto d = new BelongsToManyThroughRelationData<T, Through>();
         d->table = table;
         d->foreignPivotKey = foreignPivotKey;
@@ -249,5 +255,25 @@ inline Relation<T> Model::belongsToManyThrough(const QString &table, const QStri
 }
 
 } // namespace QEloquent
+
+namespace QEloquent {
+
+class QELOQUENT_EXPORT SimpleModel : public Model
+{
+    Q_GADGET
+    Q_PROPERTY(qint64 id READ id WRITE setId FINAL)
+
+public:
+    template<typename T> SimpleModel(T *m) : Model(m) {}
+    virtual ~SimpleModel() = default;
+
+    qint64 id() const { return m_id; }
+    virtual void setId(qint64 id) { m_id = (id < 0 ? 0 : id); }
+
+protected:
+    qint64 m_id;
+};
+
+}
 
 #endif // QELOQUENT_MODEL_H

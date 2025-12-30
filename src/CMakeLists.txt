@@ -1,11 +1,12 @@
 qt_add_library(QEloquent)
 
 add_subdirectory(core)
+add_subdirectory(serialization)
 add_subdirectory(utils)
 add_subdirectory(query)
 add_subdirectory(meta)
 add_subdirectory(orm)
-add_subdirectory(migration)
+# add_subdirectory(migration)
 
 target_compile_definitions(QEloquent
     PUBLIC

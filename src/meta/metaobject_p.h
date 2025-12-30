@@ -18,6 +18,7 @@ public:
     QString tableName;
 
     int primaryPropertyIndex = -1;
+    int labelPropertyIndex = -1;
     int creationTimestampIndex = -1;
     int updateTimestampIndex = -1;
     int deletionTimestampIndex = -1;

@@ -11,6 +11,7 @@ namespace QEloquent {
 
 class Query;
 class Connection;
+class DataMap;
 
 class QELOQUENT_EXPORT QueryRunner
 {
@@ -22,9 +23,9 @@ public:
 
     static Result<QSqlQuery, QSqlError> count(const Query &query);
 
-    static Result<QSqlQuery, QSqlError> insert(const QVariantMap &data, const Query &query);
+    static Result<QSqlQuery, QSqlError> insert(const DataMap &data, const Query &query);
 
-    static Result<QSqlQuery, QSqlError> update(const QVariantMap &data, const Query &query);
+    static Result<QSqlQuery, QSqlError> update(const DataMap &data, const Query &query);
 
     static Result<QSqlQuery, QSqlError> deleteData(const Query &query);
 
