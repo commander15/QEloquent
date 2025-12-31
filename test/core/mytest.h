@@ -36,6 +36,7 @@ protected:
 
     QEloquent::Result<bool, QSqlError> migrate();
     QEloquent::Result<bool, QSqlError> seed();
+    QEloquent::Result<bool, QSqlError> migrateAndSeed();
     QEloquent::Result<bool, QSqlError> exec(const QString &sqlFileName);
 
     QEloquent::Connection connection;

@@ -72,6 +72,13 @@ void MyTest::TearDown()
         QFile::remove(TEST_DB_NAME);
 }
 
+QEloquent::Result<bool, QSqlError> MyTest::migrateAndSeed()
+{
+    auto migration = this->migrate();
+    if (!migration.has_value()) return migration;
+    else return this->seed();
+}
+
 Result<bool, QSqlError> MyTest::migrate()
 { return exec(QStringLiteral(TEST_DATA_DIR) + "/store/structure.sql"); }
 

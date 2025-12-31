@@ -1,5 +1,5 @@
 #include <core/mytest.h>
-#include "models/product.h"
+#include <models/product.h>
 
 #include <QEloquent/queryrunner.h>
 
