@@ -84,51 +84,6 @@ TEST_F(RelationTest, belongsToReverseRelation)
     ASSERT_EQ(TEST_STR(categoryRelation->name), "Fruits");
 }
 
-TEST_F(RelationTest, apiEnhancements)
-{
-    auto migrationResult = migrate();
-    auto seedingResult = seed();
-    ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
-
-    auto pResult = Product::find(1); // Apple
-    Product apple = pResult.value();
-
-    // 1. QList-like methods
-    auto stockRelation = apple.stock();
-    ASSERT_EQ(stockRelation.count(), 1);
-    ASSERT_EQ(stockRelation->id, 1);
-    ASSERT_FALSE(stockRelation.isEmpty());
-
-    // 2. operator-> and operator*
-    ASSERT_EQ(stockRelation->id, 1);
-    ASSERT_EQ((*stockRelation).id, 1);
-
-    // 3. Implicit conversion
-    Stock stock = stockRelation;
-    ASSERT_EQ(stock.id, 1);
-
-    // 4. std-container compliance (iteration)
-    auto cResult = Category::find(1); // Fruits
-    Category fruits = cResult.value();
-    auto productsRelation = fruits.products();
-    
-    int count = 0;
-    for (const Product &p : productsRelation) {
-        count++;
-        ASSERT_FALSE(p.name.isEmpty());
-    }
-    ASSERT_EQ(count, 2);
-
-    return;
-    auto result = Category::find(Query().with("products").with("saleItems"));
-    if (result) {
-        QJsonArray array;
-        for (const auto &c : std::as_const(result).value())
-            array.append(c.toJsonObject());
-        writeFile("categories.json", QJsonDocument(array).toJson());
-    }
-}
-
 TEST_F(RelationTest, belongsToManyRelation)
 {
     auto migrationResult = migrate();
@@ -209,5 +164,57 @@ TEST_F(RelationTest, hasManyThroughRelation)
         auto productResult = item.product().get();
         ASSERT_TRUE(productResult);
         ASSERT_EQ(item.product()->categoryId, fruits.id);
+    }
+}
+
+TEST_F(RelationTest, apiEnhancements)
+{
+    auto migrationResult = migrate();
+    auto seedingResult = seed();
+    ASSERT_TRUE(migrationResult && seedingResult) << "Migration/Seeding failed";
+
+    auto pResult = Product::find(1); // Apple
+    Product apple = pResult.value();
+
+    // 1. QList-like methods
+    auto stockRelation = apple.stock();
+    ASSERT_EQ(stockRelation.count(), 1);
+    ASSERT_EQ(stockRelation->id, 1);
+    ASSERT_FALSE(stockRelation.isEmpty());
+
+    // 2. operator-> and operator*
+    ASSERT_EQ(stockRelation->id, 1);
+    ASSERT_EQ((*stockRelation).id, 1);
+
+    // 3. Implicit conversion
+    Stock stock = stockRelation;
+    ASSERT_EQ(stock.id, 1);
+
+    // 4. std-container compliance (iteration)
+    auto cResult = Category::find(1); // Fruits
+    Category fruits = cResult.value();
+    auto productsRelation = fruits.products();
+
+    int count = 0;
+    for (const Product &p : productsRelation) {
+        count++;
+        ASSERT_FALSE(p.name.isEmpty());
+    }
+    ASSERT_EQ(count, 2);
+
+    //return;
+    auto result = Category::find(Query().with("products").with("saleItems"));
+    if (result) {
+        QJsonArray array;
+        for (const auto &c : std::as_const(result).value()) {
+            array.append(c.toJsonObject());
+            static bool debugged = false;
+
+            if (!debugged) {
+                writeFile(c.metaObject().tableName() + ".csv", c.toCsv(SerializationFormat::Pretty));
+                debugged = true;
+            }
+        }
+        writeFile("categories.json", QJsonDocument(array).toJson());
     }
 }

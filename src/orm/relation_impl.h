@@ -83,8 +83,8 @@ template<typename RelatedModel>
 class HasManyRelationData final : public HasRelationData<RelatedModel>
 {
 public:
-    bool multiple() const override { return true; }
     HasManyRelationData *clone() const override { return new HasManyRelationData(*this); }
+    bool multiple() const override { return true; }
 };
 
 template<typename RelatedModel, typename ThroughModel>

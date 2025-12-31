@@ -12,7 +12,7 @@ class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product>
 {
     Q_GADGET
     Q_PROPERTY(int id MEMBER id)
-    Q_PROPERTY(QString name MEMBER name)
+    Q_PROPERTY(QString name MEMBER name USER true)
     Q_PROPERTY(QString description MEMBER description)
     Q_PROPERTY(double price MEMBER price)
     Q_PROPERTY(QString barcode MEMBER barcode)
@@ -70,7 +70,7 @@ class Category : public QEloquent::Model, public QEloquent::ModelHelpers<Categor
 {
     Q_GADGET
     Q_PROPERTY(int id MEMBER id)
-    Q_PROPERTY(QString name MEMBER name)
+    Q_PROPERTY(QString name MEMBER name USER true)
     Q_PROPERTY(QString description MEMBER description)
 
     Q_CLASSINFO("table", "Categories")

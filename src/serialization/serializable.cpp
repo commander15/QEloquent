@@ -1,12 +1,17 @@
 #include "serializable.h"
 
 #include <QEloquent/datamap.h>
+#include <QEloquent/private/jsonserializer_p.h>
+#include <QEloquent/private/yamlserializer_p.h>
+#include <QEloquent/private/csvserializer_p.h>
 
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonValue>
 
 namespace QEloquent {
+
+using namespace Private;
 
 QString Serializable::serializationContext() const
 {
@@ -17,37 +22,37 @@ QJsonObject Serializable::toJsonObject() const
 {
     const QList<DataMap> maps = serialize();
     if (maps.isEmpty()) return QJsonObject();
-
-    const DataMap &map = maps.first();
-    return QJsonObject::fromVariantMap(map.toVariantMap());
+    else return JsonSerializer::serializeMap(maps.first());
 }
 
 QJsonArray Serializable::toJsonArray() const
 {
     const QList<DataMap> maps = serialize();
     if (maps.isEmpty()) return QJsonArray();
-
-    QJsonArray array;
-    for (const DataMap &map : maps)
-        array.append(QJsonObject::fromVariantMap(map.toVariantMap()));
-    return array;
+    else return JsonSerializer::serializeMaps(maps);
 }
 
 QJsonValue Serializable::toJsonValue() const
 {
+    const QList<DataMap> maps = serialize();
+    if (maps.isEmpty()) return QJsonValue();
+
     if (isListSerializable())
-        return toJsonArray();
+        return JsonSerializer::serializeMaps(maps);
     else
-        return toJsonObject();
+        return JsonSerializer::serializeMap(maps.first());
 }
 
 QByteArray Serializable::toJson(SerializationFormat format) const
 {
+    const QList<DataMap> maps = serialize();
+    if (maps.isEmpty()) return QByteArray();
+
     QJsonDocument doc;
     if (isListSerializable())
-        doc.setArray(toJsonArray());
+        doc.setArray(JsonSerializer::serializeMaps(maps));
     else
-        doc.setObject(toJsonObject());
+        doc.setObject(JsonSerializer::serializeMap(maps.first()));
 
     switch (format) {
     case SerializationFormat::Compact:
@@ -61,53 +66,40 @@ QByteArray Serializable::toJson(SerializationFormat format) const
     return QByteArray();
 }
 
-QJsonObject Serializable::jsonObjectFromMap(const DataMap &map)
+QByteArray Serializable::toCsv(SerializationFormat format) const
 {
-    QJsonObject object;
-    for (const DataMap::Pair &data : map)
-        object.insert(data.first, QJsonValue::fromVariant(data.second));
-    return object;
+    const QList<DataMap> maps = serialize();
+    return CsvSerializer::serializeMaps(maps, isListSerializable(), format);
 }
 
-QByteArray Serializable::toCsv(SerializationFormat format) const
+QByteArray Serializable::toYaml() const
 {
     const QList<DataMap> maps = serialize();
     if (maps.isEmpty()) return QByteArray();
 
-    const QStringList keys = maps.first().keys();
-    QByteArrayList data;
-    const QByteArray separator(";");
-
-    // Header added for pretty format
-    if (format == SerializationFormat::Pretty) {
-        QByteArrayList line;
-        std::transform(keys.begin(), keys.end(), std::back_inserter(line), [](const QString &key) {
-            return key.toUtf8();
-        });
-
-        data.append(line.join(separator));
-    }
-
-    // Data
-    for (const DataMap &map : maps) {
-        QByteArrayList line;
-        for (const QString &key : keys)
-            line.append(map.value(key).toByteArray());
-        data.append(line.join(separator));
-    }
-
-    return data.join('\n');
+    if (isListSerializable())
+        return YamlSerializer::serializeMaps(maps);
+    else
+        return YamlSerializer::serializeMap(maps.first());
 }
 
 } // namespace QEloquent
 
 QDebug operator<<(QDebug debug, const QEloquent::Serializable &serializable)
 {
+    // Serializer used for debugging (YAML)
+    using Serializer = QEloquent::Private::YamlSerializer;
+
     const QString context = serializable.serializationContext();
+    const QList<QEloquent::DataMap> maps = serializable.serialize();
 
     debug.noquote().nospace()
-        << (context.isEmpty() ? QString() : context + ' ')
-        << serializable.serialize();
+        << (context.isEmpty() ? context : context + '\n');
+
+    if (serializable.isListSerializable())
+        debug << Serializer::serializeMaps(maps);
+    else
+        debug << Serializer::serializeMap(maps.isEmpty() ? QEloquent::DataMap() : maps.first());
 
     return debug.resetFormat();
 }

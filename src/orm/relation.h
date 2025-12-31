@@ -137,19 +137,7 @@ public:
 
     QString serializationContext() const override final { return data->serializationContext(); }
     bool isListSerializable() const override final { return data->multiple(); }
-
-    QList<DataMap> serialize() const override final {
-        QList<DataMap> maps;
-        const QList<RelatedModel> &models = data->relatedModels<RelatedModel>();
-
-        std::transform(models.begin(), models.end(), std::back_inserter(maps), [](const Serializable &model) {
-            const QList<DataMap> maps = model.serialize();
-            // Model always return a single map
-            return maps.first();
-        });
-
-        return maps;
-    }
+    QList<DataMap> serialize() const override final { return data->serialize(); }
 
 private:
     /** @brief Internal helper to trigger lazy loading if needed */

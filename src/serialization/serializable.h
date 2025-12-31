@@ -26,8 +26,8 @@ public:
     QJsonArray toJsonArray() const;
     QJsonValue toJsonValue() const;
     QByteArray toJson(SerializationFormat format = SerializationFormat::Compact) const;
-    static QJsonObject jsonObjectFromMap(const DataMap &map);
 
+    QByteArray toYaml() const;
     QByteArray toCsv(SerializationFormat format = SerializationFormat::Compact) const;
 };
 

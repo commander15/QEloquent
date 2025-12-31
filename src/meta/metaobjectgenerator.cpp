@@ -114,7 +114,7 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
 
         if (base.isUser()) {
             property->attributes.setFlag(MetaProperty::LabelProperty, true);
-            generation->object->labelPropertyIndex = index;
+            generation->object->labelPropertyIndex = i;
         }
 
         tuneProperty(index, property, generation, true);

@@ -1,6 +1,6 @@
 #include "datamap.h"
 
-#include <QEloquent/serializable.h>
+#include <QEloquent/private/yamlserializer_p.h>
 
 #include <QJsonObject>
 
@@ -193,23 +193,11 @@ QHash<DataMap::Key, int> DataMap::generateIndex(const QVector<Pair> &data)
 
 QDebug operator<<(QDebug debug, const QEloquent::DataMap &map)
 {
-    using Pair = QEloquent::DataMapPair;
+    // Serializer used for ddebuging (YAML)
+    using Serializer = QEloquent::Private::YamlSerializer;
 
-    QByteArrayList values;
-
-    const QVector<Pair> &input = map.intenalData();
-    for (const Pair &pair : input) {
-        QJsonObject object;
-        object.insert(pair.first, QJsonValue::fromVariant(pair.second));
-
-        QByteArray json = QJsonDocument(object).toJson(QJsonDocument::Indented);
-        json.removeFirst();
-        json.removeLast();
-        values.append(json);
-    }
-
-    // We log the output
-    debug.noquote().nospace() << values.join(", ");
+    const QByteArray output = Serializer::serializeMap(map);
+    debug.noquote().nospace() << output;
     return debug.resetFormat();
 }
 
