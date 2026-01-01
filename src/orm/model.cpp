@@ -188,7 +188,7 @@ bool Model::insert()
     MODEL_DATA(Model);
 
     if (data.metaObject.hasCreationTimestamp())
-        data.metaObject.creationTimestamp().write(this, QDateTime::currentDateTime());
+        data.metaObject.creationTimestamp().write(this, data.metaObject.connection().now());
 
     const DataMap values = data.metaObject.readFillableFields(this);
     auto result = exec([&values](const Query &query) {
@@ -211,7 +211,7 @@ bool Model::update()
     MODEL_DATA(Model);
 
     if (data.metaObject.hasUpdateTimestamp())
-        data.metaObject.updateTimestamp().write(this, QDateTime::currentDateTime());
+        data.metaObject.updateTimestamp().write(this, data.metaObject.connection().now());
 
     const DataMap values = data.metaObject.readFillableFields(this);
     auto result = exec([&values](const Query &query) {

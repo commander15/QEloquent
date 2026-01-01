@@ -155,7 +155,7 @@ QDateTime Connection::now() const
         return now;
     }
 
-    return QDateTime::currentDateTime();
+    return QDateTime::currentDateTimeUtc();
 }
 
 /*!
