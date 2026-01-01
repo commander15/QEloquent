@@ -73,8 +73,13 @@ MetaProperty::PropertyType MetaProperty::propertyType() const
 
 QVariant MetaProperty::read(const Model *model) const
 {
-    if (data->propertyType == StandardProperty)
+    if (data->propertyType == StandardProperty) {
         return (data->metaProperty.isValid() ? data->metaProperty.readOnGadget(model) : QVariant());
+    }
+
+    if (data->propertyType == DynamicProperty) {
+        return model->data->dynamicProperties.value(data->propertyName);
+    }
 
     if (data->propertyType == AppendedProperty) {
         if (data->getter.isValid()) {
@@ -94,50 +99,23 @@ QVariant MetaProperty::read(const Model *model) const
             data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
             const QVariant var = QVariant::fromMetaType(data->metaType, value);
             data->metaType.destroy(value);
-
-            // We load now
-            auto relation = model->data->relationData.value(data->propertyName);
-            relation->parent = const_cast<Model *>(model);
-            relation.get();
-
             return var;
+        } else {
+            return QVariant();
         }
     }
 
-    if (data->metaProperty.isValid() && data->metaProperty.isReadable())
-        return data->metaProperty.readOnGadget(model);
-
-    if (data->getter.isValid()) {
-        void *value = data->metaType.create();
-        data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
-        const QVariant var = QVariant::fromMetaType(data->metaType, value);
-        data->metaType.destroy(value);
-        return var;
-    }
-
-    return model->data->dynamicProperties.value(data->propertyName);
+    return QVariant();
 }
 
 bool MetaProperty::write(Model *model, const QVariant &value) const
 {
-    if (data->metaProperty.isValid())
-        return (data->metaProperty.isWritable() ? data->metaProperty.writeOnGadget(model, value) : false);
-
-    if (data->getter.isValid() && data->propertyType == RelationProperty) {
-        QVariant relation;
-        data->getter.invokeOnGadget(model, Q_RETURN_ARG(QVariant, relation));
-        return false;
+    if (data->propertyType == StandardProperty) {
+        return data->metaProperty.writeOnGadget(model, value);
     }
 
-    if (data->setter.isValid())
-        return data->setter.invokeOnGadget(model, value);
-
-    if (data->propertyType != AppendedProperty) {
-        DataMap *properties = &model->data->dynamicProperties;
-        if ((!value.isValid() || value.isNull()) && properties->contains(data->propertyName))
-            properties->remove(data->propertyName);
-        else
-            properties->insert(data->propertyName, value);
+    if (data->propertyType == DynamicProperty) {
+        model->data->dynamicProperties.insert(data->propertyName, value);
         return true;
     }
 

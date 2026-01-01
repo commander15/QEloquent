@@ -121,6 +121,11 @@ void DataMap::forEach(const std::function<void (Pair &)> &callback, int depth)
     std::for_each(m_data.begin(), m_data.end(), callback);
 }
 
+void DataMap::removeIf(const std::function<bool (const Pair &)> &pred)
+{
+    m_data.removeIf(pred);
+}
+
 QVariantMap DataMap::toVariantMap() const
 {
     QVariantMap map;

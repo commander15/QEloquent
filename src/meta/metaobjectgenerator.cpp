@@ -37,6 +37,7 @@ struct MetaObjectGeneration {
     NamingConvention *convention;
     Connection connection;
 
+    QStringList append;
     QStringList fillable;
     QStringList hidden;
 
@@ -93,46 +94,48 @@ void MetaObjectGenerator::initGeneration(MetaObjectGeneration *generation)
     generation->object->connectionName = generation->connection.name();
     generation->object->relations = generation->infoList("with");
 
+    generation->append = generation->infoList(META_FILLABLE);
     generation->fillable = generation->infoList(META_FILLABLE);
     generation->hidden = generation->infoList(META_HIDDEN);
 }
 
 void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
 {
-    // Global properties index
-    int index = -1;
-
     // first class properties
+    QList<MetaPropertyData *> firstClass;
     for (int i(0); i < generation->qtMetaObject->propertyCount(); ++i) {
         const QMetaProperty base = generation->qtMetaObject->property(i);
 
         MetaPropertyData *property = new MetaPropertyData();
         property->propertyName = base.name();
-        property->metaType = base.metaType();
+        property->propertyType = MetaProperty::StandardProperty;
         property->metaProperty = base;
         property->metaType = base.metaType();
+        property->attributes = (base.isWritable() ? MetaProperty::FillableProperty : MetaProperty::NoAttibutes);
 
         if (base.isUser()) {
             property->attributes.setFlag(MetaProperty::LabelProperty, true);
             generation->object->labelPropertyIndex = i;
         }
 
-        tuneProperty(index, property, generation, true);
+        firstClass.append(property);
     }
 
     // Appended and relations properties
-    const QStringList append = generation->infoList(META_APPEND);
+    QList<MetaPropertyData *> append;
+    QList<MetaPropertyData *> relations;
     for (int i(0); i < generation->qtMetaObject->methodCount(); ++i) {
         const QMetaMethod method = generation->qtMetaObject->method(i);
         const QByteArray methodName(method.name());
 
-        if (append.contains(methodName)) {
+        if (generation->append.contains(methodName)) {
             MetaPropertyData *property = new MetaPropertyData();
             property->propertyName = method.name();
-            property->metaType = method.returnMetaType();
-            property->getter = method;
             property->propertyType = MetaProperty::AppendedProperty;
-            tuneProperty(index, property, generation, true);
+            property->getter = method;
+            property->metaType = method.returnMetaType();
+            property->attributes = MetaProperty::NoAttibutes;
+            append.append(property);
             continue;
         }
 
@@ -140,13 +143,52 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
         if (typeName.startsWith("QEloquent::Relation<") || typeName.contains("Relation<")) {
             MetaPropertyData *property = new MetaPropertyData();
             property->propertyName = method.name();
-            property->metaType = method.returnMetaType();
-            property->getter = method;
             property->propertyType = MetaProperty::RelationProperty;
-            tuneProperty(index, property, generation, true);
+            property->getter = method;
+            property->metaType = method.returnMetaType();
+            property->attributes = MetaProperty::NoAttibutes;
+            relations.append(property);
             continue;
         }
     }
+
+    // Dynamic properties
+    // potential dynamic properties (from fillable, hidden, ...)
+    QStringList potentialDynamicProperties = generation->fillable + generation->hidden;
+    potentialDynamicProperties.removeDuplicates();
+    potentialDynamicProperties.removeIf([&firstClass, &append, &relations](const QString &propertyName) {
+        auto checker = [&propertyName](MetaPropertyData *property) {
+            return property->propertyName == propertyName;
+        };
+
+        auto found = std::find_if(firstClass.begin(), firstClass.end(), checker);
+        if (found != firstClass.end()) return true;
+
+        found = std::find_if(append.begin(), append.end(), checker);
+        if (found != append.end()) return true;
+
+        found = std::find_if(relations.begin(), relations.end(), checker);
+        if (found != relations.end()) return true;
+
+        return false;
+    });
+
+    QList<MetaPropertyData *> dynamicProperties;
+    for (const QString &propertyName : std::as_const(potentialDynamicProperties)) {
+        MetaPropertyData *property = new MetaPropertyData();
+        property->propertyName = propertyName;
+        property->propertyType = MetaProperty::DynamicProperty;
+        property->metaType = QMetaType::fromType<QVariant>();
+        property->attributes = MetaProperty::FillableProperty;
+        dynamicProperties.append(property);
+    }
+
+    // Global properties index
+    int index = -1;
+
+    const QList<MetaPropertyData *> allProperties = firstClass + append + relations + dynamicProperties;
+    for (MetaPropertyData *property : allProperties)
+        tuneProperty(index, property, generation, true);
 }
 
 void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, MetaObjectGeneration *generation, bool save)
@@ -162,6 +204,17 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
     else
         property->fieldName = generation->qtMetaObject->classInfo(fieldNameIndex).value();
 
+    // Fillable default if no fillable directives set or if the property has been marked explicitly
+    if (property->attributes.testFlag(MetaProperty::FillableProperty)) {
+        if (generation->hasInfo(META_FILLABLE) && !generation->fillable.contains(property->propertyName))
+            property->attributes.setFlag(MetaProperty::FillableProperty, false);
+    }
+
+    // Hidden if explicitly set
+    if (generation->hidden.contains(property->propertyName))
+        property->attributes.setFlag(MetaProperty::HiddenProperty, true);
+
+    // Is it primary ?
     if (property->propertyName == generation->info(META_PRIMARY, "id")) {
         property->attributes.setFlag(MetaProperty::PrimaryProperty, true);
         property->attributes.setFlag(MetaProperty::FillableProperty, false);
@@ -172,38 +225,39 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
         if (!generation->object->foreignProperty.isValid()) {
             const QString className = QString(generation->qtMetaObject->className()).section("::", -1);
             MetaPropertyData *foreign = new MetaPropertyData();
-            foreign->propertyName = generation->convention->foreignPropertyName(property->propertyName, className);
+            foreign->propertyName = generation->info(META_FOREIGN, generation->convention->foreignPropertyName(property->propertyName, className));
             foreign->metaType = property->metaType;
             tuneProperty(index, foreign, generation, false);
             generation->object->foreignProperty = MetaProperty(foreign);
         }
     }
 
-    if (generation->object->labelPropertyIndex < 0 && property->propertyName == generation->info(META_LABEL, "label")) {
-        property->attributes.setFlag(MetaProperty::LabelProperty, true);
-        generation->object->labelPropertyIndex = index;
+    // Is label ?
+    if (generation->object->labelPropertyIndex < 0) {
+        if (property->propertyName == generation->info(META_LABEL))
+            property->attributes.setFlag(MetaProperty::LabelProperty, true);
+
+        if (property->attributes.testFlag(MetaProperty::LabelProperty))
+            generation->object->labelPropertyIndex = index;
     }
 
     if (property->propertyName == generation->info(META_CREATED_AT, "createdAt")) {
         property->attributes.setFlag(MetaProperty::CreationTimestamp);
+        property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->creationTimestampIndex = index;
     }
 
     if (property->propertyName == generation->info(META_UPDATED_AT, "updatedAt")) {
         property->attributes.setFlag(MetaProperty::UpdateTimestamp);
+        property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->updateTimestampIndex = index;
     }
 
     if (property->propertyName == generation->info(META_DELETED_AT, "deletedAt")) {
         property->attributes.setFlag(MetaProperty::CreationTimestamp);
+        property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->deletionTimestampIndex = index;
     }
-
-    if (property->propertyType == MetaProperty::StandardProperty && (generation->fillable.contains(property->propertyName) || !generation->hasInfo(META_FILLABLE)))
-        property->attributes.setFlag(MetaProperty::FillableProperty, !property->attributes.testFlag(MetaProperty::PrimaryProperty));
-
-    if (generation->hidden.contains(property->propertyName))
-        property->attributes.setFlag(MetaProperty::HiddenProperty);
 
     // Registering property
     if (save)

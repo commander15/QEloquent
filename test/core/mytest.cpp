@@ -92,8 +92,10 @@ Result<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
 
     for (const QString &statement : statements) {
         auto result = QEloquent::QueryRunner::exec(statement, connection);
-        if (!result)
+        if (!result) {
+            lastErrorText = result.error().text().toStdString();
             return unexpected(result.error());
+        }
     }
 
     return true;

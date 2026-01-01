@@ -17,6 +17,7 @@ class QELOQUENT_EXPORT MetaProperty
 {
 public:
     enum PropertyAttributeFlag {
+        NoAttibutes = 0x0,
         PrimaryProperty = 0x1,
         LabelProperty = 0x2,
         CreationTimestamp = 0x20,
@@ -29,6 +30,7 @@ public:
 
     enum PropertyType {
         StandardProperty = 0x0,
+        DynamicProperty = 0x2,
         AppendedProperty = 0x10,
         RelationProperty = 0x80,
     };

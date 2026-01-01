@@ -111,6 +111,7 @@ private:
     Query newQuery(const std::function<QString (const Query &)> &statementGenerator, bool filter) const;
     Result<::QSqlQuery, QSqlError> exec(const std::function<QString (const Query &)> &statementGenerator, bool filter);
 
+    friend class MetaObject;
     friend class MetaProperty;
     friend class RelationData;
 };

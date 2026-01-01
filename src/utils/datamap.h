@@ -44,6 +44,8 @@ public:
     void forEach(const std::function<void(const Pair &, const DataMap &)> &callback, int depth = 1) const;
     void forEach(const std::function<void(Pair &)> &callback, int depth = 1);
 
+    void removeIf(const std::function<bool(const Pair &)> &pred);
+
     QVariantMap toVariantMap() const;
 
     void computeIndexes();

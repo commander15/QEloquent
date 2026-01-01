@@ -6,15 +6,8 @@ find_package(GTest REQUIRED)
 qt_add_executable(QEloquentTest
     main.cpp
     core/mytest.h core/mytest.cpp
-    models/basemodel.h models/basemodel.cpp
-    models/testmodel.h models/testmodel.cpp
-    models/user.h models/user.cpp
-    models/product.h models/product.cpp
-    models/usergroup.h models/usergroup.cpp
-    models/sale.h models/sale.cpp
-    querygenerationtest.h querygenerationtest.cpp
-    simplecrudtest.h simplecrudtest.cpp
-    relationtest.h relationtest.cpp
+    models/simplemodels.h models/simplemodels.cpp
+    simplemodelstest.cpp
 )
 
 target_include_directories(QEloquentTest PRIVATE . core models)

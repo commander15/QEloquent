@@ -1,3 +1,5 @@
+#include "simplecrudtest.h"
+
 #include <core/mytest.h>
 #include <models/product.h>
 
@@ -135,7 +137,6 @@ TEST_F(SimpleCRUDTest, editSingleModel)
     ASSERT_EQ(TEST_STR(response->value("name").toString()), TEST_STR(object.value("name").toString()));
     ASSERT_EQ(TEST_STR(response->value("description").toString()), TEST_STR(object.value("description").toString()));
 }
-
 
 TEST_F(SimpleCRUDTest, deleteSingleModel)
 {

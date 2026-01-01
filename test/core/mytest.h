@@ -8,6 +8,7 @@
 #include <string>
 
 #include <QEloquent/result.h>
+#include <QEloquent/error.h>
 #include <QEloquent/connection.h>
 
 #include <QSqlError>
@@ -39,6 +40,7 @@ protected:
     QEloquent::Result<bool, QSqlError> migrateAndSeed();
     QEloquent::Result<bool, QSqlError> exec(const QString &sqlFileName);
 
+    std::string lastErrorText;
     QEloquent::Connection connection;
 
 private:

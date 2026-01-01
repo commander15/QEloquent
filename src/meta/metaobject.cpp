@@ -6,6 +6,8 @@
 #include <QEloquent/metaobjectgenerator.h>
 #include <QEloquent/namingconvention.h>
 #include <QEloquent/connection.h>
+#include <QEloquent/model.h>
+#include <QEloquent/private/model_p.h>
 #include <QEloquent/private/metaproperty_p.h>
 
 namespace QEloquent {
@@ -149,30 +151,31 @@ QList<MetaProperty> MetaObject::properties(
     QList<MetaProperty> result;
 
     for (const MetaProperty& prop : std::as_const(d->properties)) {
-        bool keep = true;
+        bool typeMatch;
+        bool filterMatch;
 
         // Filter by type
-        if (filters != PropertyFilters()) {
-            bool typeMatch = false;
+        if (filters == AllProperties) {
+            typeMatch = true;
+        } else {
+            typeMatch = false;
             if (filters.testFlag(StandardProperties) && prop.propertyType() == MetaProperty::StandardProperty)
+                typeMatch = true;
+            if (filters.testFlag(DynamicProperties) && prop.propertyType() == MetaProperty::DynamicProperty)
                 typeMatch = true;
             if (filters.testFlag(AppendedProperties) && prop.propertyType() == MetaProperty::AppendedProperty)
                 typeMatch = true;
             if (filters.testFlag(RelationProperties) && prop.propertyType() == MetaProperty::RelationProperty)
                 typeMatch = true;
-
-            if (!typeMatch)
-                keep = false;
         }
 
         // Filter by attributes
-        if (attributes != MetaProperty::PropertyAttributes()) {
-            if ((prop.attributes() & attributes) == 0) {  // no matching attributes
-                keep = false;
-            }
-        }
+        if (attributes == MetaProperty::NoAttibutes)
+            filterMatch = true;
+        else
+            filterMatch = (prop.attributes() & attributes) != MetaProperty::NoAttibutes;
 
-        if (keep)
+        if (typeMatch && filterMatch)
             result.append(prop);
     }
 
@@ -184,7 +187,10 @@ QList<MetaProperty> MetaObject::properties() const
     return d->properties;
 }
 
-DataMap MetaObject::readProperties(const Model *model, MetaProperty::PropertyAttributes attributes, PropertyFilters filters, PropertyNameResolution resolution) const
+DataMap MetaObject::read(const Model *model,
+                         MetaProperty::PropertyAttributes attributes,
+                         PropertyFilters filters,
+                         PropertyNameResolution resolution) const
 {
     DataMap data;
 
@@ -201,13 +207,27 @@ DataMap MetaObject::readProperties(const Model *model, MetaProperty::PropertyAtt
             break;
         }
 
-        data.insert(name, property.read(model));
+        if (property.propertyType() == MetaProperty::RelationProperty) {
+            property.read(model); // We trigger lazy load
+            if (!model->data->relationData.contains(property.propertyName())) continue;
+
+            auto relation = model->data->relationData.value(property.propertyName());
+            const QList<DataMap> maps = relation->serialize();
+            if (relation->isListSerializable())
+                data.insert(name, maps);
+            else if (maps.isEmpty())
+                data.insert(name, QVariant());
+            else
+                data.insert(name, maps.first());
+        } else {
+            data.insert(name, property.read(model));
+        }
     }
 
     return data;
 }
 
-int MetaObject::writeProperties(Model *model, const DataMap &data, PropertyNameResolution resolution) const
+int MetaObject::write(Model *model, const DataMap &data, PropertyNameResolution resolution) const
 {
     int written = true;
 
@@ -226,7 +246,10 @@ int MetaObject::writeProperties(Model *model, const DataMap &data, PropertyNameR
 
 DataMap MetaObject::readFillableFields(const Model *model) const
 {
-    return readProperties(model, MetaProperty::FillableProperty, StandardProperties, ResolveByFieldName);
+    return read(model,
+                MetaProperty::FillableProperty,
+                StandardProperties | DynamicProperties,
+                ResolveByFieldName);
 }
 
 bool MetaObject::writeFillableFields(Model *model, const DataMap &data)

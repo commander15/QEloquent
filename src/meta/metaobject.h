@@ -32,9 +32,10 @@ public:
 
     enum PropertyFilterFlag {
         StandardProperties = 0x1,
-        AppendedProperties = 0x2,
-        RelationProperties = 0x4,
-        AllProperties = StandardProperties | AppendedProperties | RelationProperties
+        DynamicProperties = 0x2,
+        AppendedProperties = 0x4,
+        RelationProperties = 0x8,
+        AllProperties = StandardProperties | DynamicProperties | AppendedProperties | RelationProperties
     };
     Q_DECLARE_FLAGS(PropertyFilters, PropertyFilterFlag)
 
@@ -68,11 +69,13 @@ public:
                                    PropertyFilters filters = AllProperties) const;
     QList<MetaProperty> properties() const;
 
-    DataMap readProperties(const Model *model,
-                               MetaProperty::PropertyAttributes attributes,
-                               PropertyFilters filters = AllProperties,
-                               PropertyNameResolution resolution = ResolveByPropertyName) const;
-    int writeProperties(Model *model, const DataMap &data, PropertyNameResolution resolution = ResolveByPropertyName) const;
+    DataMap read(const Model *model,
+                 MetaProperty::PropertyAttributes attributes,
+                PropertyFilters filters = AllProperties,
+                PropertyNameResolution resolution = ResolveByPropertyName) const;
+    int write(Model *model,
+              const DataMap &data,
+              PropertyNameResolution resolution = ResolveByPropertyName) const;
 
     DataMap readFillableFields(const Model *model) const;
     bool writeFillableFields(Model *model, const DataMap &data);
@@ -103,5 +106,7 @@ private:
 };
 
 }
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QEloquent::MetaObject::PropertyFilters)
 
 #endif // QELOQUENT_METAOBJECT_H

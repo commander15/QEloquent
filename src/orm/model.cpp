@@ -326,29 +326,12 @@ bool Model::isListSerializable() const
 
 QList<DataMap> Model::serialize() const
 {
-    const QList<MetaProperty> properties = data->metaObject.properties();
+    const DataMap map = data->metaObject.read(this,
+        MetaProperty::PrimaryProperty | MetaProperty::LabelProperty | MetaProperty::FillableProperty |
+        MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
+        MetaObject::AllProperties, MetaObject::ResolveByFieldName
+    );
 
-    DataMap map;
-    for (const MetaProperty &property : properties) {
-        if (property.hasAttribute(MetaProperty::HiddenProperty))
-            continue; // We skip fields marked hidden
-
-        if (property.propertyType() == MetaProperty::RelationProperty) {
-            if (data->relationData.contains(property.propertyName())) {
-                auto relation = data->relationData.value(property.propertyName());
-                if (relation->isListSerializable())
-                    map.insert(property.fieldName(), relation->serialize());
-                else
-                    map.insert(property.fieldName(), relation->serialize().constFirst());
-            }
-
-            continue;
-        }
-
-        map.insert(property.propertyName(), property.read(this));
-    }
-
-    map.insert(data->dynamicProperties);
     return { map };
 }
 
@@ -359,43 +342,25 @@ void Model::deserialize(const QList<DataMap> &data, bool all)
     static const MetaProperty::PropertyAttributes allAttributes =
         MetaProperty::PrimaryProperty | MetaProperty::FillableProperty |
         MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp;
+
     static const MetaProperty::PropertyAttributes fillableAttributes = MetaProperty::FillableProperty;
+
     const MetaProperty::PropertyAttributes allowedAttributes = (all ? allAttributes : fillableAttributes);
+    const QList<MetaProperty> properties = this->data->metaObject.properties(allowedAttributes, MetaObject::StandardProperties | MetaObject::DynamicProperties);
+    const DataMap map = data.constFirst();
 
-    const DataMap values = data.first();
-    for (const DataMap::Pair &pair : values) {
-        const MetaProperty property = this->data->metaObject.property(pair.first, MetaObject::ResolveByFieldName);
-        if (!property.isValid()) {
-            this->data->dynamicProperties.insert(pair.first, pair.second);
-            continue;
-        }
-
-        if ((allowedAttributes & property.attributes()) == 0) {
-            continue;
-        }
-
-        switch (property.propertyType()) {
-        case MetaProperty::StandardProperty:
-            property.write(this, pair.second);
-            break;
-
-        case MetaProperty::AppendedProperty:
-            break;
-
-        case MetaProperty::RelationProperty:
-            if (this->data->relationData.contains(property.propertyName()))
-                this->data->relationData.value(property.propertyName());
-            break;
-        }
-    }
+    for (const MetaProperty &property : properties)
+        if (map.contains(property.propertyName()))
+            property.write(this, map.value(property.propertyName()));
 }
 
 DataMap Model::fullDataMap() const
 {
-    DataMap map = data->metaObject.readProperties(this,
+    DataMap map = data->metaObject.read(this,
         MetaProperty::PrimaryProperty | MetaProperty::FillableProperty | MetaProperty::HiddenProperty |
-            MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
-        MetaObject::AllProperties, MetaObject::ResolveByFieldName);
+        MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
+        MetaObject::StandardProperties | MetaObject::AppendedProperties | MetaObject::RelationProperties,
+        MetaObject::ResolveByFieldName);
 
     map.insert(data->dynamicProperties);
     return map;
