@@ -29,6 +29,34 @@ public:
         return isReally(product, apple);
     }
 
+    static Result<bool, QString> isReallyABanana(const SimpleProduct &product, const std::function<void(SimpleProduct &)> &alter = nullptr) {
+        SimpleProduct banana;
+        banana.id = 2;
+        banana.name = "Banana";
+        banana.description = "Organic banana";
+        banana.price = 0.3;
+        banana.barcode = "2234567890123";
+        banana.createdAt = QDateTime::currentDateTime();
+        banana.setProperty("categoryId", 1);
+
+        if (alter) alter(banana);
+        return isReally(product, banana);
+    }
+
+    static Result<bool, QString> isReallyMilk(const SimpleProduct &product, const std::function<void(SimpleProduct &)> &alter = nullptr) {
+        SimpleProduct milk;
+        milk.id = 3;
+        milk.name = "Milk";
+        milk.description = "1L whole milk";
+        milk.price = 1.2;
+        milk.barcode = "3234567890123";
+        milk.createdAt = QDateTime::currentDateTime();
+        milk.setProperty("categoryId", 2);
+
+        if (alter) alter(milk);
+        return isReally(product, milk);
+    }
+
     static Result<bool, QString> isReally(const SimpleProduct &product, const SimpleProduct &expected)
     {
         // Expected values - defined once and reused
