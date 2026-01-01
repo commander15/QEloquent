@@ -24,13 +24,15 @@ public:
     }
 
     static DataMap deserializeMap(const QJsonObject &object) {
-        // ToDo: implement deserialization here
-        return DataMap();
+        return DataMap::fromVariantMap(object.toVariantMap());
     }
 
     static QList<DataMap> deserializeMaps(const QJsonArray &array) {
-        // ToDo: implement deserialization here
-        return {};
+        QList<DataMap> maps;
+        std::transform(array.begin(), array.end(), std::back_inserter(maps), [](const QJsonValue &value) {
+            return DataMap::fromVariantMap(value.toObject().toVariantMap());
+        });
+        return maps;
     }
 };
 

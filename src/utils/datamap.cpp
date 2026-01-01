@@ -156,6 +156,14 @@ QVariantMap DataMap::toVariantMap() const
     return map;
 }
 
+DataMap DataMap::fromVariantMap(const QVariantMap &map)
+{
+    DataMap output;
+    for (auto item : map.asKeyValueRange())
+        output.insert(item.first, item.second);
+    return output;
+}
+
 void DataMap::computeIndexes()
 {
     m_index = generateIndex(m_data);

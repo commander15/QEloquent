@@ -182,9 +182,35 @@ QList<MetaProperty> MetaObject::properties(
     return result;
 }
 
-QList<MetaProperty> MetaObject::properties() const
+QList<MetaProperty> MetaObject::properties(PropertyFilters filters) const
 {
-    return d->properties;
+    if (filters == AllProperties) return d->properties;
+
+    QList<MetaProperty> result;
+
+    for (const MetaProperty& prop : std::as_const(d->properties)) {
+        bool typeMatch;
+
+        // Filter by type
+        if (filters == AllProperties) {
+            typeMatch = true;
+        } else {
+            typeMatch = false;
+            if (filters.testFlag(StandardProperties) && prop.propertyType() == MetaProperty::StandardProperty)
+                typeMatch = true;
+            if (filters.testFlag(DynamicProperties) && prop.propertyType() == MetaProperty::DynamicProperty)
+                typeMatch = true;
+            if (filters.testFlag(AppendedProperties) && prop.propertyType() == MetaProperty::AppendedProperty)
+                typeMatch = true;
+            if (filters.testFlag(RelationProperties) && prop.propertyType() == MetaProperty::RelationProperty)
+                typeMatch = true;
+        }
+
+        if (typeMatch)
+            result.append(prop);
+    }
+
+    return result;
 }
 
 DataMap MetaObject::read(const Model *model,
@@ -319,7 +345,7 @@ Connection MetaObject::connection() const
 
 bool MetaObject::isValid() const
 {
-    return d->primaryPropertyIndex > 0 && !d->connectionName.isEmpty();
+    return d->primaryPropertyIndex >= 0 && !d->connectionName.isEmpty();
 }
 
 MetaObject MetaObject::fromQtMetaObject(const QMetaObject &metaObject)

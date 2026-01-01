@@ -2,9 +2,11 @@
 #define QELOQUENT_CONNECTION_H
 
 #include <QEloquent/global.h>
+#include <QEloquent/result.h>
 
 #include <QSharedDataPointer>
 
+class QDateTime;
 class QSqlDatabase;
 class QSqlQuery;
 class QSqlError;
@@ -36,7 +38,9 @@ public:
     bool commitTransaction();
     bool rollbackTransaction();
 
-    QSqlQuery exec(const QString &query, bool cache = false);
+    QDateTime now() const;
+
+    Result<QSqlQuery, QSqlError> exec(const QString &query, bool cache = false) const;
     QSqlError lastError() const;
 
     Driver *driver() const;

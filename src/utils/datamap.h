@@ -47,6 +47,7 @@ public:
     void removeIf(const std::function<bool(const Pair &)> &pred);
 
     QVariantMap toVariantMap() const;
+    static DataMap fromVariantMap(const QVariantMap &map);
 
     void computeIndexes();
 

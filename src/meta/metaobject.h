@@ -67,7 +67,7 @@ public:
     MetaProperty property(const QString &name, PropertyNameResolution resolution = ResolveByPropertyName) const;
     QList<MetaProperty> properties(MetaProperty::PropertyAttributes attributes,
                                    PropertyFilters filters = AllProperties) const;
-    QList<MetaProperty> properties() const;
+    QList<MetaProperty> properties(PropertyFilters filters = AllProperties) const;
 
     DataMap read(const Model *model,
                  MetaProperty::PropertyAttributes attributes,
@@ -93,7 +93,7 @@ public:
 
     bool isValid() const;
 
-    template<typename T>
+    template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type* = nullptr>
     static MetaObject from() { return fromQtMetaObject(T::staticMetaObject); }
     static MetaObject fromQtMetaObject(const QMetaObject &metaObject);
 

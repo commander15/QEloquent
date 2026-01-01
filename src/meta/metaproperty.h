@@ -25,6 +25,7 @@ public:
         DeletionTimestamp = 0x80,
         HiddenProperty = 0x1000,
         FillableProperty = 0x2000,
+        DatabaseField = 0x4000
     };
     Q_DECLARE_FLAGS(PropertyAttributes, PropertyAttributeFlag)
 

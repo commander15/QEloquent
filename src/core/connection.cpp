@@ -2,6 +2,8 @@
 
 #include <QEloquent/driver.h>
 
+#include <QDateTime>
+#include <QTimeZone>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -143,15 +145,30 @@ bool Connection::rollbackTransaction()
     return database().rollback();
 }
 
+QDateTime Connection::now() const
+{
+    const QString statement = "SELECT " + data->driver->timestampDefault();
+    auto result = exec(statement, false);
+    if (result && result->next()) {
+        QDateTime now = result->value(0).toDateTime();
+        now.setTimeZone(QTimeZone::UTC);
+        return now;
+    }
+
+    return QDateTime::currentDateTime();
+}
+
 /*!
  * @brief Executes a raw SQL query on this connection.
  */
-QSqlQuery Connection::exec(const QString &query, bool cache)
+Result<QSqlQuery, QSqlError> Connection::exec(const QString &query, bool cache) const
 {
     QSqlQuery q(database());
     q.setForwardOnly(!cache);
-    q.exec(query);
-    return q;
+    if (q.exec(query))
+        return q;
+    else
+        return unexpected(q.lastError());
 }
 
 /*!

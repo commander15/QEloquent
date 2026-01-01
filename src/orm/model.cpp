@@ -94,7 +94,7 @@ void Model::setPrimary(const QVariant &value)
 QVariant Model::property(const QString &name) const
 {
     MODEL_DATA(const Model);
-    const MetaProperty property = data.metaObject.property(name);
+    const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByPropertyName);
     return (property.isValid() ? property.read(this) : data.dynamicProperties.value(name));
 }
 
@@ -349,9 +349,11 @@ void Model::deserialize(const QList<DataMap> &data, bool all)
     const QList<MetaProperty> properties = this->data->metaObject.properties(allowedAttributes, MetaObject::StandardProperties | MetaObject::DynamicProperties);
     const DataMap map = data.constFirst();
 
-    for (const MetaProperty &property : properties)
-        if (map.contains(property.propertyName()))
-            property.write(this, map.value(property.propertyName()));
+    for (const MetaProperty &property : properties) {
+        const QString fieldName = property.fieldName();
+        if (map.contains(fieldName))
+            property.write(this, map.value(fieldName));
+    }
 }
 
 DataMap Model::fullDataMap() const

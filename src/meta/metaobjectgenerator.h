@@ -19,7 +19,7 @@ public:
     MetaObject generate(const QMetaObject &modelMetaObject, bool cache = true);
 
 private:
-    void initGeneration(MetaObjectGeneration *generation);
+    bool initGeneration(MetaObjectGeneration *generation);
     void discoverProperties(MetaObjectGeneration *generation);
     void tuneProperty(int &index, class MetaPropertyData *property, MetaObjectGeneration *generation, bool save);
 };

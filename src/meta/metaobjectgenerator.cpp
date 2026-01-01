@@ -6,6 +6,9 @@
 #include <QEloquent/private/metaobject_p.h>
 #include <QEloquent/private/metaproperty_p.h>
 
+#include <QSqlDatabase>
+#include <QSqlRecord>
+
 #define META_TABLE          "table"
 #define META_PRIMARY        "primary"
 #define META_LABEL          "label"
@@ -67,9 +70,16 @@ MetaObjectGenerator::MetaObjectGenerator()
 
 MetaObject MetaObjectGenerator::generate(const QMetaObject &modelMetaObject, bool cache)
 {
-    // If the meta object is already registered, we just return the cached version
     const QString className(modelMetaObject.className());
-    if (MetaObjectRegistry::contains(className))
+
+    // If it's Model, we just return an invalid object
+    if (className == "QEloquent::Model") {
+        qWarning() << "MetaObjectGenerator: tried to register an invalid model !";
+        return MetaObject();
+    }
+
+    // If the meta object is already registered, we just return the cached version
+    if (cache && MetaObjectRegistry::contains(className))
         return MetaObjectRegistry::metaObject(modelMetaObject.className());
 
     // We generate the meta object for first time use
@@ -84,7 +94,7 @@ MetaObject MetaObjectGenerator::generate(const QMetaObject &modelMetaObject, boo
     return object;
 }
 
-void MetaObjectGenerator::initGeneration(MetaObjectGeneration *generation)
+bool MetaObjectGenerator::initGeneration(MetaObjectGeneration *generation)
 {
     generation->convention = (generation->hasInfo(META_NAMING) ? NamingConvention::convention(generation->info(META_NAMING)) : NamingConvention::convention());
     generation->connection = (generation->hasInfo(META_CONNECTION) ? Connection::connection(generation->info(META_CONNECTION)) : Connection::defaultConnection());
@@ -94,9 +104,20 @@ void MetaObjectGenerator::initGeneration(MetaObjectGeneration *generation)
     generation->object->connectionName = generation->connection.name();
     generation->object->relations = generation->infoList("with");
 
-    generation->append = generation->infoList(META_FILLABLE);
+    if (generation->connection.isOpen()) {
+        const QSqlRecord record = generation->connection.database().record(generation->object->tableName);
+        if (record.isEmpty()) {
+            qWarning().noquote().nospace()
+                    << "MetaObjectGenerator: can't check if " << className
+                << " has an actual database table named '" << generation->object->tableName << '\'';
+        }
+    }
+
+    generation->append = generation->infoList(META_APPEND);
     generation->fillable = generation->infoList(META_FILLABLE);
     generation->hidden = generation->infoList(META_HIDDEN);
+
+    return true;
 }
 
 void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
@@ -111,7 +132,8 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
         property->propertyType = MetaProperty::StandardProperty;
         property->metaProperty = base;
         property->metaType = base.metaType();
-        property->attributes = (base.isWritable() ? MetaProperty::FillableProperty : MetaProperty::NoAttibutes);
+        property->attributes.setFlag(MetaProperty::FillableProperty, base.isWritable());
+        property->attributes.setFlag(MetaProperty::DatabaseField, base.isWritable());
 
         if (base.isUser()) {
             property->attributes.setFlag(MetaProperty::LabelProperty, true);
@@ -179,7 +201,7 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
         property->propertyName = propertyName;
         property->propertyType = MetaProperty::DynamicProperty;
         property->metaType = QMetaType::fromType<QVariant>();
-        property->attributes = MetaProperty::FillableProperty;
+        property->attributes = MetaProperty::FillableProperty | MetaProperty::DatabaseField;
         dynamicProperties.append(property);
     }
 
@@ -213,6 +235,29 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
     // Hidden if explicitly set
     if (generation->hidden.contains(property->propertyName))
         property->attributes.setFlag(MetaProperty::HiddenProperty, true);
+
+    // Is DB field ?
+    if (property->attributes.testFlag(MetaProperty::DatabaseField)) {
+        const Connection &conn = generation->connection;
+        static const QString errorStrPrefixTemplate = "MetaObjectGenerator: can't check if %1::%2 has an actual database field named '%3', ";
+        const QString errorStrPrefix = errorStrPrefixTemplate
+                                           .arg(generation->qtMetaObject->className(),
+                                                property->propertyName,
+                                                property->fieldName);
+
+        if (conn.isOpen()) {
+            const QSqlRecord record = conn.database().record(generation->object->tableName);
+            if (!record.isEmpty()) {
+                const int index = record.indexOf(property->fieldName);
+                if (index < 0)
+                    property->attributes.setFlag(MetaProperty::DatabaseField, false);
+            } else {
+                qDebug() .noquote().nospace() << errorStrPrefix << "database table '" << generation->object->tableName << "' not found.";
+            }
+        } else {
+            qDebug().noquote().nospace() << "connection '" << conn.name() << "' is down.";
+        }
+    }
 
     // Is it primary ?
     if (property->propertyName == generation->info(META_PRIMARY, "id")) {

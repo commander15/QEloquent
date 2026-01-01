@@ -6,6 +6,8 @@
 
 #include <QMetaType>
 #include <QVariant>
+#include <QDateTime>
+#include <QTimeZone>
 
 namespace QEloquent {
 
@@ -73,49 +75,52 @@ MetaProperty::PropertyType MetaProperty::propertyType() const
 
 QVariant MetaProperty::read(const Model *model) const
 {
-    if (data->propertyType == StandardProperty) {
-        return (data->metaProperty.isValid() ? data->metaProperty.readOnGadget(model) : QVariant());
+    QVariant value;
+
+    if (data->propertyType == StandardProperty && data->metaProperty.isValid()) {
+        value = data->metaProperty.readOnGadget(model);
     }
 
     if (data->propertyType == DynamicProperty) {
-        return model->data->dynamicProperties.value(data->propertyName);
+        value = model->data->dynamicProperties.value(data->propertyName);
     }
 
-    if (data->propertyType == AppendedProperty) {
-        if (data->getter.isValid()) {
-            void *value = data->metaType.create();
-            data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
-            const QVariant var = QVariant::fromMetaType(data->metaType, value);
-            data->metaType.destroy(value);
-            return var;
-        } else {
-            return QVariant();
-        }
+    if (data->propertyType == AppendedProperty && data->getter.isValid()) {
+        void *val = data->metaType.create();
+        data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), val));
+        value = QVariant::fromMetaType(data->metaType, val);
+        data->metaType.destroy(val);
     }
 
-    if (data->propertyType == RelationProperty) {
-        if (data->getter.isValid()) {
-            void *value = data->metaType.create();
-            data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), value));
-            const QVariant var = QVariant::fromMetaType(data->metaType, value);
-            data->metaType.destroy(value);
-            return var;
-        } else {
-            return QVariant();
-        }
+    if (data->propertyType == RelationProperty && data->getter.isValid()) {
+        void *val = data->metaType.create();
+        data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), val));
+        value = QVariant::fromMetaType(data->metaType, val);
+        data->metaType.destroy(val);
     }
 
-    return QVariant();
+    return value;
 }
 
 bool MetaProperty::write(Model *model, const QVariant &value) const
 {
+    QVariant val = value;
+
+    // Force UTC on datetime
+    if (data->metaType == QMetaType::fromType<QDateTime>()) {
+        QDateTime timestamp = val.toDateTime();
+        if (timestamp.timeZone().timeSpec() != Qt::UTC) {
+            timestamp.setTimeZone(QTimeZone::UTC);
+            val = timestamp;
+        }
+    }
+
     if (data->propertyType == StandardProperty) {
-        return data->metaProperty.writeOnGadget(model, value);
+        return data->metaProperty.writeOnGadget(model, val);
     }
 
     if (data->propertyType == DynamicProperty) {
-        model->data->dynamicProperties.insert(data->propertyName, value);
+        model->data->dynamicProperties.insert(data->propertyName, val);
         return true;
     }
 

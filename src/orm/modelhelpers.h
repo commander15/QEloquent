@@ -13,6 +13,19 @@
 #include <QSqlRecord>
 #include <QJsonObject>
 
+#define QELOQUENT_HELPERS(Class) \
+public: \
+    using QEloquent::ModelHelpers<Class>::make; \
+    using QEloquent::ModelHelpers<Class>::find; \
+    using QEloquent::ModelHelpers<Class>::paginate; \
+    using QEloquent::ModelHelpers<Class>::all; \
+    using QEloquent::ModelHelpers<Class>::count; \
+    using QEloquent::ModelHelpers<Class>::create; \
+    using QEloquent::ModelHelpers<Class>::remove; \
+    using QEloquent::ModelHelpers<Class>::query; \
+    using QEloquent::ModelHelpers<Class>::fixQuery; \
+private:
+
 namespace QEloquent {
 
 /**
