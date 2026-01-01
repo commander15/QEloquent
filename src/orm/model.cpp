@@ -168,7 +168,8 @@ bool Model::get()
     if (result) {
         if (result->next()) {
             fill(result->record());
-            return load(data.metaObject.relations());
+            load(data.metaObject.relations());
+            return true;
         } else {
             data.lastError = Error(Error::NotFoundError, "Model not found");
         }
