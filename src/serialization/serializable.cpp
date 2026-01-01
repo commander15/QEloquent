@@ -46,13 +46,14 @@ QJsonValue Serializable::toJsonValue() const
 QByteArray Serializable::toJson(SerializationFormat format) const
 {
     const QList<DataMap> maps = serialize();
-    if (maps.isEmpty()) return QByteArray();
 
     QJsonDocument doc;
     if (isListSerializable())
         doc.setArray(JsonSerializer::serializeMaps(maps));
-    else
+    else if (!maps.isEmpty())
         doc.setObject(JsonSerializer::serializeMap(maps.first()));
+    else
+        doc.setObject(QJsonObject());
 
     switch (format) {
     case SerializationFormat::Compact:

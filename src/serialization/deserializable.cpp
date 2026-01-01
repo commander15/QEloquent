@@ -11,12 +11,12 @@ namespace QEloquent {
 
 void Deserializable::fill(const DataMap &values)
 {
-    deserialize({ values });
+    deserialize({ values }, false);
 }
 
 void Deserializable::fill(const QList<DataMap> &data)
 {
-    deserialize(data);
+    deserialize(data, false);
 }
 
 void Deserializable::fill(const QJsonObject &object)
@@ -39,7 +39,7 @@ void Deserializable::fill(const QJsonArray &array)
         maps.append(map);
     }
 
-    deserialize(maps);
+    deserialize(maps, false);
 }
 
 void Deserializable::fill(const QJsonValue &value)
@@ -130,7 +130,7 @@ void Deserializable::fillCsv(const QByteArray &data, SerializationFormat format,
     QList<DataMap> maps;
     for (int i(startLine); i < lines.size(); ++i)
         maps.append(extractLine(i));
-    deserialize(maps);
+    deserialize(maps, false);
 }
 
 } // namespace QEloquent
@@ -139,6 +139,6 @@ QDataStream &operator>>(QDataStream &in, QEloquent::Deserializable &deserializab
 {
     QList<QEloquent::DataMap> maps;
     in >> maps;
-    deserializable.deserialize(maps);
+    deserializable.deserialize(maps, true);
     return in;
 }

@@ -163,10 +163,11 @@ TEST_F(SimpleModel, DeleteValidInstancesOnDB) {
 
     auto removeResult = SimpleProduct::remove(query);
     ASSERT_TRUE(removeResult) << TEST_STR(removeResult ? "" : removeResult.error().text());
-    ASSERT_EQ(removeResult.value(), 2); // 2 record deleted
+    ASSERT_EQ(removeResult.value(), 2); // 2 records deleted
 
     // Checking
     auto result = connection.exec("SELECT COUNT(id) FROM Products WHERE category_id = 1");
     ASSERT_TRUE(result) << TEST_STR(result ? "" : result.error().text());
-    ASSERT_FALSE(result->next()); // No records remain
+    ASSERT_TRUE(result->next());
+    ASSERT_EQ(result->value(0).toInt(), 0); // No records remain
 }

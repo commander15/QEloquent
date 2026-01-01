@@ -36,7 +36,7 @@ public:
 
     void fill(const QByteArray &data, DataType type, SerializationFormat format);
 
-    virtual void deserialize(const QList<DataMap> &maps, bool all = false) = 0;
+    virtual void deserialize(const QList<DataMap> &maps, bool all) = 0;
 
 private:
     void fillJson(const QByteArray &data);

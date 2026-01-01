@@ -12,7 +12,6 @@ class YamlSerializer
 {
 public:
     static QByteArray serializeMap(const DataMap &map) {
-
         using Pair = QEloquent::DataMap::Pair;
         using DataMap = QEloquent::DataMap;
 
