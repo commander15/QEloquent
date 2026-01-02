@@ -34,7 +34,7 @@ public:
     void fill(const QSqlRecord &record);
     void fill(const QList<QSqlRecord> &records);
 
-    void fill(const QByteArray &data, DataType type, SerializationFormat format);
+    void fill(const QByteArray &data, DataType type, SerializationFormat format = SerializationFormat::Compact);
 
     virtual void deserialize(const QList<DataMap> &maps, bool all) = 0;
 
