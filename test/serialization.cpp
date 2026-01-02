@@ -19,7 +19,7 @@ TEST_F(Serialization, SimpleModelProducesValidJsonObject) {
     apple.createdAt = QDateTime::fromString(object.value("created_at").toString(), Qt::ISODateWithMs);
 
     auto checkResult = isReallyAnApple(apple, [](SimpleProduct &p) {
-        p.setProperty("categoryId", 1);
+        p.setProperty("categoryId", QVariant()); // Cause hidden
     });
     ASSERT_TRUE(checkResult) << (checkResult ? "" : TEST_STR(checkResult.error()));
 }

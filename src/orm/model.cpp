@@ -202,7 +202,11 @@ bool Model::insert()
     if (data.metaObject.hasCreationTimestamp())
         data.metaObject.creationTimestamp().write(this, data.metaObject.connection().now());
 
-    const DataMap values = data.metaObject.readFillableFields(this);
+    const DataMap values = data.metaObject.read(
+        this, MetaProperty::FillableProperty,
+        MetaObject::StandardProperties | MetaObject::DynamicProperties,
+        MetaObject::ResolveByFieldName);
+
     auto result = exec([&values](const Query &query) {
         return QueryBuilder::insertStatement(values, query);
     }, false);

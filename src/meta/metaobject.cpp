@@ -219,7 +219,7 @@ DataMap MetaObject::read(const Model *model,
                          PropertyNameResolution resolution) const
 {
     const QList<MetaProperty> properties = this->properties(attributes, filters);
-    return read(model, properties);
+    return read(model, properties, resolution);
 }
 
 DataMap MetaObject::read(const Model *model, const QList<MetaProperty> &properties, PropertyNameResolution resolution) const

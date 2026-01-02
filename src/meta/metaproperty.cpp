@@ -81,7 +81,7 @@ QVariant MetaProperty::read(const Model *model) const
         value = data->metaProperty.readOnGadget(model);
     }
 
-    if (data->propertyType == DynamicProperty) {
+    if (data->propertyType == DynamicProperty && model->data->dynamicProperties.contains(data->propertyName)) {
         value = model->data->dynamicProperties.value(data->propertyName);
     }
 
@@ -120,7 +120,8 @@ bool MetaProperty::write(Model *model, const QVariant &value) const
     }
 
     if (data->propertyType == DynamicProperty) {
-        model->data->dynamicProperties.insert(data->propertyName, val);
+        DataMap &dynamic = model->data->dynamicProperties;
+        dynamic.insert(data->propertyName, val);
         return true;
     }
 

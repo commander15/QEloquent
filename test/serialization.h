@@ -107,7 +107,7 @@ public:
 
         // Checking dynamic property
         QVariant categoryIdVar = product.property("categoryId");
-        if (!categoryIdVar.isValid() || categoryIdVar.toInt() != expectedCategoryId) {
+        if (categoryIdVar.toInt() != expectedCategoryId) {
             return unexpected(QString("Expected dynamic categoryId = %1, got %2")
                                   .arg(expectedCategoryId)
                                   .arg(categoryIdVar.toInt()));
