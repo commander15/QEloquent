@@ -26,6 +26,7 @@ jobs:
             arch: win64_msvc2019_64
             target: desktop
             cmake-args: 
+            pm: choco
 
           - platform: Linux
             os: ubuntu-latest
@@ -33,6 +34,7 @@ jobs:
             arch: linux_gcc_64
             target: desktop
             cmake-args: 
+            pm: apt
 
     runs-on: ${{matrix.os}}
 
@@ -54,6 +56,9 @@ jobs:
           target: ${{matrix.target}}
           arch: ${{matrix.arch}}
           modules: ${{env.QT_MODULES}}
+
+      - name: Install Doxygen
+        run: ${matrix.pm} install -y doxygen
 
       - name: Configure CMake
         run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
