@@ -86,7 +86,7 @@ jobs:
   release:
     # if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
-    need: build
+    needs: build
     permissions:
       contents: write
 
@@ -108,7 +108,7 @@ jobs:
           make_latest: true
           
   deploy:
-    need: build
+    needs: build
     runs-on: ubuntu-latest
     
     permissions:
@@ -125,7 +125,7 @@ jobs:
         uses: actions/deploy-pages@v4        
           
   notify:
-    need: release
+    needs: release
     runs-on: ubuntu-latest
     
     steps:
