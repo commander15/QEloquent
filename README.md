@@ -318,4 +318,4 @@ preferably in the About dialog or credits screen.
 
 
 
-Made with ♥️ by Amdou Benjamain
+Made with ♥️ by Amadou Benjamain
