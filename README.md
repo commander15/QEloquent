@@ -2,8 +2,6 @@
 
 **QEloquent** is a powerful, flexible, and developer-friendly ORM (Object-Relational Mapping) library for **Qt 6**. Inspired by **Laravel's Eloquent**, it brings a fluent, expressive API to the world of **C++** and **Qt**, making database interactions as simple as possible.
 
-
-
 Built on top of Qt's robust Meta-Object system, QEloquent allows you to define models using standard Qt properties and metadata, offering a "zero-config" experience for most use cases.
 
 ---
@@ -11,12 +9,20 @@ Built on top of Qt's robust Meta-Object system, QEloquent allows you to define m
 ## ✨ Features
 
 - **Eloquent-like API**: Fluent and expressive syntax that feels natural to Laravel and RoR developers.
+
 - **Qt Integration**: Deeply integrated with `Q_GADGET`, `Q_PROPERTY`, and `QSqlDatabase`.
+
 - **Zero-Config Models**: Uses Qt's meta-data (`Q_CLASSINFO`) for table naming and primary key detection.
+
 - **Powerful Relations**: Built-in support for `hasOne`, `belongsTo`, `hasMany` relationships with transparent loading.
+
 - **Friendly API**: Support for range-based for loops and pointer-like access to related models.
+
 - **Fluent Query Builder**: Chainable methods for building complex SQL queries without writing raw SQL.
+
 - **JSON Support**: Seamless conversion to and from `QJsonObject` for modern API integration.
+
+- **Beautiful Debugging**: `qDebug() << model` produces readable, nested YAML parsable output.
 
 ---
 
@@ -62,7 +68,6 @@ void setup() {
 ### 2. Defining your Model
 
 To define a model in QEloquent, inherit from **QEloquent::Model** and **QEloquent::ModelHelpers<YourModel>** (the latter unlocks all the powerful static methods like *find()*, *all()*, *create()*, *etc*.).
-
 
 QEloquent heavily leverages Qt's meta-object system, so most configuration is done via **Q_PROPERTY** and **Q_CLASSINFO**. This gives you a zero-config experience by default, while still offering full control when needed.
 
@@ -174,8 +179,6 @@ This approach keeps your models *clean*, *expressive*, and *highly configurable*
 
 You can create models in many ways, you can for example use the create method provided by the helper so it can persist in DB before providing the model instance.
 
-
-
 **Note**: You can also create the instance by yourself fill the data on it the way you want and call save() on it.
 
 ```cpp
@@ -282,8 +285,6 @@ if (stock.exists()) {
 
 QEloquent use the **Query** class for high and low level data filtering, that is why you can only use database field name on it (no properties there), the *query()* function from ModelHelpers<YourModel> help you create an empty query that contains enough informations to build a request targeting the model database table using QEloquent query builder, usefull for advanced data queries without going fully RAW SQL.
 
-
-
 Below, you will see how we use it to query models based on filters:
 
 ```cpp
@@ -311,7 +312,10 @@ if (results) {
 
 **Note**
 
-If you distribute an application that uses QEloquent under the LGPL,
-you must include a visible acknowledgment such as:
+If you distribute an application that uses QEloquent under the LGPL, you must include a visible acknowledgment such as:
 "This software uses QEloquent - https://github.com/commander15/QEloquent"
 preferably in the About dialog or credits screen.
+
+
+
+Made with ♥️ by Amdou Benjamain
