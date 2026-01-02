@@ -29,12 +29,12 @@ jobs:
             pm: choco
 
           - platform: Linux
-            os: ubuntu-latest
+            os: ubuntu-24.04
             host: linux
             arch: linux_gcc_64
             target: desktop
             cmake-args: 
-            pm: apt
+            pm: sudo apt
 
     runs-on: ${{matrix.os}}
 
