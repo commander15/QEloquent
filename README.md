@@ -305,4 +305,13 @@ if (results) {
 
 ## 📄 License
 
-GPLv3 (GNU General Public License version 3)
+**LGPLv3** (GNU Lesser General Public License version 3)
+
+
+
+**Note**
+
+If you distribute an application that uses QEloquent under the LGPL,
+you must include a visible acknowledgment such as:
+"This software uses QEloquent - https://github.com/commander15/QEloquent"
+preferably in the About dialog or credits screen.
