@@ -1,0 +1,253 @@
+name: CI/CD
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:  # Enables manual trigger from GitHub UI
+
+env:
+  PACKAGE_NAME: QEloquent
+  PACKAGE_VERSION: 1.0.0
+  QT_VERSION: 6.7.3
+  QT_MODULES: 
+  BUILD_DIR: ${{github.workspace}}/build
+  CMAKE_CONIFGURE_ARGS: -DQELOQUENT_BUILD_TESTS=ON -DQELOQUENT_BUILD_DOC=ON
+  PARALLEL: 4
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: Windows
+            os: windows-2022
+            host: windows
+            arch: win64_msvc2019_64
+            cmake-args: 
+
+          - platform: Linux
+            os: ubuntu-latest
+            host: linux
+            arch: linux_gcc_64
+            cmake-args: 
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC (Windows only)
+        if: ${{matrix.host}} == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{env.QT_VERSION}}
+          host: ${{matrix.host}}
+          target: ${{matrix.target}}
+          arch: ${{matrix.arch}}
+          modules: ${{env.QT_MODULES}}
+
+      - name: Configure CMake
+        run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build ${{env.BUILD_DIR}} --target all --parallel ${{env.PARALLEL}}
+        
+        name: Test
+        run: cmake --build ${{env.BUILD_DIR}} --target test
+        
+        name: Package
+        run: cmake --build ${{env.BUILD_DIR}} --target package --parallel ${{env.PARALLEL}}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.platform}}-Build
+          path: |
+            ${{env.BUILD_DIR}}/packages/*.zip
+            ${{env.BUILD_DIR}}/packages/*.tar.gz
+            ${{env.BUILD_DIR}}/packages/*.deb
+            ${{env.BUILD_DIR}}/packages/*.rpm
+            ${{env.BUILD_DIR}}/packages/*.exe
+            
+      - name: Upload documentation files as artifact (Linux only)
+        id: deployment
+        if: ${{matrix.host}} == 'linux'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{env.BUILD_DIR}}/doc/doxygen/html
+
+  release:
+    # if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    need: build
+    permissions:
+      contents: write
+
+    steps:          
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+            pattern: *-Build
+          merge-multiple: true
+
+      - name: Release
+        if: github.event_name != 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        env:
+          PACKAGE_VERSION: ${{steps.package.version}}
+        with:
+          name: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}}
+          body_path: ${{github.workspace}}/notes/RELEASE-${{env.PACKAGE_VERSION}}.md
+          tag_name: v${{env.PACKAGE_VERSION}}
+          files: *.*
+          make_latest: true
+          
+  deploy:
+    need: build
+    runs-on: ubuntu-latest
+    
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4        
+          
+  notify:
+    need: release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send Mails
+        uses: dawidd6/action-send-mail@v3
+        continue-on-error: true
+        with:
+          server_address: ${{secrets.MAIL_SERVER_ADDRESS}}
+          server_port: ${{secrets.MAIL_SERVER_PORT}}
+          username: ${{secrets.MAIL_ADDRESS}}
+          password: ${{secrets.MAIL_PASSWORD}}
+          subject: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}} released !
+          from: ${{secrets.MAIL_AUTHOR}}
+          to: ${{secrets.MAIL_RECEIVERS}}
+          body: "Hello, QEloquent  has just been released, look at the new features !
+
+# QEloquent  Released 🚀
+
+# 🚀 QEloquent v1.0.0 - The Eloquent ORM for Qt6
+
+We are thrilled to announce the first stable release of **QEloquent**, a powerful, developer-friendly ORM for C++ and Qt6, inspired by the elegance of Laravel's Eloquent.
+
+QEloquent bridges the gap between modern C++ efficiency and the productivity of high-level ORMs, providing a fluent interface for database interactions.
+
+---
+
+## 🌟 Key Features
+
+### 💎 Eloquent-Style Models
+Define your data structures using standard Qt properties and metadata. Leverage the power of `Q_GADGET` and `Q_PROPERTY` to create self-documenting, powerful models.
+
+```cpp
+class Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product> {
+    Q_GADGET
+    Q_PROPERTY(int id MEMBER id)
+    Q_PROPERTY(QString name MEMBER name)
+    // ...
+    Q_CLASSINFO("table", "products") // Optional: guessed from class name
+public:
+    Q_INVOKABLE QEloquent::Relation<Category> category() const {
+        return belongsTo<Category>()
+
+
+    }
+}
+
+
+```
+
+### 🔗 Advanced Relationships
+Go beyond simple tables. QEloquent supports a wide array of relationships:
+- ✅ **One-to-One / One-to-Many**: `hasOne`, `hasMany`, `belongsTo`.
+- ✅ **Many-to-Many**: `belongsToMany` with automatic pivot table management.
+- ✅ **Through Relationships**: `hasManyThrough` and the powerful `belongsToManyThrough`.
+
+### 🛠️ Fluent Query Builder
+Stop writing raw SQL. Build queries with a beautiful, chainable API.
+
+```cpp
+auto query = Product::query()
+    .where("price", ">", 100)
+    .orderBy("name")
+    .limit(10)
+
+
+
+auto products = Product::find(query)
+
+
+```
+
+### 🚄 Performance & Eager Loading
+Solve the N+1 problem before it starts. Use `with()` to eager-load relationships in a single go.
+
+```cpp
+auto query = Category::query().with("products.stock")
+
+
+auto categories = Category::find(query)
+
+
+```
+
+---
+
+## 📦 What's New in v1.0.0
+
+- **Initial Stable API**: The core architecture is now solidified for production use.
+- **Join Support**: Native `JOIN` operations within the Query builder.
+- **Naming Conventions**: Fully customizable naming strategies (snake_case, camelCase, etc.).
+- **Automatic Metadata**: Smart detection of table names and foreign keys based on conventions.
+- **Comprehensive Test Suite**: 100% pass rate on integration tests covering all relationship types.
+
+---
+
+## 🚀 Getting Started
+
+Simply include QEloquent in your CMake project:
+
+```cmake
+find_package(QEloquent REQUIRED)
+target_link_libraries(your_app PRIVATE QEloquent::QEloquent)
+```
+
+Configure your connection:
+
+```cpp
+Connection::addConnection("default", "QSQLITE", "database.sqlite")
+
+
+```
+
+---
+
+## 🤝 Contributing
+We're just getting started! Feel free to open issues or pull requests on [GitHub](https://github.com/commander15/QEloquent).
+
+---
+
+*Made with ❤️ by the Amadou Benjamain.*
+
+
+Download and try: https://github.com/commander15/QEloquent/releases/latest"

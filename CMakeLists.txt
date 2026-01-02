@@ -48,9 +48,9 @@ FetchContent_MakeAvailable(Expected)
 add_subdirectory(src)
 
 if (QELOQUENT_BUILD_TESTS AND Qt6Test_FOUND)
-    enable_testing()
     set(ENV{CTEST_OUTPUT_ON_FAILURE} ON)
-    add_subdirectory(test)
+    enable_testing()
+    add_subdirectory(tests)
 endif()
 
 if (QELOQUENT_BUILD_DOC)
@@ -60,3 +60,34 @@ endif()
 if (QELOQUENT_BUILD_EXAMPLES AND Qt6Widgets_FOUND)
     add_subdirectory(examples/store)
 endif()
+
+# CI/CD workflow
+
+set(CMAKE_CONFIG_ARGS
+    -DQELOQUENT_BUILD_TESTS=ON
+    -DQELOQUENT_BUILD_DOC=ON
+)
+string(JOIN " " CMAKE_CONFIG_ARGS ${CMAKE_CONFIG_ARGS})
+
+set(QT_VERSION 6.7.3)
+
+file(READ notes/RELEASE-${PROJECT_VERSION}.md RELEASE_NOTE)
+
+set(MAIL_BODY
+    "Hello, QEloquent ${PACKAGE_VERSION} has just been released, look at the new features !"
+    "# QEloquent ${PACKAGE_VERSION} Released 🚀"
+    "${RELEASE_NOTE}\n\nDownload and try: https://github.com/commander15/QEloquent/releases/latest"
+)
+string(JOIN "\n\n" MAIL_BODY ${MAIL_BODY})
+
+configure_file(.github/workflows/ci-cd.yml.in ${CMAKE_CURRENT_SOURCE_DIR}/.github/workflows/ci-cd.yml @ONLY)
+
+# Packaging
+set(CPACK_PACKAGE_NAME QEloquent)
+set(CPACK_PACKAGE_VENDOR Amadou Benjamain)
+set(CPACK_PACKAGE_DIRECTORY packages)
+set(CPACK_GENERATOR ZIP)
+if (LINUX)
+    list(APPEND CPACK_GENERATOR TGZ)
+endif()
+include(CPack)

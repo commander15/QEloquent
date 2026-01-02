@@ -8,6 +8,7 @@ if(DOXYGEN_FOUND)
 
     add_custom_target(doc
         COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        COMMAND ${CMAKE_COMMAND} -c
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen"
         SOURCES
@@ -20,3 +21,5 @@ if(DOXYGEN_FOUND)
 else()
     message(STATUS "Doxygen not found, 'doc' target will not be available")
 endif()
+
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doxygen DESTINATION doc/QEloquent)

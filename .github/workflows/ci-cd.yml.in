@@ -1,0 +1,145 @@
+name: CI/CD
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:  # Enables manual trigger from GitHub UI
+
+env:
+  PACKAGE_NAME: @PROJECT_NAME@
+  PACKAGE_VERSION: @PROJECT_VERSION@
+  QT_VERSION: @QT_VERSION@
+  QT_MODULES: @QT_MODULES@
+  BUILD_DIR: ${{github.workspace}}/build
+  CMAKE_CONIFGURE_ARGS: @CMAKE_CONFIG_ARGS@
+  PARALLEL: 4
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: Windows
+            os: windows-2022
+            host: windows
+            arch: win64_msvc2019_64
+            cmake-args: @CMAKE_CONFIG_WINDOWS_ARGS@
+
+          - platform: Linux
+            os: ubuntu-latest
+            host: linux
+            arch: linux_gcc_64
+            cmake-args: @CMAKE_CONFIG_LINUX_ARGS@
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC (Windows only)
+        if: ${{matrix.host}} == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{env.QT_VERSION}}
+          host: ${{matrix.host}}
+          target: ${{matrix.target}}
+          arch: ${{matrix.arch}}
+          modules: ${{env.QT_MODULES}}
+
+      - name: Configure CMake
+        run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build ${{env.BUILD_DIR}} --target all --parallel ${{env.PARALLEL}}
+        
+        name: Test
+        run: cmake --build ${{env.BUILD_DIR}} --target test
+        
+        name: Package
+        run: cmake --build ${{env.BUILD_DIR}} --target package --parallel ${{env.PARALLEL}}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.platform}}-Build
+          path: |
+            ${{env.BUILD_DIR}}/packages/*.zip
+            ${{env.BUILD_DIR}}/packages/*.tar.gz
+            ${{env.BUILD_DIR}}/packages/*.deb
+            ${{env.BUILD_DIR}}/packages/*.rpm
+            ${{env.BUILD_DIR}}/packages/*.exe
+            
+      - name: Upload documentation files as artifact (Linux only)
+        id: deployment
+        if: ${{matrix.host}} == 'linux'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{env.BUILD_DIR}}/doc/doxygen/html
+
+  release:
+    # if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    need: build
+    permissions:
+      contents: write
+
+    steps:          
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+            pattern: *-Build
+          merge-multiple: true
+
+      - name: Release
+        if: github.event_name != 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        env:
+          PACKAGE_VERSION: ${{steps.package.version}}
+        with:
+          name: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}}
+          body_path: ${{github.workspace}}/notes/RELEASE-${{env.PACKAGE_VERSION}}.md
+          tag_name: v${{env.PACKAGE_VERSION}}
+          files: *.*
+          make_latest: true
+          
+  deploy:
+    need: build
+    runs-on: ubuntu-latest
+    
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4        
+          
+  notify:
+    need: release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send Mails
+        uses: dawidd6/action-send-mail@v3
+        continue-on-error: true
+        with:
+          server_address: ${{secrets.MAIL_SERVER_ADDRESS}}
+          server_port: ${{secrets.MAIL_SERVER_PORT}}
+          username: ${{secrets.MAIL_ADDRESS}}
+          password: ${{secrets.MAIL_PASSWORD}}
+          subject: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}} released !
+          from: ${{secrets.MAIL_AUTHOR}}
+          to: ${{secrets.MAIL_RECEIVERS}}
+          body: "@MAIL_BODY@"
