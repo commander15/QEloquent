@@ -66,7 +66,10 @@ TEST_F(MetaData, ValidSimpleModelProducesValidMetaObject) {
     ASSERT_EQ(properties(MetaProperty::NoAttibutes, MetaObject::AppendedProperties), "since");
 
     // Fillable
-    ASSERT_EQ(properties(MetaProperty::FillableProperty), "name, description, price, barcode, categoryId") << "fillables retrieve failed";
+    ASSERT_EQ(properties(
+                  MetaProperty::FillableProperty,
+                  MetaObject::StandardProperties | MetaObject::DynamicProperties),
+              "name, description, price, barcode, categoryId") << "fillables retrieve failed";
 
     // Hidden
     ASSERT_EQ(properties(MetaProperty::HiddenProperty), "categoryId") << "hidden resolving failed";
@@ -129,7 +132,7 @@ TEST_F(MetaData, ValidComplexModelProducesValidMetaObject) {
     };
 
     // Append
-    ASSERT_EQ(properties(MetaProperty::NoAttibutes, MetaObject::AppendedProperties), "since");
+    ASSERT_EQ(properties(MetaProperty::NoAttibutes, MetaObject::AppendedProperties), "fullDescription, priced");
 
     // Fillable
     ASSERT_EQ(properties(MetaProperty::FillableProperty), "name, description, price, barcode, categoryId") << "fillables retrieve failed";

@@ -11,7 +11,9 @@ qt_add_executable(QEloquentTest
     models/complexmodels.h models/complexmodels.cpp
     metadata.h metadata.cpp
     querygenerator.h querygenerator.cpp
+    serialization.h serialization.cpp
     simplemodel.h simplemodel.cpp
+    complexmodel.h complexmodel.cpp
 )
 
 target_include_directories(QEloquentTest PRIVATE . core models)

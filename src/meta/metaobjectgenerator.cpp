@@ -162,7 +162,7 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
         }
 
         const QByteArray typeName(method.returnMetaType().name());
-        if (typeName.startsWith("QEloquent::Relation<") || typeName.contains("Relation<")) {
+        if (typeName.startsWith("QEloquent::Relation<") || typeName.startsWith("Relation<")) {
             MetaPropertyData *property = new MetaPropertyData();
             property->propertyName = method.name();
             property->propertyType = MetaProperty::RelationProperty;

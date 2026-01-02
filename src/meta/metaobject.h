@@ -73,6 +73,11 @@ public:
                  MetaProperty::PropertyAttributes attributes,
                 PropertyFilters filters = AllProperties,
                 PropertyNameResolution resolution = ResolveByPropertyName) const;
+
+    DataMap read(const Model *model,
+                 const QList<MetaProperty> &properties,
+                 PropertyNameResolution resolution = ResolveByPropertyName) const;
+
     int write(Model *model,
               const DataMap &data,
               PropertyNameResolution resolution = ResolveByPropertyName) const;

@@ -122,16 +122,28 @@ QVariant Model::label() const
 QVariant Model::field(const QString &name) const
 {
     MODEL_DATA(const Model);
+
+    // First we check if it's known
     const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByFieldName);
-    return (property.isValid() ? property.read(this) : QVariant());
+    if (property.isValid()) return property.read(this);
+
+    // Fallback to dynamic properties
+    const QString prop = data.metaObject.namingConvention()->propertyName(name, data.metaObject.tableName());
+    return data.dynamicProperties.value(prop);
 }
 
 void Model::setField(const QString &name, const QVariant &value)
 {
     MODEL_DATA(Model);
     const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByFieldName);
-    if (property.isValid())
+    if (property.isValid()) {
         property.write(this, value);
+        return;
+    }
+
+    // Fallback to dynamic properties
+    const QString prop = data.metaObject.namingConvention()->propertyName(name, data.metaObject.tableName());
+    data.dynamicProperties.insert(prop, value);
 }
 
 /*!
@@ -327,13 +339,17 @@ bool Model::isListSerializable() const
 
 QList<DataMap> Model::serialize() const
 {
-    const DataMap map = data->metaObject.read(this,
+    QList<MetaProperty> properties = data->metaObject.properties(
         MetaProperty::PrimaryProperty | MetaProperty::LabelProperty | MetaProperty::FillableProperty |
         MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
-        MetaObject::AllProperties, MetaObject::ResolveByFieldName
-    );
+        MetaObject::AllProperties);
 
-    return { map };
+    // We remove hidden properties
+    properties.removeIf([](const MetaProperty &property) {
+        return property.hasAttribute(MetaProperty::HiddenProperty);
+    });
+
+    return { data->metaObject.read(this, properties, MetaObject::ResolveByFieldName) };
 }
 
 void Model::deserialize(const QList<DataMap> &data, bool all)

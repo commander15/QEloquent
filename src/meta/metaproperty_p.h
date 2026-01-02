@@ -22,11 +22,17 @@ public:
     QMetaMethod getter;
     QMetaMethod setter;
 
-    bool isReadable() const
-    { return (metaProperty.isValid() && metaProperty.isReadable()) || getter.isValid(); }
+    bool isReadable() const {
+        if (propertyType == MetaProperty::DynamicProperty) return true;
+        return (metaProperty.isValid() && metaProperty.isReadable())
+               || getter.isValid();
+    }
 
-    bool isWritable() const
-    { return (metaProperty.isValid() && metaProperty.isWritable()) || setter.isValid() || propertyType == MetaProperty::RelationProperty; }
+    bool isWritable() const {
+        if (propertyType == MetaProperty::DynamicProperty) return true;
+        return (metaProperty.isValid() && metaProperty.isWritable())
+               || setter.isValid();
+    }
 };
 
 }

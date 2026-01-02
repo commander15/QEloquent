@@ -7,7 +7,7 @@ namespace QEloquent {
 QString Dictionary::singular(const QString &word)
 {
     if (word.endsWith("ies"))
-        return word.left(word.size() - 3);
+        return word.left(word.size() - 3) + 'y';
 
     if (word.endsWith("s"))
         return word.left(word.size() - 1);
@@ -17,6 +17,9 @@ QString Dictionary::singular(const QString &word)
 
 QString Dictionary::plural(const QString &word)
 {
+    if (word.endsWith("y"))
+        return word.left(word.size() - 1) + "ies";
+
     return word + "s";
 }
 
