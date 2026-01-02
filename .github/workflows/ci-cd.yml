@@ -58,7 +58,7 @@ jobs:
           modules: ${{env.QT_MODULES}}
 
       - name: Install Doxygen
-        run: ${matrix.pm} install -y doxygen
+        run: ${{matrix.pm}} install -y doxygen
 
       - name: Configure CMake
         run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
