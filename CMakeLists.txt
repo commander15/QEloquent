@@ -22,9 +22,6 @@ include(cmake/Utils.cmake)
 
 # Finding Qt
 set(REQUIRED_MODULES Core Sql)
-if (QELOQUENT_BUILD_TESTS)
-    set(OPTIONAL_MODULES Test)
-endif()
 if (QELOQUENT_BUILD_EXAMPLES)
     list(APPEND OPTIONAL_MODULES Widgets)
 endif()
@@ -47,7 +44,7 @@ FetchContent_MakeAvailable(Expected)
 
 add_subdirectory(src)
 
-if (QELOQUENT_BUILD_TESTS AND Qt6Test_FOUND)
+if (QELOQUENT_BUILD_TESTS)
     set(ENV{CTEST_OUTPUT_ON_FAILURE} ON)
     enable_testing()
     add_subdirectory(tests)

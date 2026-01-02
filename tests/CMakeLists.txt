@@ -18,7 +18,7 @@ qt_add_executable(QEloquentTest
 
 target_include_directories(QEloquentTest PRIVATE . core models)
 
-target_link_libraries(QEloquentTest PRIVATE GTest::gtest QEloquent Qt::Test)
+target_link_libraries(QEloquentTest PRIVATE GTest::gtest QEloquent)
 
 target_compile_definitions(QEloquentTest
     PRIVATE
