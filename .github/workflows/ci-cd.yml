@@ -24,12 +24,14 @@ jobs:
             os: windows-2022
             host: windows
             arch: win64_msvc2019_64
+            target: desktop
             cmake-args: 
 
           - platform: Linux
             os: ubuntu-latest
             host: linux
             arch: linux_gcc_64
+            target: desktop
             cmake-args: 
 
     runs-on: ${{matrix.os}}
