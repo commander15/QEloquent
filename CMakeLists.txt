@@ -78,7 +78,9 @@ set(MAIL_BODY
     "# QEloquent ${PACKAGE_VERSION} Released 🚀"
     "${RELEASE_NOTE}\n\nDownload and try: https://github.com/commander15/QEloquent/releases/latest"
 )
-string(JOIN "\n\n" MAIL_BODY ${MAIL_BODY})
+string(JOIN "\\n\\n" MAIL_BODY ${MAIL_BODY})
+string(REPLACE "\"" "\\\"" MAIL_BODY ${MAIL_BODY})
+string(REPLACE "\n" "\\n" MAIL_BODY ${MAIL_BODY})
 
 configure_file(.github/workflows/ci-cd.yml.in ${CMAKE_CURRENT_SOURCE_DIR}/.github/workflows/ci-cd.yml @ONLY)
 
