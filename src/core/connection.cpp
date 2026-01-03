@@ -168,7 +168,7 @@ Result<QSqlQuery, QSqlError> Connection::exec(const QString &query, bool cache) 
     if (q.exec(query))
         return q;
     else
-        return fail(q.lastError());
+        return failWith(q.lastError());
 }
 
 /*!

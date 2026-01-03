@@ -72,20 +72,24 @@ void MyTest::TearDown()
         QFile::remove(TEST_DB_NAME);
 }
 
-QEloquent::Result<bool, QSqlError> MyTest::migrateAndSeed()
+Result<int, QSqlError> MyTest::migrate()
+{ return exec(QStringLiteral(TEST_DATA_DIR) + "/store/structure.sql"); }
+
+Result<int, QSqlError> MyTest::seed()
+{ return exec(QStringLiteral(TEST_DATA_DIR) + "/store/content.sql"); }
+
+QEloquent::Result<int, QSqlError> MyTest::migrateAndSeed()
 {
     auto migration = this->migrate();
     if (!migration.has_value()) return migration;
-    else return this->seed();
+
+    auto seeding = this->seed();
+    if (!seeding.has_value()) return seeding;
+
+    return migration.value() + seeding.value();
 }
 
-Result<bool, QSqlError> MyTest::migrate()
-{ return exec(QStringLiteral(TEST_DATA_DIR) + "/store/structure.sql"); }
-
-Result<bool, QSqlError> MyTest::seed()
-{ return exec(QStringLiteral(TEST_DATA_DIR) + "/store/content.sql"); }
-
-Result<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
+Result<int, QSqlError> MyTest::exec(const QString &sqlFileName)
 {
     const QByteArray fileContent = readFile(sqlFileName);
     const QStringList statements = QEloquent::QueryBuilder::statementsFromScriptContent(fileContent);
@@ -95,7 +99,7 @@ Result<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
         if (!result) {
             lastErrorText = result.error().text().toStdString();
             // We use fully qualified name here to avoid conflicts if <eh.h> is included (Windows)
-            return QEloquent::fail(result.error());
+            return failWith(result.error());
         }
     }
 

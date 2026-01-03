@@ -99,7 +99,7 @@ Result<QSqlQuery, QSqlError> QueryRunner::exec(const QString &statement, const C
     if (query.exec(statement))
         return query;
     else
-        return fail(query.lastError());
+        return failWith(query.lastError());
 }
 
 } // namespace QEloquent

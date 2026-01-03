@@ -123,7 +123,7 @@ inline Result<Model, Error> ModelHelpers<Model, Maker>::find(const QVariant &pri
         const QList<Model> models = result.value();
         return (models.isEmpty() ? Maker::make() : models.first());
     } else {
-        return fail(result.error());
+        return failWith(result.error());
     }
 }
 
@@ -146,12 +146,12 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
             if (m.load(relations))
                 models.append(m);
             else
-                return fail(m.lastError());
+                return failWith(m.lastError());
         }
 
         return models;
     } else {
-        return fail(Error::fromSqlError(result.error()));
+        return failWith(Error::fromSqlError(result.error()));
     }
 }
 
@@ -176,7 +176,7 @@ inline Result<int, Error> ModelHelpers<Model, Maker>::count(Query query)
     if (result)
         return (result->next() ? result->value(0).toInt() : 0);
     else
-        return fail(Error::fromSqlError(result.error()));
+        return failWith(Error::fromSqlError(result.error()));
 }
 
 template<typename Model, typename Maker>
@@ -187,7 +187,7 @@ inline Result<Model, Error> ModelHelpers<Model, Maker>::create(const QJsonObject
     if (model.save())
         return model;
     else
-        return fail(model.lastError());
+        return failWith(model.lastError());
 }
 
 template<typename Model, typename Maker>
@@ -200,7 +200,7 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::create(const QLis
         if (result)
             models.append(result.value());
         else
-            return fail(result.error());
+            return failWith(result.error());
     }
 
     return models;
@@ -215,7 +215,7 @@ inline Result<int, Error> ModelHelpers<Model, Maker>::remove(Query query)
     if (result)
         return result->numRowsAffected();
     else
-        return fail(Error(Error::DatabaseError, QString(), result.error()));
+        return failWith(Error(Error::DatabaseError, QString(), result.error()));
 }
 
 template<typename Model, typename Maker>

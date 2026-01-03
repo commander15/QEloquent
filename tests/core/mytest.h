@@ -35,10 +35,10 @@ protected:
     void SetUp() override;
     void TearDown() override;
 
-    QEloquent::Result<bool, QSqlError> migrate();
-    QEloquent::Result<bool, QSqlError> seed();
-    QEloquent::Result<bool, QSqlError> migrateAndSeed();
-    QEloquent::Result<bool, QSqlError> exec(const QString &sqlFileName);
+    QEloquent::Result<int, QSqlError> migrate();
+    QEloquent::Result<int, QSqlError> seed();
+    QEloquent::Result<int, QSqlError> migrateAndSeed();
+    QEloquent::Result<int, QSqlError> exec(const QString &sqlFileName);
 
     std::string lastErrorText;
     QEloquent::Connection connection;
