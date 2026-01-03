@@ -92,7 +92,7 @@ jobs:
 
   release:
     # if: github.event_name != 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     permissions:
       contents: write
@@ -116,7 +116,7 @@ jobs:
           
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     permissions:
       pages: write      # to deploy to Pages
@@ -133,7 +133,7 @@ jobs:
           
   notify:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
       - name: Send Mails
