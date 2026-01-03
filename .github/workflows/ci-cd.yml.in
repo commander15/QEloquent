@@ -100,20 +100,27 @@ jobs:
     permissions:
       contents: write
 
-    steps:          
-      - name: Download Artifacts
+    env:
+      RELEASE_NOTE_FILE: RELEASE-${{ env.PACKAGE_VERSION }}.md
+
+    steps:
+      - name: Download release note
+        run: curl https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/main/notes/${{ env.RELEASE_NOTE_FILE }}
+
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: "${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}-*"
+          path: "binaries"
           merge-multiple: true
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }}
-          body_path: ${{ github.workspace }}/notes/RELEASE-${{ env.PACKAGE_VERSION }}.md
+          body_path: ${{ github.workspace }}/${{ env.RELEASE_NOTE_FILE }}
           tag_name: v${{ env.PACKAGE_VERSION }}
-          files: "*.*"
+          files: "binaries/*.*"
           make_latest: true
           
   deploy:
@@ -139,7 +146,7 @@ jobs:
     runs-on: ubuntu-24.04
     
     steps:
-      - name: Send Mails
+      - name: Send mails
         uses: dawidd6/action-send-mail@v3
         continue-on-error: true
         with:
@@ -150,4 +157,4 @@ jobs:
           subject: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} released !
           from: ${{ secrets.MAIL_AUTHOR }}
           to: ${{ secrets.MAIL_RECEIVERS }}
-          body: "@MAIL_BODY@"
+          body: "Hello, ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n@MAIL_TEXT@\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"

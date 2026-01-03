@@ -4,6 +4,7 @@ project(
     QEloquent
     VERSION 1.0.0
     DESCRIPTION "Qt most flexible ORM."
+    HOMEPAGE_URL "commander15.github.io/QEloquent"
     LANGUAGES CXX C
 )
 
@@ -18,6 +19,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Default install dir
+if (LINUX)
+    set(CMAKE_INSTALL_PREFIX "/opt/QEloquent/${PROJECT_VERSION}/gcc_64")
+endif()
 
 # C++ 20
 set(CMAKE_CXX_STANDARD 20)
@@ -66,21 +72,16 @@ endif()
 set(CMAKE_CONFIG_ARGS
     -DQELOQUENT_BUILD_TESTS=ON
     -DQELOQUENT_BUILD_DOC=ON
+    -DBUILD_SHARED_LIBS=ON
 )
 string(JOIN " " CMAKE_CONFIG_ARGS ${CMAKE_CONFIG_ARGS})
 
 set(QT_VERSION 6.2.0)
 
-file(READ notes/RELEASE-${PROJECT_VERSION}.md RELEASE_NOTE)
-
-set(MAIL_BODY
-    "Hello, QEloquent ${PACKAGE_VERSION} has just been released, look at the new features !"
-    "# QEloquent ${PACKAGE_VERSION} Released 🚀"
-    "${RELEASE_NOTE}\n\nDownload and try: https://github.com/commander15/QEloquent/releases/latest"
-)
-string(JOIN "\\n\\n" MAIL_BODY ${MAIL_BODY})
-string(REPLACE "\"" "\\\"" MAIL_BODY ${MAIL_BODY})
-string(REPLACE "\n" "\\n" MAIL_BODY ${MAIL_BODY})
+file(READ notes/RELEASE-${PROJECT_VERSION}.md MAIL_TEXT)
+string(JOIN "\\n\\n" MAIL_TEXT ${MAIL_TEXT})
+string(REPLACE "\"" "\\\"" MAIL_TEXT ${MAIL_TEXT})
+string(REPLACE "\n" "\\n" MAIL_TEXT ${MAIL_TEXT})
 
 configure_file(.github/workflows/ci-cd.yml.in ${CMAKE_CURRENT_SOURCE_DIR}/.github/workflows/ci-cd.yml @ONLY)
 
