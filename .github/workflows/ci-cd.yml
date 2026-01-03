@@ -27,6 +27,7 @@ jobs:
             target: desktop
             cmake-args: 
             pm: choco
+            dependencies: doxygen.install
 
           - platform: Linux
             os: ubuntu-24.04
@@ -35,6 +36,7 @@ jobs:
             target: desktop
             cmake-args: 
             pm: sudo apt
+            dependencies: doxygen
 
     runs-on: ${{matrix.os}}
 
@@ -57,8 +59,8 @@ jobs:
           arch: ${{matrix.arch}}
           modules: ${{env.QT_MODULES}}
 
-      - name: Install Doxygen
-        run: ${{matrix.pm}} install -y doxygen
+      - name: Install dependencies (PM)
+        run: ${{matrix.pm}} install -y ${{matrix.dependencies}}
 
       - name: Configure CMake
         run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
