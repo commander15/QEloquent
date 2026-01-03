@@ -18,7 +18,7 @@ using Result = tl::expected<Value, Error>;
  * @tparam Error The error type.
  */
 template<typename Error>
-using unexpected = tl::unexpected<Error>;
+using fail = tl::unexpected<Error>;
 
 } // namespace QEloquent
 
