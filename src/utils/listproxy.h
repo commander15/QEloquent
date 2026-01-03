@@ -26,9 +26,9 @@ public:
     /** @brief Returns a const iterator to the end */
     const_iterator end() const { return constList()->end(); }
     /** @brief Returns a const iterator to the beginning */
-    const_iterator cbegin() const { constList()->cbegin(); }
+    const_iterator cbegin() const { return constList()->cbegin(); }
     /** @brief Returns a const iterator to the end */
-    const_iterator cend() const { constList()->cend(); }
+    const_iterator cend() const { return constList()->cend(); }
 
     /** @brief Returns the number of related Ts */
     int count() const { return constList()->count(); }
