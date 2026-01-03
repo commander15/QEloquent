@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup MSVC (Windows only)
-        if: ${{matrix.host}} == 'windows'
+        if: matrix.host == 'windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
@@ -87,9 +87,8 @@ jobs:
             ${{env.BUILD_DIR}}/packages/*.rpm
             ${{env.BUILD_DIR}}/packages/*.exe
             
-      - name: Upload documentation files as artifact (Linux only)
-        id: deployment
-        if: ${{matrix.host}} == 'linux'
+      - name: Upload documentation files (Linux only)
+        if: matrix.platform == 'Linux'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{env.BUILD_DIR}}/doc/doxygen/html
@@ -119,6 +118,7 @@ jobs:
           make_latest: true
           
   deploy:
+  # if: github.event_name != 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-24.04
     
