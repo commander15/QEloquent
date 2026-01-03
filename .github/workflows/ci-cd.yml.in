@@ -32,7 +32,7 @@ jobs:
           - platform: Linux
             os: ubuntu-24.04
             host: linux
-            arch: linux_gcc_64
+            arch: gcc_64
             target: desktop
             cmake-args: @CMAKE_CONFIG_LINUX_ARGS@
             pm: sudo apt
