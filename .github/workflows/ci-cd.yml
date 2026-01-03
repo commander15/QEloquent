@@ -100,12 +100,9 @@ jobs:
     permissions:
       contents: write
 
-    env:
-      RELEASE_NOTE_FILE: RELEASE-${{ env.PACKAGE_VERSION }}.md
-
     steps:
       - name: Download release note
-        run: curl https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/main/notes/${{ env.RELEASE_NOTE_FILE }}
+        run: curl https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/main/notes/RELEASE-${{ env.PACKAGE_VERSION }}.md
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -118,7 +115,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }}
-          body_path: ${{ github.workspace }}/${{ env.RELEASE_NOTE_FILE }}
+          body_path: ${{ github.workspace }}/RELEASE-${{ env.PACKAGE_VERSION }}.md
           tag_name: v${{ env.PACKAGE_VERSION }}
           files: "binaries/*.*"
           make_latest: true
