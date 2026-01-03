@@ -10,7 +10,7 @@ namespace QEloquent {
 class Connection;
 
 class ModelQueryData;
-class Query
+class QELOQUENT_EXPORT Query
 {
 public:
     Query();

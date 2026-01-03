@@ -18,9 +18,9 @@ namespace QEloquent {
 class Query;
 class Error;
 
-class RelationData : public QSharedData,
-                     public Entity,
-                     public Serializable
+class QELOQUENT_EXPORT RelationData : public QSharedData,
+                                      public Entity,
+                                      public Serializable
 {
 public:
     RelationData();

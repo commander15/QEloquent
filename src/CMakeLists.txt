@@ -1,3 +1,5 @@
+set(BUILD_SHARED_LIBS 1)
+
 qt_add_library(QEloquent)
 
 add_subdirectory(core)
@@ -8,16 +10,24 @@ add_subdirectory(meta)
 add_subdirectory(orm)
 # add_subdirectory(migration)
 
+set_target_properties(QEloquent
+    PROPERTIES
+        VERSION ${PROJECT_VERSION}
+)
+
 target_compile_definitions(QEloquent
     PUBLIC
-        QLOQUENT_LIB
+        QELOQUENT_LIB QELOQUENT_$<IF:${BUILD_SHARED_LIBS},SHARED,STATIC>
     PRIVATE
-        QLOQUENT_BUILD
+        QELOQUENT_BUILD
 )
 
 target_link_libraries(QEloquent PUBLIC Qt::Sql PUBLIC expected)
 
-target_include_directories(QEloquent PUBLIC $<INSTALL_INTERFACE:include/Qloquent>)
+target_include_directories(QEloquent
+    PUBLIC
+        $<INSTALL_INTERFACE:include/QEloquent>
+)
 
 install(TARGETS QEloquent EXPORT QEloquentExport
     ARCHIVE DESTINATION        ${CMAKE_INSTALL_LIBDIR}
