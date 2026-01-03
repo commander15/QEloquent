@@ -28,6 +28,8 @@ endif()
 find_package(Qt6 REQUIRED COMPONENTS ${REQUIRED_MODULES} OPTIONAL_COMPONENTS ${OPTIONAL_MODULES})
 
 # Findind expected
+set(EXPECTED_BUILD_PACKAGE OFF)
+set(EXPECTED_BUILD_TESTS   OFF)
 include(FetchContent)
 
 FetchContent_Declare(

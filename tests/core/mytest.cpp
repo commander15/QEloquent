@@ -94,7 +94,8 @@ Result<bool, QSqlError> MyTest::exec(const QString &sqlFileName)
         auto result = QEloquent::QueryRunner::exec(statement, connection);
         if (!result) {
             lastErrorText = result.error().text().toStdString();
-            return unexpected(result.error());
+            // We use fully qualified name here to avoid conflicts if <eh.h> is included (Windows)
+            return QEloquent::unexpected(result.error());
         }
     }
 
