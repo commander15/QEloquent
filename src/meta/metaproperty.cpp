@@ -88,14 +88,14 @@ QVariant MetaProperty::read(const Model *model) const
     if (data->propertyType == AppendedProperty && data->getter.isValid()) {
         void *val = data->metaType.create();
         data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), val));
-        value = QVariant::fromMetaType(data->metaType, val);
+        value = QVariant(data->metaType, val);
         data->metaType.destroy(val);
     }
 
     if (data->propertyType == RelationProperty && data->getter.isValid()) {
         void *val = data->metaType.create();
         data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), val));
-        value = QVariant::fromMetaType(data->metaType, val);
+        value = QVariant(data->metaType, val);
         data->metaType.destroy(val);
     }
 
@@ -109,8 +109,8 @@ bool MetaProperty::write(Model *model, const QVariant &value) const
     // Force UTC on datetime
     if (data->metaType == QMetaType::fromType<QDateTime>()) {
         QDateTime timestamp = val.toDateTime();
-        if (timestamp.timeZone().timeSpec() != Qt::UTC) {
-            timestamp.setTimeZone(QTimeZone::UTC);
+        if (timestamp.timeZone() != QTimeZone::utc()) {
+            timestamp.setTimeZone(QTimeZone::utc());
             val = timestamp;
         }
     }

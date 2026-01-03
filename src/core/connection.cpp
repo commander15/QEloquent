@@ -151,7 +151,7 @@ QDateTime Connection::now() const
     auto result = exec(statement, false);
     if (result && result->next()) {
         QDateTime now = result->value(0).toDateTime();
-        now.setTimeZone(QTimeZone::UTC);
+        now.setTimeZone(QTimeZone::utc());
         return now;
     }
 
@@ -250,7 +250,7 @@ Connection Connection::addConnection(const QString &name, const QUrl &url)
     // When using SQLite in memory db, the '/' on path is not needed (Linux only)
     // Also, for the others, it's even unwanted (since not file path based)
     if ((driver == "QSQLITE" && path.startsWith("/:")) || driver != "QSQLITE")
-        path.removeFirst();
+        path.remove(0, 1);
     db.setDatabaseName(path);
 
     // Host name from url host

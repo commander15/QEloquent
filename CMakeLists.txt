@@ -27,8 +27,6 @@ if (QELOQUENT_BUILD_EXAMPLES)
 endif()
 find_package(Qt6 REQUIRED COMPONENTS ${REQUIRED_MODULES} OPTIONAL_COMPONENTS ${OPTIONAL_MODULES})
 
-qt_standard_project_setup()
-
 # Findind expected
 include(FetchContent)
 
@@ -66,7 +64,7 @@ set(CMAKE_CONFIG_ARGS
 )
 string(JOIN " " CMAKE_CONFIG_ARGS ${CMAKE_CONFIG_ARGS})
 
-set(QT_VERSION 6.7.3)
+set(QT_VERSION 6.2.0)
 
 file(READ notes/RELEASE-${PROJECT_VERSION}.md RELEASE_NOTE)
 

@@ -229,7 +229,7 @@ QStringList QueryBuilder::statementsFromScriptContent(const QByteArray &content)
 
         // If delimiter found, we complete the current statement and move to the next
         if (line.endsWith(delimiter)) {
-            statement.removeLast(); // We remove delimiter
+            statement.remove(statement.size() - 1, 1); // We remove delimiter
             statements.append(statement);
             statement.clear();
         }

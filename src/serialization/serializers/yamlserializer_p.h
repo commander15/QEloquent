@@ -95,7 +95,7 @@ private:
                         } else {
                             QStringList itemLines = itemStr.split('\n');
                             // First line gets "-"
-                            lines << indent + "  -" + itemLines.takeFirst().removeFirst();
+                            lines << indent + "  -" + itemLines.takeFirst().remove(0, 1);
                             // Subsequent lines get extra indentation
                             for (const QString& line : std::as_const(itemLines)) {
                                 if (!line.isEmpty()) {

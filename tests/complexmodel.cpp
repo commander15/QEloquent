@@ -182,20 +182,4 @@ TEST_F(ComplexModel, FriendlyApiWorks) {
         ASSERT_FALSE(p.name.isEmpty());
     }
     ASSERT_EQ(count, 2);
-
-    //return;
-    auto result = Category::find(QEloquent::Query().with("products").with("saleItems"));
-    if (result) {
-        QJsonArray array;
-        for (const auto &c : std::as_const(result).value()) {
-            array.append(c.toJsonObject());
-            static bool debugged = false;
-
-            if (!debugged) {
-                writeFile(c.metaObject().tableName() + ".csv", c.toCsv(QEloquent::SerializationFormat::Pretty));
-                debugged = true;
-            }
-        }
-        writeFile("categories.json", QJsonDocument(array).toJson());
-    }
 }

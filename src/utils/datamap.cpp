@@ -159,8 +159,11 @@ QVariantMap DataMap::toVariantMap() const
 DataMap DataMap::fromVariantMap(const QVariantMap &map)
 {
     DataMap output;
-    for (auto item : map.asKeyValueRange())
-        output.insert(item.first, item.second);
+
+    const QStringList fields = map.keys();
+    for (const QString &field : fields)
+        output.insert(field, map.value(field));
+
     return output;
 }
 
