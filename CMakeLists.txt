@@ -30,8 +30,6 @@ find_package(Qt6 REQUIRED COMPONENTS ${REQUIRED_MODULES} OPTIONAL_COMPONENTS ${O
 # Findind expected
 include(FetchContent)
 
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-
 FetchContent_Declare(
     Expected
     GIT_REPOSITORY https://github.com/TartanLlama/expected.git

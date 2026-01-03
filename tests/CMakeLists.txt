@@ -11,6 +11,10 @@ FetchContent_Declare(GTest
 
 FetchContent_MakeAvailable(GTest)
 
+# To Avoid conflicts due to parallelism
+add_dependencies(gmock gtest)
+add_dependencies(gmock_main gtest_main)
+
 qt_add_executable(QEloquentTest
     main.cpp
     core/mytest.h core/mytest.cpp
