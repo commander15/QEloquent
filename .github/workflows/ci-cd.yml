@@ -69,6 +69,8 @@ jobs:
         run: cmake --build ${{env.BUILD_DIR}} --target all --parallel ${{env.PARALLEL}}
         
       - name: Test
+        env:
+          CTEST_OUTPUT_ON_FAILURE: ON
         run: cmake --build ${{env.BUILD_DIR}} --target test
         
       - name: Package
