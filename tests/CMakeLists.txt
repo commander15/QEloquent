@@ -1,7 +1,15 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(TEST_DATA ${PROJECT_SOURCE_DIR}/testdata)
 
-find_package(GTest REQUIRED)
+# Get Google Test
+include(FetchContent)
+
+FetchContent_Declare(GTest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
+
+FetchContent_MakeAvailable(GTest)
 
 qt_add_executable(QEloquentTest
     main.cpp
@@ -18,7 +26,7 @@ qt_add_executable(QEloquentTest
 
 target_include_directories(QEloquentTest PRIVATE . core models)
 
-target_link_libraries(QEloquentTest PRIVATE GTest::gtest QEloquent)
+target_link_libraries(QEloquentTest PRIVATE gtest QEloquent)
 
 target_compile_definitions(QEloquentTest
     PRIVATE
