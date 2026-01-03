@@ -9,9 +9,6 @@
 template<typename V, typename E>
 using Result = QEloquent::Result<V, E>;
 
-template<typename E>
-using unexpected = QEloquent::unexpected<E>;
-
 class Serialization : public MyTest
 {
 public:
@@ -71,30 +68,30 @@ public:
 
         // Checking id
         if (product.id != expectedId) {
-            return unexpected(QString("Expected id %1, got %2").arg(expectedId).arg(product.id));
+            return QEloquent::unexpected(QString("Expected id %1, got %2").arg(expectedId).arg(product.id));
         }
 
         // Checking fillable fields
         if (product.name != expectedName) {
-            return unexpected(QString("Expected name '%1', got '%2'").arg(expectedName, product.name));
+            return QEloquent::unexpected(QString("Expected name '%1', got '%2'").arg(expectedName, product.name));
         }
         if (product.description != expectedDescription) {
-            return unexpected(QString("Expected description '%1', got '%2'").arg(expectedDescription, product.description));
+            return QEloquent::unexpected(QString("Expected description '%1', got '%2'").arg(expectedDescription, product.description));
         }
         if (!qFuzzyCompare(product.price, expectedPrice)) {
-            return unexpected(QString("Expected price %1, got %2").arg(expectedPrice).arg(product.price));
+            return QEloquent::unexpected(QString("Expected price %1, got %2").arg(expectedPrice).arg(product.price));
         }
         if (product.barcode != expectedBarcode) {
-            return unexpected(QString("Expected barcode '%1', got '%2'").arg(expectedBarcode, product.barcode));
+            return QEloquent::unexpected(QString("Expected barcode '%1', got '%2'").arg(expectedBarcode, product.barcode));
         }
 
         // Checking timestamps (within last 10 seconds)
         static const int timingTolerance = 10;
         if (qAbs<int>(product.createdAt.secsTo(expectedCreationTime)) > timingTolerance) {
-            return unexpected(QString("createdAt timestamp too old or in future"));
+            return QEloquent::unexpected(QString("createdAt timestamp too old or in future"));
         }
         if (qAbs<int>(product.updatedAt.secsTo(expectedUpdateTime)) > timingTolerance) {
-            return unexpected(QString("updatedAt timestamp too old or in future"));
+            return QEloquent::unexpected(QString("updatedAt timestamp too old or in future"));
         }
 
         // Checking appended property
@@ -102,13 +99,13 @@ public:
         QString expectedSince = expectedSincePrefix + QString::number(expectedCreationTime.date().year());
         QString actualSince = product.property("since").toString();
         if (actualSince != expectedSince) {
-            return unexpected(QString("Expected appended 'since' = '%1', got '%2'").arg(expectedSince, actualSince));
+            return QEloquent::unexpected(QString("Expected appended 'since' = '%1', got '%2'").arg(expectedSince, actualSince));
         }
 
         // Checking dynamic property
         QVariant categoryIdVar = product.property("categoryId");
         if (categoryIdVar.toInt() != expectedCategoryId) {
-            return unexpected(QString("Expected dynamic categoryId = %1, got %2")
+            return QEloquent::unexpected(QString("Expected dynamic categoryId = %1, got %2")
                                   .arg(expectedCategoryId)
                                   .arg(categoryIdVar.toInt()));
         }
