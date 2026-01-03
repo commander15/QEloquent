@@ -11,7 +11,7 @@ env:
   PACKAGE_VERSION: @PROJECT_VERSION@
   QT_VERSION: @QT_VERSION@
   QT_MODULES: @QT_MODULES@
-  BUILD_DIR: ${{github.workspace}}/build
+  BUILD_DIR: ${{ github.workspace }}/build
   CMAKE_CONFIGURE_ARGS: @CMAKE_CONFIG_ARGS@
   PARALLEL: 4
 
@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup MSVC (Windows only)
-        if: ${{matrix.platform == 'Windows'}}
+        if: ${{ matrix.platform == 'Windows' }}
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
@@ -53,48 +53,48 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{env.QT_VERSION}}
-          host: ${{matrix.host}}
-          target: ${{matrix.target}}
-          arch: ${{matrix.arch}}
-          modules: ${{env.QT_MODULES}}
+          version: ${{ env.QT_VERSION }}
+          host: ${{ matrix.host }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          modules: ${{ env.QT_MODULES }}
 
       - name: Install dependencies (PM)
-        run: ${{matrix.pm}} install -y ${{matrix.dependencies}}
+        run: ${{ matrix.pm }} install -y ${{ matrix.dependencies }}
 
       - name: Configure CMake
-        run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR }}  ${{ env.CMAKE_CONFIGURE_ARGS }} ${{ matrix.cmake-args }} -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build ${{env.BUILD_DIR}} --target all --parallel ${{env.PARALLEL}}
+        run: cmake --build ${{ env.BUILD_DIR }} --target all --parallel ${{ env.PARALLEL }}
         
       - name: Test
         env:
           CTEST_OUTPUT_ON_FAILURE: ON
-        run: cmake --build ${{env.BUILD_DIR}} --target test
+        run: cmake --build ${{ env.BUILD_DIR }} --target test
         
       - name: Package
-        run: cmake --build ${{env.BUILD_DIR}} --target package --parallel ${{env.PARALLEL}}
+        run: cmake --build ${{ env.BUILD_DIR }} --target package --parallel ${{ env.PARALLEL }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.platform}}-Build
+          name: ${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}-${{ matrix.platform }}
           path: |
-            ${{env.BUILD_DIR}}/packages/*.zip
-            ${{env.BUILD_DIR}}/packages/*.tar.gz
-            ${{env.BUILD_DIR}}/packages/*.deb
-            ${{env.BUILD_DIR}}/packages/*.rpm
-            ${{env.BUILD_DIR}}/packages/*.exe
+            ${{ env.BUILD_DIR }}/packages/*.zip
+            ${{ env.BUILD_DIR }}/packages/*.tar.gz
+            ${{ env.BUILD_DIR }}/packages/*.deb
+            ${{ env.BUILD_DIR }}/packages/*.rpm
+            ${{ env.BUILD_DIR }}/packages/*.exe
             
       - name: Upload documentation files (Linux only)
-        if: ${{matrix.platform == 'Linux'}}
+        if: ${{ matrix.platform == 'Linux' }}
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{env.BUILD_DIR}}/doc/doxygen/html
+          path: ${{ env.BUILD_DIR }}/doc/doxygen/html
 
   release:
-    # if: github.event_name != 'workflow_dispatch'
+    # if: ${{github.event_name != 'workflow_dispatch'}}
     runs-on: ubuntu-24.04
     needs: build
     permissions:
@@ -104,21 +104,20 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: "*-Build"
+          pattern: "${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}-*"
           merge-multiple: true
 
       - name: Release
-        if: github.event_name != 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}}
-          body_path: ${{github.workspace}}/notes/RELEASE-${{env.PACKAGE_VERSION}}.md
-          tag_name: v${{env.PACKAGE_VERSION}}
+          name: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }}
+          body_path: ${{ github.workspace }}/notes/RELEASE-${{ env.PACKAGE_VERSION }}.md
+          tag_name: v${{ env.PACKAGE_VERSION }}
           files: "*.*"
           make_latest: true
           
   deploy:
-  # if: github.event_name != 'workflow_dispatch'
+    # if: ${{ github.event_name != 'workflow_dispatch' }}
     needs: build
     runs-on: ubuntu-24.04
     
@@ -144,11 +143,11 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         continue-on-error: true
         with:
-          server_address: ${{secrets.MAIL_SERVER_ADDRESS}}
-          server_port: ${{secrets.MAIL_SERVER_PORT}}
-          username: ${{secrets.MAIL_ADDRESS}}
-          password: ${{secrets.MAIL_PASSWORD}}
-          subject: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}} released !
-          from: ${{secrets.MAIL_AUTHOR}}
-          to: ${{secrets.MAIL_RECEIVERS}}
+          server_address: ${{ secrets.MAIL_SERVER_ADDRESS }}
+          server_port: ${{ secrets.MAIL_SERVER_PORT }}
+          username: ${{ secrets.MAIL_ADDRESS }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} released !
+          from: ${{ secrets.MAIL_AUTHOR }}
+          to: ${{ secrets.MAIL_RECEIVERS }}
           body: "@MAIL_BODY@"

@@ -11,7 +11,7 @@ env:
   PACKAGE_VERSION: 1.0.0
   QT_VERSION: 6.2.0
   QT_MODULES: 
-  BUILD_DIR: ${{github.workspace}}/build
+  BUILD_DIR: ${{ github.workspace }}/build
   CMAKE_CONFIGURE_ARGS: -DQELOQUENT_BUILD_TESTS=ON -DQELOQUENT_BUILD_DOC=ON
   PARALLEL: 4
 
@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup MSVC (Windows only)
-        if: ${{matrix.platform == 'Windows'}}
+        if: ${{ matrix.platform == 'Windows' }}
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
@@ -53,48 +53,48 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{env.QT_VERSION}}
-          host: ${{matrix.host}}
-          target: ${{matrix.target}}
-          arch: ${{matrix.arch}}
-          modules: ${{env.QT_MODULES}}
+          version: ${{ env.QT_VERSION }}
+          host: ${{ matrix.host }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          modules: ${{ env.QT_MODULES }}
 
       - name: Install dependencies (PM)
-        run: ${{matrix.pm}} install -y ${{matrix.dependencies}}
+        run: ${{ matrix.pm }} install -y ${{ matrix.dependencies }}
 
       - name: Configure CMake
-        run: cmake -S ${{github.workspace}} -B ${{env.BUILD_DIR}}  ${{env.CMAKE_CONFIGURE_ARGS}} ${{matrix.cmake-args}} -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR }}  ${{ env.CMAKE_CONFIGURE_ARGS }} ${{ matrix.cmake-args }} -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build ${{env.BUILD_DIR}} --target all --parallel ${{env.PARALLEL}}
+        run: cmake --build ${{ env.BUILD_DIR }} --target all --parallel ${{ env.PARALLEL }}
         
       - name: Test
         env:
           CTEST_OUTPUT_ON_FAILURE: ON
-        run: cmake --build ${{env.BUILD_DIR}} --target test
+        run: cmake --build ${{ env.BUILD_DIR }} --target test
         
       - name: Package
-        run: cmake --build ${{env.BUILD_DIR}} --target package --parallel ${{env.PARALLEL}}
+        run: cmake --build ${{ env.BUILD_DIR }} --target package --parallel ${{ env.PARALLEL }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.platform}}-Build
+          name: ${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}-${{ matrix.platform }}
           path: |
-            ${{env.BUILD_DIR}}/packages/*.zip
-            ${{env.BUILD_DIR}}/packages/*.tar.gz
-            ${{env.BUILD_DIR}}/packages/*.deb
-            ${{env.BUILD_DIR}}/packages/*.rpm
-            ${{env.BUILD_DIR}}/packages/*.exe
+            ${{ env.BUILD_DIR }}/packages/*.zip
+            ${{ env.BUILD_DIR }}/packages/*.tar.gz
+            ${{ env.BUILD_DIR }}/packages/*.deb
+            ${{ env.BUILD_DIR }}/packages/*.rpm
+            ${{ env.BUILD_DIR }}/packages/*.exe
             
       - name: Upload documentation files (Linux only)
-        if: ${{matrix.platform == 'Linux'}}
+        if: ${{ matrix.platform == 'Linux' }}
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{env.BUILD_DIR}}/doc/doxygen/html
+          path: ${{ env.BUILD_DIR }}/doc/doxygen/html
 
   release:
-    # if: github.event_name != 'workflow_dispatch'
+    # if: ${{github.event_name != 'workflow_dispatch'}}
     runs-on: ubuntu-24.04
     needs: build
     permissions:
@@ -104,21 +104,20 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: "*-Build"
+          pattern: "${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}-*"
           merge-multiple: true
 
       - name: Release
-        if: github.event_name != 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}}
-          body_path: ${{github.workspace}}/notes/RELEASE-${{env.PACKAGE_VERSION}}.md
-          tag_name: v${{env.PACKAGE_VERSION}}
+          name: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }}
+          body_path: ${{ github.workspace }}/notes/RELEASE-${{ env.PACKAGE_VERSION }}.md
+          tag_name: v${{ env.PACKAGE_VERSION }}
           files: "*.*"
           make_latest: true
           
   deploy:
-  # if: github.event_name != 'workflow_dispatch'
+    # if: ${{ github.event_name != 'workflow_dispatch' }}
     needs: build
     runs-on: ubuntu-24.04
     
@@ -144,11 +143,11 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         continue-on-error: true
         with:
-          server_address: ${{secrets.MAIL_SERVER_ADDRESS}}
-          server_port: ${{secrets.MAIL_SERVER_PORT}}
-          username: ${{secrets.MAIL_ADDRESS}}
-          password: ${{secrets.MAIL_PASSWORD}}
-          subject: ${{env.PACKAGE_NAME}} ${{env.PACKAGE_VERSION}} released !
-          from: ${{secrets.MAIL_AUTHOR}}
-          to: ${{secrets.MAIL_RECEIVERS}}
+          server_address: ${{ secrets.MAIL_SERVER_ADDRESS }}
+          server_port: ${{ secrets.MAIL_SERVER_PORT }}
+          username: ${{ secrets.MAIL_ADDRESS }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} released !
+          from: ${{ secrets.MAIL_AUTHOR }}
+          to: ${{ secrets.MAIL_RECEIVERS }}
           body: "Hello, QEloquent  has just been released, look at the new features !\n\n# QEloquent  Released 🚀\n\n# 🚀 QEloquent v1.0.0 - The Eloquent ORM for Qt6\n\nWe are thrilled to announce the first stable release of **QEloquent**, a powerful, developer-friendly ORM for C++ and Qt6, inspired by the elegance of Laravel's Eloquent.\n\nQEloquent bridges the gap between modern C++ efficiency and the productivity of high-level ORMs, providing a fluent interface for database interactions.\n\n---\n\n## 🌟 Key Features\n\n### 💎 Eloquent-Style Models\nDefine your data structures using standard Qt properties and metadata. Leverage the power of `Q_GADGET` and `Q_PROPERTY` to create self-documenting, powerful models.\n\n```cpp\nclass Product : public QEloquent::Model, public QEloquent::ModelHelpers<Product> {\n    Q_GADGET\n    Q_PROPERTY(int id MEMBER id)\n    Q_PROPERTY(QString name MEMBER name)\n    // ...\n    Q_CLASSINFO(\"table\", \"products\") // Optional: guessed from class name\npublic:\n    Q_INVOKABLE QEloquent::Relation<Category> category() const {\n        return belongsTo<Category>()\n\n\n    }\n}\n\n\n```\n\n### 🔗 Advanced Relationships\nGo beyond simple tables. QEloquent supports a wide array of relationships:\n- ✅ **One-to-One / One-to-Many**: `hasOne`, `hasMany`, `belongsTo`.\n- ✅ **Many-to-Many**: `belongsToMany` with automatic pivot table management.\n- ✅ **Through Relationships**: `hasManyThrough` and the powerful `belongsToManyThrough`.\n\n### 🛠️ Fluent Query Builder\nStop writing raw SQL. Build queries with a beautiful, chainable API.\n\n```cpp\nauto query = Product::query()\n    .where(\"price\", \">\", 100)\n    .orderBy(\"name\")\n    .limit(10)\n\n\n\nauto products = Product::find(query)\n\n\n```\n\n### 🚄 Performance & Eager Loading\nSolve the N+1 problem before it starts. Use `with()` to eager-load relationships in a single go.\n\n```cpp\nauto query = Category::query().with(\"products.stock\")\n\n\nauto categories = Category::find(query)\n\n\n```\n\n---\n\n## 📦 What's New in v1.0.0\n\n- **Initial Stable API**: The core architecture is now solidified for production use.\n- **Join Support**: Native `JOIN` operations within the Query builder.\n- **Naming Conventions**: Fully customizable naming strategies (snake_case, camelCase, etc.).\n- **Automatic Metadata**: Smart detection of table names and foreign keys based on conventions.\n- **Comprehensive Test Suite**: 100% pass rate on integration tests covering all relationship types.\n\n---\n\n## 🚀 Getting Started\n\nSimply include QEloquent in your CMake project:\n\n```cmake\nfind_package(QEloquent REQUIRED)\ntarget_link_libraries(your_app PRIVATE QEloquent::QEloquent)\n```\n\nConfigure your connection:\n\n```cpp\nConnection::addConnection(\"default\", \"QSQLITE\", \"database.sqlite\")\n\n\n```\n\n---\n\n## 🤝 Contributing\nWe're just getting started! Feel free to open issues or pull requests on [GitHub](https://github.com/commander15/QEloquent).\n\n---\n\n*Made with ❤️ by the Amadou Benjamain.*\n\n\nDownload and try: https://github.com/commander15/QEloquent/releases/latest"
