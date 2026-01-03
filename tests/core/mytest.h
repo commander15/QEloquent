@@ -3,7 +3,6 @@
 
 #include <gtest/gtest.h>
 
-#include <expected>
 #include <list>
 #include <string>
 
