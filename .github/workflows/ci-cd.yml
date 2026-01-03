@@ -94,7 +94,7 @@ jobs:
           path: ${{ env.BUILD_DIR }}/doc/doxygen/html
 
   release:
-    # if: ${{github.event_name != 'workflow_dispatch'}}
+    if: ${{github.event_name != 'workflow_dispatch'}}
     runs-on: ubuntu-24.04
     needs: build
     permissions:
@@ -102,7 +102,7 @@ jobs:
 
     steps:
       - name: Download release note
-        run: curl https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/main/notes/RELEASE-${{ env.PACKAGE_VERSION }}.md
+        run: wget https://raw.githubusercontent.com/${{ github.repository }}/refs/heads/main/notes/RELEASE-${{ env.PACKAGE_VERSION }}.md
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -121,7 +121,7 @@ jobs:
           make_latest: true
           
   deploy:
-    # if: ${{ github.event_name != 'workflow_dispatch' }}
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     needs: build
     runs-on: ubuntu-24.04
     
