@@ -2,6 +2,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(TEST_DATA ${PROJECT_SOURCE_DIR}/testdata)
 
 # Get Google Test
+set(BUILD_GMOCK OFF)
 include(FetchContent)
 
 FetchContent_Declare(GTest
@@ -10,10 +11,6 @@ FetchContent_Declare(GTest
 )
 
 FetchContent_MakeAvailable(GTest)
-
-# To Avoid conflicts due to parallelism
-add_dependencies(gmock gtest)
-add_dependencies(gmock_main gtest_main)
 
 qt_add_executable(QEloquentTest
     main.cpp
