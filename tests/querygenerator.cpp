@@ -4,6 +4,10 @@
 #include <QEloquent/querybuilder.h>
 #include <QEloquent/datamap.h>
 
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+#   include <QEloquent/tableblueprint.h>
+#endif
+
 using namespace QEloquent;
 
 TEST_F(QueryGenerator, ValidQueryProducesValidSelectStatement) {
@@ -74,3 +78,30 @@ TEST_F(QueryGenerator, ValidQueryProducesValidDeleteStatement) {
     const QString statement2 = QueryBuilder::deleteStatement(query);
     ASSERT_EQ(TEST_STR(statement2), "DELETE FROM \"Products\" WHERE \"id\" = 1");
 }
+
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+
+TEST_F(QueryGenerator, ValidBlueprintProducesValidStatement) {
+    TableBlueprint table = TableBlueprint::create("tests", true);
+    table.id();
+    table.string("name", 30);
+    table.doubleNumber("height").min(0.0).max(3.0);
+    table.character("sex", 1).check("sex = 'M' OR sex = 'F'");
+
+
+    const QStringList expected = {
+        R"(CREATE TABLE "tests" ()",
+        R"("id" INTEGER PRIMARY KEY AUTOINCREMENT, )",
+        R"("name" TEXT NOT NULL, )",
+        R"("height" REAL NOT NULL, )",
+        R"("sex" TEXT NOT NULL, )",
+        R"(CONSTRAINT ck_tests_height CHECK("height" >= 0 AND "height" <= 3), )",
+        R"(CONSTRAINT ck_tests_sex CHECK(sex = 'M' OR sex = 'F'))"
+        R"())"
+    };
+
+    const QString &statement = QueryBuilder::createTableStatement(table, connection);
+    ASSERT_EQ(TEST_STR(statement), TEST_STR(expected.join(QString())));
+}
+
+#endif

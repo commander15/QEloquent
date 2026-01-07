@@ -14,9 +14,6 @@
 #include <QStringList>
 #include <QMap>
 
-#define TEST_DB_NAME ":memory:"
-//#define TEST_DB_NAME "database.sqlite"
-
 #define TEST_STR(str)       MyTest::convertString(str)
 #define TEST_STR_LIST(list) MyTest::convertStringList(list)
 

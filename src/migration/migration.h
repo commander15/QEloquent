@@ -3,8 +3,10 @@
 
 #include <QEloquent/global.h>
 #include <QEloquent/schema.h>
+#include <QEloquent/result.h>
 
 #include <QString>
+#include <QDateTime>
 #include <type_traits>
 
 #define QELOQUENT_CONCAT_IMPL(a, b) a##b
@@ -23,6 +25,8 @@
 
 namespace QEloquent {
 
+class Error;
+
 class QELOQUENT_EXPORT Migration
 {
 public:
@@ -32,7 +36,8 @@ public:
 
     int id() const { return m_id; }
     virtual QString name() const = 0;
-    bool isExecuted() const { return m_id; }
+    QDateTime executedAt() const { return m_executedAt; }
+    bool isExecuted() const { return m_id > 0 && m_executedAt.isValid(); }
 
     virtual void up() = 0;
     virtual void down() = 0;
@@ -40,14 +45,16 @@ public:
     virtual QString connectionName() const;
     Connection connection() const;
 
-    static Migration *boot(const QString &connectionName);
-
     static Migration *create(const QString &name, const Callback &up, const Callback &down);
     static Migration *create(const QString &name, const Callback &up, const Callback &down, const QString &connectionName);
 
 private:
     int m_id = 0;
-    QString m_connectionName;
+    QDateTime m_executedAt;
+
+    Result<bool, Error> getStatus(bool cached = false);
+    Result<bool, Error> markAsExecuted();
+    Result<bool, Error> markAsUnexecuted();
 
     friend class Migrator;
 };

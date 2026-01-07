@@ -5,6 +5,7 @@
 #include <QEloquent/tableblueprint.h>
 
 #include <QException>
+#include <QSqlError>
 
 #include <functional>
 
@@ -38,10 +39,10 @@ private:
 class QELOQUENT_EXPORT SchemaException : public QException
 {
 public:
-    SchemaException(const QString &statement, const QString &error)
+    SchemaException(const QString &statement, const QSqlError &error)
         : statement(statement)
         , error(error)
-        , m_what(statement.toUtf8() + '\n' + error.toUtf8())
+        , m_what(statement.toUtf8() + '\n' + error.text().toUtf8())
     {}
 
     const char *what() const noexcept override
@@ -51,7 +52,7 @@ public:
     SchemaException *clone() const override { return new SchemaException(*this); }
 
     const QString statement;
-    const QString error;
+    const QSqlError error;
 
 private:
     const QByteArray m_what;

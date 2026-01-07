@@ -10,8 +10,9 @@
 #endif
 
 #include <QSqlDatabase>
-#include <QSqlDriver>
+#include <QSqlRecord>
 #include <QSqlField>
+#include <QSqlDriver>
 #include <QFile>
 
 namespace QEloquent {
@@ -105,45 +106,47 @@ QString QueryBuilder::deleteStatement(const Query &query)
 
 #ifdef QELOQUENT_MIGRATIONS_SUPPORT
 
-QString QueryBuilder::createTableStatement(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection)
+QString QueryBuilder::createTableStatement(const TableBlueprint &blueprint, const Connection &connection)
 {
-    const Driver *driver = connection.driver();
-
-    const TableBlueprintData *data = blueprint.data.get();
+    const TableBlueprintData *table = blueprint.data.get();
+    if (!table->newTable)
+        return QString();
 
     QStringList fields;
     QStringList constraints;
-    for (const QExplicitlySharedDataPointer<TableFieldBlueprintData> &field : data->fields) {
-        QString line = escapeFieldName(field->name, connection) + ' ' + driver->columnType(field->type, field->length);
-
-        // PRIMARY KEY or UNIQUE, not both
-        if (field->primaryKey)
-            line.append(" PRIMARY KEY");
-        else if (field->unique)
-            line.append(" UNIQUE");
-
-        if (!field->nullable)
-            line.append(" NOT NULL");
-
-        if (!field->defaultValue.isNull())
-            line.append(" DEFAULT " + formatValue(field->defaultValue, connection));
-
-        fields.append(line);
-
-        if (!field->refTable.isEmpty())
-            constraints.append(driver->foreignKeyConstraint(field->name, field->refTable, field->refColumn));
-    }
+    table->forEachColumn([&fields, &constraints, &connection](const ColumnDefinitionData &column) {
+        fields.append(columnDefinition(column, connection));
+        constraints.append(constraintDefinitions(column, connection));
+    });
 
     return QStringLiteral("CREATE TABLE %1 (%2)")
-        .arg(escapeTableName(tableName, connection), (fields + constraints).join(" "));
+        .arg(escapeTableName(table->tableName, connection), (fields + constraints).join(", "));
 }
 
-QString QueryBuilder::alterTableStatement(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection)
+QString QueryBuilder::alterTableStatement(const TableBlueprint &blueprint, const Connection &connection)
 {
-    // ...
+    const TableBlueprintData *table = blueprint.data.get();
+    QSqlRecord record = connection.database().record(table->tableName);
+
+    QStringList fields;
+    table->forEachColumn([&fields, &record, &connection](const ColumnDefinitionData &column) {
+        QString prefix;
+        if (record.contains(column.columnName)) {
+            prefix = "CHANGE";
+            record.remove(record.indexOf(column.columnName));
+        } else {
+            prefix = "ADD COLUMN";
+        }
+
+        fields.append(prefix + ' ' + columnDefinition(column, connection));
+    });
+
+    for (int i(0); i < record.count(); ++i) {
+        fields.append("DROP COLUMN " + escapeFieldName(record.fieldName(i), connection));
+    }
 
     return QStringLiteral("ALTER TABLE %1")
-        .arg(escapeTableName(tableName, connection));
+        .arg(escapeTableName(table->tableName, connection), fields.join(" "));
 }
 
 #endif
@@ -242,6 +245,119 @@ QStringList QueryBuilder::statementsFromScriptContent(const QByteArray &content)
     return statements;
 }
 
+QString QueryBuilder::columnDefinition(const ColumnDefinitionData &column, const Connection &connection)
+{
+    Driver *driver = connection.driver();
 
+    using Constraint = ColumnDefinitionData::ConstraintFlag;
+
+    const QString fieldName = escapeFieldName(column.columnName, connection);
+
+    QString type;
+    switch (column.type) {
+    case Driver::Float:
+    case Driver::Double:
+    case Driver::Decimal:
+        type = driver->columnType(column.type, column.decimalLength, column.decimalPlaces);
+        break;
+
+    case Driver::Char:
+    case Driver::String:
+        type = driver->columnType(column.type, column.length);
+        break;
+
+    default:
+        type = driver->columnType(column.type, -1, -1);
+        break;
+    }
+
+    QStringList constraints;
+
+    if (column.mustInlinePrimaryKey())
+        constraints.append("PRIMARY KEY " + driver->autoIncrementKeyword());
+
+    if (!column.isNullable())
+        constraints.append("NOT NULL");
+
+    // 'DEFAULT' constraint
+    if (column.defaultValue.isValid()) {
+        if (column.defaultValueIsExpr)
+            constraints.append("DEFAULT " + column.defaultValue.toString());
+        else
+            constraints.append("DEFAULT " + formatValue(column.defaultValue, connection));
+    }
+
+    return fieldName + ' ' + type + (constraints.isEmpty() ? "" : ' ' + constraints.join(' '));
+}
+
+QStringList QueryBuilder::constraintDefinitions(const ColumnDefinitionData &column, const Connection &connection)
+{
+    using Constraint = ColumnDefinitionData::ConstraintFlag;
+
+    if (column.constraints == Constraint::NoConstraints)
+        return QStringList();
+
+    QString checkExpr;
+    if (column.minValue.isValid() || column.maxValue.isValid() || !column.checkExpr.isEmpty()) {
+        const QString fieldName = escapeFieldName(column.columnName, connection);
+
+        QStringList checks;
+
+        if (column.minValue.isValid())
+            checks.append(fieldName + " >= " + formatValue(column.minValue, connection));
+
+        if (column.maxValue.isValid())
+            checks.append(fieldName + " <= " + formatValue(column.maxValue, connection));
+
+        if (!column.checkExpr.isEmpty())
+            checks.append(column.checkExpr);
+
+        checkExpr = checks.join(" AND ");
+    }
+
+    QMap<Constraint, QString> standardConstraintDefinitions = {
+        {
+         Constraint::PrimaryKey,
+         QStringLiteral("CONSTRAINT pk_%1")
+            .arg(escapeTableName("table", connection))
+        },
+        {
+         Constraint::ForeignKey,
+         QStringLiteral("CONSTRAINT fk_%1_%2 FOREIGN KEY(%3) REFERENCES %4(%5)")
+             .arg("table", column.columnName,
+                  escapeFieldName(column.columnName, connection),
+                  escapeTableName(column.refTable, connection),
+                  escapeFieldName(column.refColumn, connection))
+        },
+        {
+         Constraint::Unique,
+         QStringLiteral("CONSTRAINT un_%1_%2 UNIQUE(%3)")
+             .arg("table", column.columnName, escapeFieldName(column.columnName, connection))
+        },
+        {
+         Constraint::Check,
+         QStringLiteral("CONSTRAINT ck_%1_%2 CHECK(%3)")
+             .arg(column.tableName, column.columnName, checkExpr)
+        },
+        {
+         Constraint::Index,
+         QStringLiteral("CREATE INDEX %1 ON %2(%3)")
+             .arg(column.indexName,
+                  escapeTableName("table", connection),
+                  escapeFieldName(column.columnName, connection))
+        },
+    };
+
+    if (column.mustInlinePrimaryKey())
+        standardConstraintDefinitions.remove(Constraint::PrimaryKey);
+
+    QStringList constraints;
+    const QList<Constraint> standardConstraints = standardConstraintDefinitions.keys();
+    for (Constraint constraint : standardConstraints)
+        if (column.constraints.testFlag(constraint))
+            constraints.append(standardConstraintDefinitions.value(constraint));
+
+    return constraints;
+}
 
 } // namespace QEloquent

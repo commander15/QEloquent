@@ -26,8 +26,8 @@ public:
     static QString deleteStatement(const Query &query);
 
 #ifdef QELOQUENT_MIGRATIONS_SUPPORT
-    static QString createTableStatement(const QString &tableName, const class TableBlueprint &blueprint, const Connection &connection);
-    static QString alterTableStatement(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection);
+    static QString createTableStatement(const class TableBlueprint &blueprint, const Connection &connection);
+    static QString alterTableStatement(const TableBlueprint &blueprint, const Connection &connection);
 #endif
 
     static QString escapeFieldName(const QString &name, const Connection &connection);
@@ -41,6 +41,12 @@ public:
     static QStringList statementsFromScriptContent(const QByteArray &content);
 
     static QString singularise(const QString &word);
+
+private:
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+    static QString columnDefinition(const class ColumnDefinitionData &column, const Connection &connection);
+    static QStringList constraintDefinitions(const class ColumnDefinitionData &column, const Connection &connection);
+#endif
 };
 
 } // namespace QEloquent

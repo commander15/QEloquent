@@ -8,7 +8,7 @@ add_subdirectory(utils)
 add_subdirectory(query)
 add_subdirectory(meta)
 add_subdirectory(orm)
-# add_subdirectory(migration)
+ add_subdirectory(migration)
 
 set_target_properties(QEloquent
     PROPERTIES
@@ -22,7 +22,7 @@ target_compile_definitions(QEloquent
         QELOQUENT_BUILD
 )
 
-target_link_libraries(QEloquent PUBLIC Qt::Sql PUBLIC expected)
+target_link_libraries(QEloquent PUBLIC Qt::Sql expected)
 
 target_include_directories(QEloquent
     PUBLIC

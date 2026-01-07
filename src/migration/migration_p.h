@@ -26,36 +26,6 @@ private:
     const QString m_connectionName;
 };
 
-class BootMigration final : public Migration
-{
-public:
-    BootMigration(const QString &connectionName)
-        : m_connectionName(connectionName) {}
-
-    QString name() const override
-    { return QStringLiteral("create_migrations_table"); }
-
-    void up() override
-    {
-        Schema::create("migrations", [](TableBlueprint &table) {
-            table.id();
-            table.string("name").length(60);
-            table.timestamp("timestamp");
-        });
-    }
-
-    void down() override
-    {
-        Schema::dropIfExists("migrations");
-    }
-
-    QString connectionName() const override
-    { return m_connectionName; }
-
-private:
-    const QString m_connectionName;
-};
-
 }
 
 #endif // QELOQUENT_MIGRATION_P_H

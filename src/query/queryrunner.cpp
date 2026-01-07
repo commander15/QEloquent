@@ -60,23 +60,23 @@ Result<QSqlQuery, QSqlError> QueryRunner::deleteData(const Query &query)
 
 #ifdef QELOQUENT_MIGRATIONS_SUPPORT
 
-Result<QSqlQuery, QSqlError> QueryRunner::createTable(const QString &tableName, const TableBlueprint &blueprint)
+Result<QSqlQuery, QSqlError> QueryRunner::createTable(const TableBlueprint &blueprint)
 {
     const Connection connection = Connection::defaultConnection();
-    const QString statement = QueryBuilder::createTableStatement(tableName, blueprint, connection);
+    const QString statement = QueryBuilder::createTableStatement(blueprint, connection);
     return exec(statement, connection);
 }
 
-Result<QSqlQuery, QSqlError> QueryRunner::createTable(const QString &tableName, const TableBlueprint &blueprint, const QString &connectionName)
+Result<QSqlQuery, QSqlError> QueryRunner::createTable(const TableBlueprint &blueprint, const QString &connectionName)
 {
     const Connection connection = Connection::connection(connectionName);
-    const QString statement = QueryBuilder::createTableStatement(tableName, blueprint, connection);
+    const QString statement = QueryBuilder::createTableStatement(blueprint, connection);
     return exec(statement, connection);
 }
 
-Result<QSqlQuery, QSqlError> QueryRunner::createTable(const QString &tableName, const TableBlueprint &blueprint, const Connection &connection)
+Result<QSqlQuery, QSqlError> QueryRunner::createTable(const TableBlueprint &blueprint, const Connection &connection)
 {
-    const QString statement = QueryBuilder::createTableStatement(tableName, blueprint, connection);
+    const QString statement = QueryBuilder::createTableStatement(blueprint, connection);
     return exec(statement, connection);
 }
 

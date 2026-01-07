@@ -15,6 +15,8 @@ class MigratorStorage;
 class QELOQUENT_EXPORT Migrator
 {
 public:
+    using MigrationCallback = std::function<void()>;
+
     static Result<bool, Error> init(const QString &connectionName);
 
     static Result<int, Error> migrate();
@@ -24,10 +26,14 @@ public:
     template<typename MigrationClass>
     static void registerMigration() { registerMigration(new MigrationClass()); }
     static void registerMigration(Migration *migration);
+    static void registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down);
+    static void registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QString &connectionName);
+
+    static void clear();
 
 private:
-    enum Event { Unknown, Executed, Unexecuted };
-    static bool updateMigration(Migration *migration, Event event);
+    static Result<bool, Error> prepareMigrations();
+    static Result<bool, Error> createMigrationsTable();
 
     static void logError(const QString &text, const class SchemaException &e);
 

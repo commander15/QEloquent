@@ -59,7 +59,7 @@ std::list<std::string> MyTest::convertStringList(const QStringList &list)
 
 void MyTest::SetUp()
 {
-    connection = QEloquent::Connection::addConnection("DB", "QSQLITE", ":memory:");
+    connection = QEloquent::Connection::addConnection("DB", "QSQLITE", TEST_DB_NAME);
     ASSERT_TRUE(connection.open()) << "Can't open connection";
 }
 

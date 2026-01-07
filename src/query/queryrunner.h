@@ -30,9 +30,9 @@ public:
     static Result<QSqlQuery, QSqlError> deleteData(const Query &query);
 
 #ifdef QELOQUENT_MIGRATIONS_SUPPORT
-    static Result<QSqlQuery, QSqlError> createTable(const QString &tableName, const class TableBlueprint &blueprint);
-    static Result<QSqlQuery, QSqlError> createTable(const QString &tableName, const class TableBlueprint &blueprint, const QString &connectionName);
-    static Result<QSqlQuery, QSqlError> createTable(const QString &tableName, const class TableBlueprint &blueprint, const Connection &connection);
+    static Result<QSqlQuery, QSqlError> createTable(const class TableBlueprint &blueprint);
+    static Result<QSqlQuery, QSqlError> createTable(const class TableBlueprint &blueprint, const QString &connectionName);
+    static Result<QSqlQuery, QSqlError> createTable(const class TableBlueprint &blueprint, const Connection &connection);
 #endif
 
     static Result<QSqlQuery, QSqlError> exec(const QString &statement);
