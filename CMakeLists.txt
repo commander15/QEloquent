@@ -9,8 +9,8 @@ project(
 )
 
 option(QELOQUENT_BUILD_TESTS    "Build tests"         OFF)
-option(QELOQUENT_BUILD_DOC      "Build documentation" OFF)
-option(QELOQUENT_BUILD_EXAMPLES "Build examples"      OFF)
+option(QELOQUENT_BUILD_DOC      "Build documentation" ON)
+option(QELOQUENT_BUILD_EXAMPLES "Build examples"      ON)
 
 # Qt specifics
 set(CMAKE_AUTOMOC ON)
@@ -65,8 +65,6 @@ endif()
 # CI/CD workflow
 
 set(CMAKE_CONFIG_ARGS
-    -DQELOQUENT_BUILD_TESTS=ON
-    -DQELOQUENT_BUILD_DOC=ON
     -DBUILD_SHARED_LIBS=ON
 )
 string(JOIN " " CMAKE_CONFIG_ARGS ${CMAKE_CONFIG_ARGS})
