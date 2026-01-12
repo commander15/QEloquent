@@ -327,13 +327,15 @@ ForeignKeyDefinition::ForeignKeyDefinition()
     : ColumnDefinition(new ColumnDefinitionPrivate())
 {}
 
-
 ForeignKeyDefinition::ForeignKeyDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &data)
     : ColumnDefinition(data)
 {}
 
-ForeignKeyDefinition::~ForeignKeyDefinition()
-{}
+ForeignKeyDefinition::ForeignKeyDefinition(const ForeignKeyDefinition &) = default;
+ForeignKeyDefinition::ForeignKeyDefinition(ForeignKeyDefinition &&) = default;
+ForeignKeyDefinition &ForeignKeyDefinition::operator=(const ForeignKeyDefinition &) = default;
+ForeignKeyDefinition &ForeignKeyDefinition::operator=(ForeignKeyDefinition &&) = default;
+ForeignKeyDefinition::~ForeignKeyDefinition() = default;
 
 ForeignKeyDefinition &ForeignKeyDefinition::on(const QString &table)
 {

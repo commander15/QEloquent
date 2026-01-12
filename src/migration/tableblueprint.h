@@ -116,7 +116,7 @@ protected:
     friend class TableBlueprint;
 };
 
-class ForeignKeyDefinition : public ColumnDefinition
+class QELOQUENT_EXPORT ForeignKeyDefinition : public ColumnDefinition
 {
 public:
     enum ForeignKeyAction {
@@ -128,6 +128,10 @@ public:
     };
 
     ForeignKeyDefinition();
+    ForeignKeyDefinition(const ForeignKeyDefinition &);
+    ForeignKeyDefinition(ForeignKeyDefinition &&);
+    ForeignKeyDefinition &operator=(const ForeignKeyDefinition &);
+    ForeignKeyDefinition &operator=(ForeignKeyDefinition &&);
     ~ForeignKeyDefinition();
 
     ForeignKeyDefinition &on(const QString &table);
