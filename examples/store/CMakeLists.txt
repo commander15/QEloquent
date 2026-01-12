@@ -17,3 +17,12 @@ qt_add_executable(Store
 )
 
 target_link_libraries(Store PRIVATE Qt6::Widgets QEloquent)
+
+install(TARGETS Store RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+qt_generate_deploy_app_script(
+    TARGET Store
+    OUTPUT_SCRIPT deploy_script
+    NO_UNSUPPORTED_PLATFORM_ERROR
+)
+install(SCRIPT ${deploy_script})
