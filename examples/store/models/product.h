@@ -17,8 +17,6 @@ class Product : public SmartModel, public ModelHelpers<Product>
     Q_PROPERTY(QString barcode MEMBER barcode)
     Q_PROPERTY(int categoryId MEMBER categoryId)
 
-    Q_CLASSINFO("table", "Products")
-
 public:
     Product();
 
@@ -38,8 +36,6 @@ class Category : public SmartModel, public ModelHelpers<Category>
     Q_PROPERTY(QString name MEMBER name)
     Q_PROPERTY(QString description MEMBER description)
 
-    Q_CLASSINFO("table", "Categories")
-
 public:
     Category();
 
@@ -54,8 +50,6 @@ class Stock : public SmartModel, public ModelHelpers<Stock>
     Q_GADGET
     Q_PROPERTY(int quantity MEMBER quantity)
     Q_PROPERTY(int productId MEMBER productId)
-
-    Q_CLASSINFO("table", "Stocks")
 
 public:
     Stock();

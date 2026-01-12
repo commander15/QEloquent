@@ -120,14 +120,17 @@ void DashboardView::refresh()
 
     // Top 10 Products
     m_topProductsTable->setRowCount(0);
-    QString topQuery = "SELECT p.name, SUM(si.quantity) as total_qty, c.name as cat_name, SUM(si.quantity * si.unit_price) as revenue "
-                       "FROM SaleItems si "
-                       "JOIN Products p ON si.product_id = p.id "
-                       "JOIN Categories c ON p.category_id = c.id "
-                       "GROUP BY si.product_id "
-                       "ORDER BY total_qty DESC LIMIT 10";
-    
-    auto topResult = QEloquent::QueryRunner::exec(topQuery);
+
+    const QString fields = "products.name, SUM(sale_items.quantity) as total_qty, categories.name as cat_name, SUM(sale_items.quantity * sale_items.unit_price) as revenue";
+
+    query = SaleItem::query();
+    query.join("products", "product_id", "=", "products.id")
+        .join("categories", "products.category_id", "=", "categories.id")
+        .groupBy("product_id")
+        .orderBy("total_qty", Qt::DescendingOrder)
+        .limit(10);
+
+    auto topResult = QEloquent::QueryRunner::select(fields, query);
     if (topResult) {
         int row = 0;
         while (topResult->next()) {

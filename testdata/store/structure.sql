@@ -36,7 +36,7 @@ CREATE TABLE UserGroupMembers (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     group_id INTEGER NOT NULL,
     user_id  INTEGER NOT NULL,
-    FOREIGN KEY (group_id) REFERENCES Groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES UserGroups(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id)  REFERENCES Users(id)  ON DELETE CASCADE,
     UNIQUE (group_id, user_id)
 );

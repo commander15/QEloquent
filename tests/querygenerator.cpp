@@ -82,11 +82,11 @@ TEST_F(QueryGenerator, ValidQueryProducesValidDeleteStatement) {
 #ifdef QELOQUENT_MIGRATIONS_SUPPORT
 
 TEST_F(QueryGenerator, ValidBlueprintProducesValidStatement) {
-    TableBlueprint table = TableBlueprint::create("tests", true);
+    TableBlueprint table = TableBlueprint::create("tests", true, connection.name());
     table.id();
     table.string("name", 30);
     table.doubleNumber("height").min(0.0).max(3.0);
-    table.character("sex", 1).check("sex = 'M' OR sex = 'F'");
+    table.character("sex", 1).in({ "M", "F" });
 
 
     const QStringList expected = {
@@ -96,12 +96,13 @@ TEST_F(QueryGenerator, ValidBlueprintProducesValidStatement) {
         R"("height" REAL NOT NULL, )",
         R"("sex" TEXT NOT NULL, )",
         R"(CONSTRAINT ck_tests_height CHECK("height" >= 0 AND "height" <= 3), )",
-        R"(CONSTRAINT ck_tests_sex CHECK(sex = 'M' OR sex = 'F'))"
+        R"(CONSTRAINT ck_tests_sex CHECK("sex" IN ('M', 'F')))"
         R"())"
     };
 
-    const QString &statement = QueryBuilder::createTableStatement(table, connection);
-    ASSERT_EQ(TEST_STR(statement), TEST_STR(expected.join(QString())));
+    const QStringList &statements = QueryBuilder::createTableStatements(table, connection);
+    ASSERT_EQ(statements.count(), 1);
+    ASSERT_EQ(TEST_STR(statements.first()), TEST_STR(expected.join(QString())));
 }
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef QELOQUENT_RESULT_H
 #define QELOQUENT_RESULT_H
 
+#include <QEloquent/error.h>
+
 #include <tl/expected.hpp>
 
 namespace QEloquent {
@@ -10,7 +12,7 @@ namespace QEloquent {
  * @tparam Value The type of the value on success.
  * @tparam Error The type of the error on failure.
  */
-template<typename Value, typename Error>
+template<typename Value, typename Error = Error>
 using Result = tl::expected<Value, Error>;
 
 /**

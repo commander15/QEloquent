@@ -76,6 +76,8 @@ protected:
     Model(const QMetaObject &metaObject);
     Model(ModelData *data);
 
+    QDateTime now() const;
+
     template<typename T>
     Relation<T> hasOne(const QString &foreignKey = QString(), const QString &localKey = QString(),
                        const std::source_location &location = std::source_location::current()) const;

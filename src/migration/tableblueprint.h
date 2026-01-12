@@ -5,17 +5,22 @@
 #include <QEloquent/metaobject.h>
 
 #include <QSharedDataPointer>
+#include <QVariant>
 
 namespace QEloquent {
 
+class TableData;
 class ColumnDefinition;
-class ColumnDefinitionData;
+class ColumnData;
 class ForeignKeyDefinition;
+class Driver;
 
-class TableBlueprintData;
+class TableBlueprintPrivate;
 class QELOQUENT_EXPORT TableBlueprint
 {
 public:
+    typedef std::function<void(const TableData &table)> TableExplorer;
+
     TableBlueprint();
     TableBlueprint(const TableBlueprint &);
     TableBlueprint(TableBlueprint &&);
@@ -46,30 +51,34 @@ public:
     ColumnDefinition time(const QString &name);
     ColumnDefinition datetime(const QString &name);
     ColumnDefinition timestamp(const QString &name);
+    void timestamps(const QString &creation = "created_at", const QString &update = "updated_at");
+
+    ForeignKeyDefinition foreignId(const QString &name);
+    template<typename Model> ForeignKeyDefinition foreignIdFor();
+    template<typename Model> ForeignKeyDefinition foreignIdFor(const QString &name);
+    ForeignKeyDefinition foreign(const QString &name);
 
     void rawColumn(const QString &name, const QString &definition);
 
-    template<typename Model> ForeignKeyDefinition foreign(const QString &name = QString());
-    ForeignKeyDefinition foreignId(const QString &name, const QString &tableName, const QString &primaryKey = "id");
+    TableData table() const;
+    void exploreTable(const TableExplorer &tableExplorer) const;
 
-    void timestamps(const QString &creation = "created_at", const QString &update = "updated_at");
-
-    static TableBlueprint create(const QString &table, bool newTable = true);
+    static TableBlueprint create(const QString &table, bool create, const QString &connectionName);
 
 private:
-    using Column = ColumnDefinitionData;
+    TableBlueprint(TableBlueprintPrivate *data);
 
-    TableBlueprint(TableBlueprintData *data);
+    ColumnDefinition idTyped(const QString &name);
 
-    ForeignKeyDefinition foreignKey(const MetaObject &meta, const QString &fieldName = QString());
+    QExplicitlySharedDataPointer<TableBlueprintPrivate> data;
 
-    QSharedDataPointer<TableBlueprintData> data;
+    using Column = ColumnData;
 
     friend class Schema;
-    friend class QueryBuilder;
+    friend class SchemaGrammar;
 };
 
-class ColumnDefinitionData;
+class ColumnDefinitionPrivate;
 class QELOQUENT_EXPORT ColumnDefinition
 {
 public:
@@ -90,14 +99,15 @@ public:
     ColumnDefinition &min(const QVariant &value);
     ColumnDefinition &max(const QVariant &value);
     ColumnDefinition &range(const QVariant &min, const QVariant &max);
+    ColumnDefinition &in(const QVariantList &values);
 
     ColumnDefinition &check(const QString &expr);
 
 protected:
-    ColumnDefinition(ColumnDefinitionData *data);
-    ColumnDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionData> &data);
+    ColumnDefinition(ColumnDefinitionPrivate *data);
+    ColumnDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &data);
 
-    QExplicitlySharedDataPointer<ColumnDefinitionData> data;
+    QExplicitlySharedDataPointer<ColumnDefinitionPrivate> data;
 
     friend class TableBlueprint;
 };
@@ -110,23 +120,36 @@ public:
         Restrict,
         Cascade,
         SetNull,
+        SetDefault,
     };
 
     ForeignKeyDefinition();
     ~ForeignKeyDefinition();
 
+    ForeignKeyDefinition &on(const QString &table);
+    ForeignKeyDefinition &references(const QString &column);
+    ForeignKeyDefinition &references(const QStringList &columns);
+
     ForeignKeyDefinition &onUpdate(ForeignKeyAction action);
     ForeignKeyDefinition &onDelete(ForeignKeyAction action);
 
 private:
-    ForeignKeyDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionData> &data);
+    ForeignKeyDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &data);
 
     friend class TableBlueprint;
 };
 
 template<typename Model>
-inline ForeignKeyDefinition TableBlueprint::foreign(const QString &name) {
-    return foreignKey(MetaObject::from<Model>(), name);
+inline ForeignKeyDefinition TableBlueprint::foreignIdFor() {
+    return foreignIdFor<Model>(QString());
+}
+
+template<typename Model>
+inline ForeignKeyDefinition TableBlueprint::foreignIdFor(const QString &name) {
+    const MetaObject meta = MetaObject::from<Model>();
+    return foreignId(name.isEmpty() ? meta.foreignProperty().fieldName() : name)
+        .on(meta.tableName())
+        .references(meta.primaryProperty().fieldName());
 }
 
 } // namespace QEloquent

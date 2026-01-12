@@ -3,7 +3,6 @@
 #include <QEloquent/query.h>
 #include <QEloquent/querybuilder.h>
 #include <QEloquent/connection.h>
-#include <QEloquent/datamap.h>
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -36,7 +35,7 @@ Result<QSqlQuery, QSqlError> QueryRunner::select(const QString &fields, const Qu
 
 Result<QSqlQuery, QSqlError> QueryRunner::count(const Query &query)
 {
-    const QString statement = QueryBuilder::selectStatement("COUNT(1)", query);
+    const QString statement = QueryBuilder::selectStatement(QStringLiteral("COUNT(1)"), query);
     return exec(statement, query.connection());
 }
 
@@ -58,30 +57,6 @@ Result<QSqlQuery, QSqlError> QueryRunner::deleteData(const Query &query)
     return exec(statement, query.connection());
 }
 
-#ifdef QELOQUENT_MIGRATIONS_SUPPORT
-
-Result<QSqlQuery, QSqlError> QueryRunner::createTable(const TableBlueprint &blueprint)
-{
-    const Connection connection = Connection::defaultConnection();
-    const QString statement = QueryBuilder::createTableStatement(blueprint, connection);
-    return exec(statement, connection);
-}
-
-Result<QSqlQuery, QSqlError> QueryRunner::createTable(const TableBlueprint &blueprint, const QString &connectionName)
-{
-    const Connection connection = Connection::connection(connectionName);
-    const QString statement = QueryBuilder::createTableStatement(blueprint, connection);
-    return exec(statement, connection);
-}
-
-Result<QSqlQuery, QSqlError> QueryRunner::createTable(const TableBlueprint &blueprint, const Connection &connection)
-{
-    const QString statement = QueryBuilder::createTableStatement(blueprint, connection);
-    return exec(statement, connection);
-}
-
-#endif
-
 Result<QSqlQuery, QSqlError> QueryRunner::exec(const QString &statement)
 {
     return exec(statement, Connection::defaultConnection());
@@ -94,12 +69,7 @@ Result<QSqlQuery, QSqlError> QueryRunner::exec(const QString &statement, const Q
 
 Result<QSqlQuery, QSqlError> QueryRunner::exec(const QString &statement, const Connection &connection)
 {
-    QSqlQuery query(connection.database());
-    query.setForwardOnly(true);
-    if (query.exec(statement))
-        return query;
-    else
-        return failWith(query.lastError());
+    return connection.exec(statement, false);
 }
 
 } // namespace QEloquent

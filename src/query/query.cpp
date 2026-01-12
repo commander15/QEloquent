@@ -1,7 +1,7 @@
 #include "query.h"
 
 #include <QEloquent/connection.h>
-#include <QEloquent/querybuilder.h>
+#include <QEloquent/driver.h>
 
 #include <QVariant>
 #include <QSqlDriver>
@@ -307,6 +307,28 @@ Query &Query::connection(const QString &connectionName)
     return *this;
 }
 
+bool Query::hasJoins() const
+{
+    return !data->joins.isEmpty();
+}
+
+QString Query::joinClauses(const Driver *driver) const
+{
+    if (driver == nullptr)
+        return QString();
+
+    QStringList clauses;
+
+    for (const auto &join : data->joins) {
+        QString joinClause = join.type + " JOIN " + driver->escapeIdentifier(join.table);
+        joinClause += " ON " + driver->escapeIdentifier(join.first);
+        joinClause += " " + join.op + " " + driver->escapeIdentifier(join.second);
+        clauses.append(joinClause);
+    }
+
+    return clauses.join(' ');
+}
+
 /*!
  * \brief Returns true if the query has WHERE clauses.
  */
@@ -320,14 +342,22 @@ bool Query::hasWhere() const
  */
 QString Query::whereClause() const
 {
-    return whereClause(Connection::connection(data->connectionName));
+    return whereClause(Connection::connection(data->connectionName).driver());
+}
+
+QString Query::whereClause(const Connection &connection) const
+{
+    return whereClause(connection.driver());
 }
 
 /*!
- * \brief Returns the generated WHERE clause string for a specific connection.
+ * \brief Returns the generated WHERE clause string for a specific driver.
  */
-QString Query::whereClause(const Connection connection) const
+QString Query::whereClause(const Driver *driver) const
 {
+    if (driver == nullptr)
+        return QString();
+
     QStringList expressions;
 
     bool first = true;
@@ -342,9 +372,9 @@ QString Query::whereClause(const Connection connection) const
         if (!filter.expression.isEmpty())
             expression = logicalOperator + filter.expression;
         else if (!filter.field.isEmpty()) {
-            expression = logicalOperator + QueryBuilder::escapeFieldName(filter.field, connection);
+            expression = logicalOperator + driver->escapeIdentifier(filter.field);
             expression.append(' ' + (filter.op.isEmpty() ? "=" : filter.op));
-            expression.append(' ' + (filter.value.isNull() ? "NULL" : QueryBuilder::formatValue(filter.value, connection)));
+            expression.append(' ' + (filter.value.isNull() ? "NULL" : driver->formatValue(filter.value)));
         }
 
         if (!expression.isEmpty())
@@ -367,17 +397,25 @@ bool Query::hasGroupBy() const
  */
 QString Query::groupByClause() const
 {
-    return groupByClause(Connection::connection(data->connectionName));
+    return groupByClause(Connection::connection(data->connectionName).driver());
+}
+
+QString Query::groupByClause(const Connection &connection) const
+{
+    return groupByClause(connection.driver());
 }
 
 /*!
- * \brief Returns the generated GROUP BY clause string for a specific connection.
+ * \brief Returns the generated GROUP BY clause string for a specific driver.
  */
-QString Query::groupByClause(const Connection connection) const
+QString Query::groupByClause(const Driver *driver) const
 {
+    if (driver == nullptr)
+        return QString();
+
     QStringList groups = data->groups;
-    std::transform(groups.begin(), groups.end(), groups.begin(), [connection](const QString &group) {
-        return QueryBuilder::escapeFieldName(group, connection);
+    std::transform(groups.begin(), groups.end(), groups.begin(), [driver](const QString &group) {
+        return driver->escapeIdentifier(group);
     });
     return (groups.isEmpty() ? QString() : "GROUP BY " + groups.join(", "));
 }
@@ -395,17 +433,25 @@ bool Query::hasOrderBy() const
  */
 QString Query::orderByClause() const
 {
-    return orderByClause(Connection::connection(data->connectionName));
+    return orderByClause(Connection::connection(data->connectionName).driver());
+}
+
+QString Query::orderByClause(const Connection &connection) const
+{
+    return orderByClause(connection.driver());
 }
 
 /*!
- * \brief Returns the generated ORDER BY clause string for a specific connection.
+ * \brief Returns the generated ORDER BY clause string for a specific driver.
  */
-QString Query::orderByClause(const Connection connection) const
+QString Query::orderByClause(const Driver *driver) const
 {
+    if (driver == nullptr)
+        return QString();
+
     QStringList sorts;
-    std::transform(data->sorts.begin(), data->sorts.end(), std::back_inserter(sorts), [connection](const ModelQueryData::Sort &sort) {
-        return QueryBuilder::escapeFieldName(sort.field, connection) + ' ' + (sort.order == Qt::AscendingOrder ? "ASC" : "DESC");
+    std::transform(data->sorts.begin(), data->sorts.end(), std::back_inserter(sorts), [driver](const ModelQueryData::Sort &sort) {
+        return driver->escapeIdentifier(sort.field) + ' ' + (sort.order == Qt::AscendingOrder ? "ASC" : "DESC");
     });
     return (sorts.isEmpty() ? QString() : "ORDER BY " + sorts.join(", "));
 }
@@ -431,34 +477,37 @@ QString Query::offsetClause() const
  */
 QString Query::toString() const
 {
-    return toString(Connection::connection(data->connectionName));
+    return toString(Connection::connection(data->connectionName).driver());
+}
+
+QString Query::toString(const Connection &connection) const
+{
+    return toString(connection.driver());
 }
 
 /*!
- * \brief Returns the full SQL statement for a specific connection.
+ * \brief Returns the full SQL statement for a specific driver.
  */
-QString Query::toString(const Connection connection) const
+QString Query::toString(const Driver *driver) const
 {
+    if (!data->rawSqlStatement.isEmpty())
+        return data->rawSqlStatement;
+
     QStringList clauses;
 
-    if (!data->joins.isEmpty()) {
-        for (const auto &join : data->joins) {
-            QString joinClause = join.type + " JOIN " + QueryBuilder::escapeTableName(join.table, connection);
-            joinClause += " ON " + QueryBuilder::escapeFieldName(join.first, connection);
-            joinClause += " " + join.op + " " + QueryBuilder::escapeFieldName(join.second, connection);
-            clauses.append(joinClause);
-        }
-    }
+    const QString joinClausses = this->joinClauses(driver);
+    if (!joinClausses.isEmpty())
+        clauses.append(joinClausses);
 
-    const QString whereClause = this->whereClause(connection);
+    const QString whereClause = this->whereClause(driver);
     if (!whereClause.isEmpty())
         clauses.append(whereClause);
 
-    const QString groupByClause = this->groupByClause(connection);
+    const QString groupByClause = this->groupByClause(driver);
     if (!groupByClause.isEmpty())
         clauses.append(groupByClause);
 
-    const QString orderByClause = this->orderByClause(connection);
+    const QString orderByClause = this->orderByClause(driver);
     if (!orderByClause.isEmpty())
         clauses.append(orderByClause);
 

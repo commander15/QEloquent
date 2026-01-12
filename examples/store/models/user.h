@@ -12,8 +12,6 @@ class UserRole : public QEloquent::Model, public QEloquent::ModelHelpers<UserRol
     Q_PROPERTY(int id MEMBER id)
     Q_PROPERTY(QString name MEMBER name)
 
-    Q_CLASSINFO("table", "UserRoles")
-
 public:
     UserRole();
 
@@ -30,8 +28,6 @@ class User : public QEloquent::Model, public QEloquent::ModelHelpers<User>
     Q_PROPERTY(QString password MEMBER password)
     Q_PROPERTY(int roleId MEMBER roleId)
 
-    Q_CLASSINFO("table", "Users")
-    Q_CLASSINFO("fillable", "name,email,password,role_id")
     Q_CLASSINFO("hidden", "password")
 
 public:

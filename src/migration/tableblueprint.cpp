@@ -1,16 +1,19 @@
 #include "tableblueprint.h"
 #include "tableblueprint_p.h"
 
+#include <QEloquent/tabledata.h>
+#include <QEloquent/connection.h>
+#include <QEloquent/driver.h>
+#include <QEloquent/schemagrammar.h>
+
+#include <QSqlField>
+
 namespace QEloquent {
 
-using FieldType = TableBlueprintData::FieldType;
+using FieldType = TableBlueprintPrivate::FieldType;
 
 TableBlueprint::TableBlueprint()
-    : data(new TableBlueprintData(QString(), false))
-{}
-
-TableBlueprint::TableBlueprint(TableBlueprintData *data)
-    : data(data)
+    : data(new TableBlueprintPrivate())
 {}
 
 TableBlueprint::TableBlueprint(const TableBlueprint &rhs)
@@ -39,7 +42,7 @@ TableBlueprint::~TableBlueprint() {}
 
 ColumnDefinition TableBlueprint::id(const QString &name)
 {
-    return bigInteger(name, true, true).nullable();
+    return idTyped(name).primaryKey().autoIncrement().nullable();
 }
 
 ColumnDefinition TableBlueprint::uuid(const QString &name)
@@ -54,7 +57,7 @@ ColumnDefinition TableBlueprint::boolean(const QString &name)
 
 ColumnDefinition TableBlueprint::integer(const QString &name, bool autoIncrement, bool positive)
 {
-    auto d = data->fieldData(name, Column::Type::Integer);
+    auto d = data->fieldData(name, Column::ColumnType::Integer);
     d->constraints.setFlag(Column::AutoIncrement, autoIncrement);
     d->numberSign = (positive ? Column::NumberSign::Unsigned : Column::NumberSign::Signed);
     return ColumnDefinition(d);
@@ -67,7 +70,7 @@ ColumnDefinition TableBlueprint::unsignedInteger(const QString &name, bool autoI
 
 ColumnDefinition TableBlueprint::bigInteger(const QString &name, bool autoIncrement, bool positive)
 {
-    auto d = data->fieldData(name, Column::Type::BigInteger);
+    auto d = data->fieldData(name, Column::ColumnType::BigInteger);
     d->constraints.setFlag(Column::PrimaryKey, autoIncrement);
     d->constraints.setFlag(Column::AutoIncrement, autoIncrement);
     d->numberSign = (positive ? Column::NumberSign::Unsigned : Column::NumberSign::Signed);
@@ -81,7 +84,7 @@ ColumnDefinition TableBlueprint::unsignedBigInteger(const QString &name, bool au
 
 ColumnDefinition TableBlueprint::tinyInteger(const QString &name, bool autoIncrement, bool positive)
 {
-    auto d = data->fieldData(name, Column::Type::TinyInteger);
+    auto d = data->fieldData(name, Column::ColumnType::TinyInteger);
     d->constraints.setFlag(Column::AutoIncrement, autoIncrement);
     d->numberSign = (positive ? Column::NumberSign::Unsigned : Column::NumberSign::Signed);
     return ColumnDefinition(d);
@@ -94,70 +97,56 @@ ColumnDefinition TableBlueprint::unsignedTinyInteger(const QString &name, bool a
 
 ColumnDefinition TableBlueprint::doubleNumber(const QString &name)
 {
-    return ColumnDefinition(data->fieldData(name, Column::Type::Double));
+    return ColumnDefinition(data->fieldData(name, Column::ColumnType::Double));
 }
 
 ColumnDefinition TableBlueprint::floatNumber(const QString &name, int precision)
 {
-    auto d = data->fieldData(name, Column::Type::Float);
+    auto d = data->fieldData(name, Column::ColumnType::Float);
     d->floatPrecision = precision;
     return ColumnDefinition(d);
 }
 
 ColumnDefinition TableBlueprint::decimal(const QString &name, int total, int places)
 {
-    auto d = data->fieldData(name, Column::Type::Decimal);
-    d->decimalLength = total;
+    auto d = data->fieldData(name, Column::ColumnType::Decimal);
+    d->length = total;
     d->decimalPlaces = places;
     return ColumnDefinition(d);
 }
 
 ColumnDefinition TableBlueprint::character(const QString &name, int length)
 {
-    auto d = data->fieldData(name, Column::Type::Char);
+    auto d = data->fieldData(name, Column::ColumnType::Char);
     d->length = length;
     return ColumnDefinition(d);
 }
 
 ColumnDefinition TableBlueprint::string(const QString &name, int length)
 {
-    auto d = data->fieldData(name, Column::Type::String);
+    auto d = data->fieldData(name, Column::ColumnType::String);
     d->length = length;
     return ColumnDefinition(d);
 }
 
 ColumnDefinition TableBlueprint::date(const QString &name)
 {
-    return ColumnDefinition(data->fieldData(name, Column::Type::Date));
+    return ColumnDefinition(data->fieldData(name, Column::ColumnType::Date));
 }
 
 ColumnDefinition TableBlueprint::time(const QString &name)
 {
-    return ColumnDefinition(data->fieldData(name, Column::Type::Time));
+    return ColumnDefinition(data->fieldData(name, Column::ColumnType::Time));
 }
 
 ColumnDefinition TableBlueprint::datetime(const QString &name)
 {
-    return ColumnDefinition(data->fieldData(name, Column::Type::DateTime));
+    return ColumnDefinition(data->fieldData(name, Column::ColumnType::DateTime));
 }
 
 ColumnDefinition TableBlueprint::timestamp(const QString &name)
 {
     return ColumnDefinition(data->fieldData(name, FieldType::Timestamp));
-}
-
-void TableBlueprint::rawColumn(const QString &name, const QString &definition)
-{
-    auto d = data->fieldData(name, Column::Type::Raw);
-    d->rawDefinition = definition;
-}
-
-ForeignKeyDefinition TableBlueprint::foreignId(const QString &name, const QString &tableName, const QString &primaryKey)
-{
-    auto d = data->fieldData(name, Column::Type::BigInteger);
-    d->refTable = tableName;
-    d->refColumn = primaryKey;
-    return ForeignKeyDefinition(d);
 }
 
 void TableBlueprint::timestamps(const QString &creation, const QString &update)
@@ -166,41 +155,84 @@ void TableBlueprint::timestamps(const QString &creation, const QString &update)
     timestamp(update).nullable();
 }
 
-TableBlueprint TableBlueprint::create(const QString &table, bool newTable)
+ForeignKeyDefinition TableBlueprint::foreignId(const QString &name)
 {
-    TableBlueprintData *data = new TableBlueprintData(table, !newTable);
+    idTyped(name);
+    return foreign(name);
+}
+
+ForeignKeyDefinition TableBlueprint::foreign(const QString &name)
+{
+    if (!data->columnIndexes.contains(name))
+        return ForeignKeyDefinition();
+    return ForeignKeyDefinition(data->fieldData(name, ColumnData::Raw));
+}
+
+void TableBlueprint::rawColumn(const QString &name, const QString &definition)
+{
+    auto d = data->fieldData(name, Column::ColumnType::Raw);
+    d->rawDefinition = definition;
+}
+
+TableData TableBlueprint::table() const
+{
+    return TableData(data);
+}
+
+TableBlueprint TableBlueprint::create(const QString &table, bool create, const QString &connectionName)
+{
+    const Connection conn = Connection::connection(connectionName);
+    const Driver *driver = conn.driver();
+
+    TableBlueprintPrivate *data = new TableBlueprintPrivate(table, create, driver);
     return TableBlueprint(data);
 }
 
-ForeignKeyDefinition TableBlueprint::foreignKey(const MetaObject &meta, const QString &fieldName)
+ColumnDefinition TableBlueprint::idTyped(const QString &name)
 {
-    const QString tableName = meta.tableName();
-    const QString primaryKey = meta.primaryProperty().fieldName();
+    const SchemaGrammar *grammar = data->driver->schemaGrammar();
+    const QPair<ColumnData::ColumnType, ColumnData::NumberSign> type = grammar->primaryKeyType();
 
-    if (fieldName.isEmpty())
-        return foreignId(meta.foreignProperty().fieldName(), tableName, primaryKey);
-    else
-        return foreignId(fieldName, tableName, primaryKey);
+    auto d = data->fieldData(name, type.first);
+    d->numberSign = type.second;
+    return ColumnDefinition(d);
 }
 
-QExplicitlySharedDataPointer<ColumnDefinitionData> &TableBlueprintData::fieldData(const QString &name, FieldType type)
+TableBlueprint::TableBlueprint(TableBlueprintPrivate *data)
+    : data(data)
+{}
+
+QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &TableBlueprintPrivate::fieldData(const QString &name, FieldType type)
 {
-    ColumnDefinitionData *data = new ColumnDefinitionData(name, type, tableName);
-    columns.append(QExplicitlySharedDataPointer<ColumnDefinitionData>(data));
+    if (columnIndexes.contains(name))
+        return columns[columnIndexes.value(name)];
+
+    ColumnDefinitionPrivate *data = new ColumnDefinitionPrivate(name, type, tableName);
+    if (!newTable && record.contains(name)) {
+        // Help distinguish new/old field
+        data->oldColumn = name;
+
+        const QSqlField field = record.field(name);
+        data->constraints.setFlag(ColumnData::NotNull, field.requiredStatus() == QSqlField::Required);
+        data->defaultValue = field.defaultValue();
+    }
+
+    columns.append(QExplicitlySharedDataPointer<ColumnDefinitionPrivate>(data));
+    columnIndexes.insert(name, columns.size() - 1);
     return columns.last();
 }
 
 ColumnDefinition::ColumnDefinition()
-    : data(new ColumnDefinitionData(QString(), Driver::Raw, QString()))
+    : data(new ColumnDefinitionPrivate())
 {}
 
 
-ColumnDefinition::ColumnDefinition(ColumnDefinitionData *data)
+ColumnDefinition::ColumnDefinition(ColumnDefinitionPrivate *data)
     : data(data)
 {
 }
 
-ColumnDefinition::ColumnDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionData> &data)
+ColumnDefinition::ColumnDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &data)
     : data(data)
 {}
 
@@ -209,14 +241,13 @@ ColumnDefinition::~ColumnDefinition()
 
 ColumnDefinition &ColumnDefinition::primaryKey(bool enable)
 {
-    data->constraints.setFlag(ColumnDefinitionData::PrimaryKey, enable);
+    data->constraints.setFlag(ColumnData::PrimaryKey, enable);
     return *this;
 }
 
 ColumnDefinition &ColumnDefinition::autoIncrement()
 {
-    data->constraints.setFlag(ColumnDefinitionData::PrimaryKey, true);
-    data->constraints.setFlag(ColumnDefinitionData::AutoIncrement, true);
+    data->constraints.setFlag(ColumnData::AutoIncrement, true);
     return *this;
 }
 
@@ -238,25 +269,19 @@ ColumnDefinition &ColumnDefinition::index(bool enable)
 
 ColumnDefinition &ColumnDefinition::index(const QString &name)
 {
-    if (name.isEmpty()) {
-        data->constraints.setFlag(ColumnDefinitionData::Index, false);
-    } else {
-        data->indexName = name;
-        data->constraints.setFlag(ColumnDefinitionData::Index, true);
-    }
-
+    data->indexName = name;
     return *this;
 }
 
 ColumnDefinition &ColumnDefinition::unique(bool enable)
 {
-    data->constraints.setFlag(ColumnDefinitionData::Unique, enable);
+    data->constraints.setFlag(ColumnData::Unique, enable);
     return *this;
 }
 
 ColumnDefinition &ColumnDefinition::nullable(bool enable)
 {
-    data->constraints.setFlag(ColumnDefinitionData::NotNull, !enable);
+    data->constraints.setFlag(ColumnData::NotNull, !enable);
     return *this;
 }
 
@@ -264,6 +289,7 @@ ColumnDefinition &ColumnDefinition::defaultValue(const QVariant &value)
 {
     data->defaultValue = value;
     data->defaultValueIsExpr = false;
+    data->constraints.setFlag(ColumnData::Default, true);
     return *this;
 }
 
@@ -271,6 +297,7 @@ ColumnDefinition &ColumnDefinition::defaultExpression(const QString &expr)
 {
     data->defaultValue = expr;
     data->defaultValueIsExpr = true;
+    data->constraints.setFlag(ColumnData::Default, true);
     return *this;
 }
 
@@ -278,7 +305,7 @@ ColumnDefinition &ColumnDefinition::min(const QVariant &value)
 {
     if (value.isNull()) return *this;
     data->minValue = value;
-    data->constraints.setFlag(ColumnDefinitionData::Check, true);
+    data->constraints.setFlag(ColumnData::Check, true);
     return *this;
 }
 
@@ -286,7 +313,7 @@ ColumnDefinition &ColumnDefinition::max(const QVariant &value)
 {
     if (value.isNull()) return *this;
     data->maxValue = value;
-    data->constraints.setFlag(ColumnDefinitionData::Check, true);
+    data->constraints.setFlag(ColumnData::Check, true);
     return *this;
 }
 
@@ -295,29 +322,54 @@ ColumnDefinition &ColumnDefinition::range(const QVariant &min, const QVariant &m
     if (min.isValid() && max.isValid()) return *this;
     data->minValue = min;
     data->maxValue = max;
-    data->constraints.setFlag(ColumnDefinitionData::Check, true);
+    data->constraints.setFlag(ColumnData::Check, true);
+    return *this;
+}
+
+ColumnDefinition &ColumnDefinition::in(const QVariantList &values)
+{
+    data->inValues.append(values);
+    data->constraints.setFlag(ColumnData::Check, true);
     return *this;
 }
 
 ColumnDefinition &ColumnDefinition::check(const QString &expr)
 {
     if (expr.isEmpty()) return *this;
-    data->constraints.setFlag(ColumnDefinitionData::Check, true);
     data->checkExpr.append(expr);
+    data->constraints.setFlag(ColumnData::Check, true);
     return *this;
 }
 
 ForeignKeyDefinition::ForeignKeyDefinition()
-    : ColumnDefinition(new ColumnDefinitionData(QString(), ColumnDefinitionData::Type::Raw, QString()))
+    : ColumnDefinition(new ColumnDefinitionPrivate())
 {}
 
 
-ForeignKeyDefinition::ForeignKeyDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionData> &data)
+ForeignKeyDefinition::ForeignKeyDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &data)
     : ColumnDefinition(data)
 {}
 
 ForeignKeyDefinition::~ForeignKeyDefinition()
 {}
+
+ForeignKeyDefinition &ForeignKeyDefinition::on(const QString &table)
+{
+    data->refTable = table;
+    return *this;
+}
+
+ForeignKeyDefinition &ForeignKeyDefinition::references(const QString &column)
+{
+    data->refColumns.append(column);
+    return *this;
+}
+
+ForeignKeyDefinition &ForeignKeyDefinition::references(const QStringList &columns)
+{
+    data->refColumns.append(columns);
+    return *this;
+}
 
 ForeignKeyDefinition &ForeignKeyDefinition::onUpdate(ForeignKeyAction action)
 {

@@ -222,6 +222,8 @@ public:
         
         q.where(table + "." + foreignPivotKey, this->parentField(parentKey));
 
+        QString s = q.toString(this->parent->connection());
+
         auto result = RelatedModel::find(q);
         if (result) {
             this->related = result.value();

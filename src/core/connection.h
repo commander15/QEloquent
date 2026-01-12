@@ -14,12 +14,20 @@ class QUrl;
 
 namespace QEloquent {
 
+class Error;
 class Driver;
 
 class ConnectionData;
 class QELOQUENT_EXPORT Connection
 {
 public:
+    enum TimePrecision {
+        DefaultPrecision,
+        HighPrecision,
+        RealTimePrecision,
+        LowPrecision
+    };
+
     Connection();
     Connection(const Connection &);
     Connection(Connection &&);
@@ -38,7 +46,7 @@ public:
     bool commitTransaction();
     bool rollbackTransaction();
 
-    QDateTime now() const;
+    Result<QDateTime, Error> now(TimePrecision precision = TimePrecision::DefaultPrecision) const;
 
     Result<QSqlQuery, QSqlError> exec(const QString &query, bool cache = false) const;
     QSqlError lastError() const;

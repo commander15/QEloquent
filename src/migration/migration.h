@@ -23,6 +23,8 @@
         } QELOQUENT_CONCAT(registrator_instance_, __COUNTER__); \
     }
 
+class QFile;
+
 namespace QEloquent {
 
 class Error;
@@ -48,13 +50,31 @@ public:
     static Migration *create(const QString &name, const Callback &up, const Callback &down);
     static Migration *create(const QString &name, const Callback &up, const Callback &down, const QString &connectionName);
 
+    static Migration *createTable(const QString &tableName, const Schema::BlueprintCallback &callback);
+    static Migration *createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QString &connectionName);
+
+    static Migration *fromScriptFilePattern(const QString &name, const QString &filePrefix);
+    static Migration *fromScriptFilePattern(const QString &name, const QString &filePrefix, const QString &connectionName);
+
+    static Migration *fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName);
+    static Migration *fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QString &connectionName);
+
+    static Migration *fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript);
+    static Migration *fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QString &connectionName);
+
+    static void enableAutoRegistration();
+    static void disableAutoRegistration();
+
 private:
     int m_id = 0;
     QDateTime m_executedAt;
 
     Result<bool, Error> getStatus(bool cached = false);
+    void updateData(int id, const QDateTime &execTime);
     Result<bool, Error> markAsExecuted();
     Result<bool, Error> markAsUnexecuted();
+
+    static bool s_autoRegistrationOn;
 
     friend class Migrator;
 };

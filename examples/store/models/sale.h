@@ -18,8 +18,6 @@ class Sale : public QEloquent::Model, public QEloquent::ModelHelpers<Sale>
     Q_PROPERTY(double amount MEMBER amount)
     Q_PROPERTY(int sellerId MEMBER sellerId)
 
-    Q_CLASSINFO("table", "Sales")
-
 public:
     Sale();
 
@@ -40,8 +38,6 @@ class SaleItem : public QEloquent::Model, public QEloquent::ModelHelpers<SaleIte
     Q_PROPERTY(int quantity MEMBER quantity)
     Q_PROPERTY(int saleId MEMBER saleId)
     Q_PROPERTY(int productId MEMBER productId)
-
-    Q_CLASSINFO("table", "SaleItems")
 
 public:
     SaleItem();

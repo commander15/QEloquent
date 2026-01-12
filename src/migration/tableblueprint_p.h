@@ -3,71 +3,65 @@
 
 #include "tableblueprint.h"
 
+#include <QEloquent/columndata.h>
 #include <QEloquent/driver.h>
 
 #include <QList>
 #include <QVariant>
+#include <QSqlRecord>
 
 namespace QEloquent {
 
-class TableBlueprintData final : public QSharedData
+class TableBlueprintPrivate final : public QSharedData
 {
 public:
-    using FieldType = Driver::FieldType;
+    using FieldType = ColumnData::ColumnType;
 
-    TableBlueprintData(const QString &table, bool alter)
-        : tableName(table), newTable(!alter)
-    {}
+    TableBlueprintPrivate() : newTable(true) {}
+
+    TableBlueprintPrivate(const QString &table, bool create, const Driver *drv)
+        : tableName(table), newTable(create), record(create ? QSqlRecord() : drv->record(table)), driver(drv) {}
 
     const QString tableName;
-    QList<QExplicitlySharedDataPointer<ColumnDefinitionData>> columns;
-    bool newTable = true;
+    QHash<QString, int> columnIndexes;
+    QList<QExplicitlySharedDataPointer<ColumnDefinitionPrivate>> columns;
 
-    QExplicitlySharedDataPointer<ColumnDefinitionData> &fieldData(const QString &name, FieldType type);
+    const bool newTable;
+    const QSqlRecord record;
+    const Driver *driver;
 
-    void forEachColumn(const std::function<void(const ColumnDefinitionData &column)> &callback) const {
-        std::for_each(columns.begin(), columns.end(), [&callback](const QExplicitlySharedDataPointer<ColumnDefinitionData> &item) {
+    QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &fieldData(const QString &name, FieldType type);
+
+    void forEachColumn(const std::function<void(const ColumnDefinitionPrivate &column)> &callback) const {
+        std::for_each(columns.begin(), columns.end(), [&callback](const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &item) {
             callback(*item.constData());
         });
     }
 };
 
-class ColumnDefinitionData final : public QSharedData
+class ColumnDefinitionPrivate final : public QSharedData
 {
 public:
-    using Type = Driver::FieldType;
-
-    enum NumberSign {
-        Signed = false,
-        Unsigned = true
-    };
-
-    enum ConstraintFlag {
-        NoConstraints = 0x0,
-        PrimaryKey = 0x1,
-        AutoIncrement = 0x2,
-        Unique = 0x4,
-        NotNull = 0x8,
-        Check = 0x10,
-        Index = 0x20,
-        ForeignKey = 0x40,
-    };
-    Q_DECLARE_FLAGS(Constraints, ConstraintFlag)
-
+    using Type = ColumnData::ColumnType;
+    using NumberSign = ColumnData::NumberSign;
+    using ConstraintFlag = ColumnData::ConstraintFlag;
+    using Constraints = ColumnData::Constraints;
     using ForeignKeyAction = ForeignKeyDefinition::ForeignKeyAction;
 
-    ColumnDefinitionData(const QString &name, Type t, const QString &table)
+    ColumnDefinitionPrivate()
+        : ColumnDefinitionPrivate(QString(), Type::Raw, QString()) {}
+
+    ColumnDefinitionPrivate(const QString &name, Type t, const QString &table)
         : columnName(name), type(t), tableName(table) {}
 
     // General data
-    QString columnName;
-    Type type;
-    QString tableName;
+    const QString columnName;
+    const Type type;
+    const QString tableName;
     QString comment;
 
     // Number specifics
-    NumberSign numberSign = Signed;
-    int decimalLength = 8;
+    NumberSign numberSign = NumberSign::Signed;
     int decimalPlaces = 2;
     int floatPrecision = 53;
 
@@ -77,12 +71,12 @@ public:
     int length = 255;
 
     // Constraints
-    Constraints constraints = NotNull;
+    Constraints constraints = ConstraintFlag::NotNull;
     QString indexName;
 
     // Foreign
     QString refTable;
-    QString refColumn = "id";
+    QStringList refColumns;
     ForeignKeyAction onUpdate = ForeignKeyAction::Restrict;
     ForeignKeyAction onDelete = ForeignKeyAction::Restrict;
 
@@ -93,6 +87,7 @@ public:
     // To add to check constraints
     QVariant minValue;
     QVariant maxValue;
+    QVariantList inValues;
     QStringList checkExpr;
 
     // Raw definition
@@ -101,18 +96,10 @@ public:
     // Positioning
     QString afterColumn;
 
-    // Helpers
-    bool mustInlinePrimaryKey() const { return isPrimaryKey() && isAutoIncrement(); }
-    bool isPrimaryKey() const    { return constraints.testFlag(ConstraintFlag::PrimaryKey); }
-    bool isAutoIncrement() const { return constraints.testFlag(ConstraintFlag::AutoIncrement); }
-    bool isUnique() const        { return constraints.testFlag(ConstraintFlag::Unique); }
-    bool isNullable() const      { return !constraints.testFlag(ConstraintFlag::NotNull); }
-    bool hasIndex() const        { return constraints.testFlag(ConstraintFlag::Index); }
-    bool isForeignKey() const    { return constraints.testFlag(ConstraintFlag::ForeignKey); }
+    // Replacement
+    QString oldColumn;
 };
 
 }
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(QEloquent::ColumnDefinitionData::Constraints)
 
 #endif // QELOQUENT_TABLEBLUEPRINT_P_H

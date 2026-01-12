@@ -9,7 +9,7 @@
 #include <QEloquent/datamap.h>
 
 #include <QDebug>
-#include <QVariantMap>
+#include <QVariant>
 #include <QDateTime>
 #include <QSqlQuery>
 
@@ -22,7 +22,7 @@ Result<bool, Error> Migrator::init(const QString &connectionName)
     return prepareMigrations();
 }
 
-Result<int, Error> Migrator::migrate()
+Result<int, Error> Migrator::migrate(const MigrationMonitor &monitor)
 {
     auto preparation = prepareMigrations();
     if (!preparation)
@@ -32,13 +32,14 @@ Result<int, Error> Migrator::migrate()
 
     for (int i(0); i < storage->migrations.size(); ++i) {
         Migration *migration = storage->migrations.at(i);
-        auto result = migration->getStatus(false);
+        auto result = migration->getStatus(true);
         Schema::setConnection(migration->connectionName());
 
         // We skip if migration already run
         if (migration->isExecuted()) continue;
 
         try {
+            if (monitor) monitor(migration);
             migration->up();
             auto result = migration->markAsExecuted();
             if (!result) throw SchemaException(QString(), result.error().sqlError());
@@ -56,11 +57,20 @@ Result<int, Error> Migrator::migrate()
 
 Result<int, Error> Migrator::rollback(int steps)
 {
+    return rollback(nullptr, steps);
+}
+
+Result<int, Error> Migrator::rollback(const MigrationMonitor &monitor, int steps)
+{
+    auto preparation = prepareMigrations();
+    if (!preparation)
+        return failWith(preparation.error());
+
     int executed = 0;
 
-    for (int i(storage->migrations.size() - 1); steps > 0 && i > 0; --i) {
+    for (int i(storage->migrations.size() - 1); i >= 0 && steps > 0; --i) {
         Migration *migration = storage->migrations.at(i);
-        auto result = migration->getStatus(true);
+        auto result = migration->getStatus(false);
         if (!result) throw SchemaException(QString(), result.error().sqlError());
         Schema::setConnection(migration->connectionName());
 
@@ -68,8 +78,9 @@ Result<int, Error> Migrator::rollback(int steps)
         if (!migration->isExecuted()) return 0;
 
         try {
+            if (monitor) monitor(migration);
             migration->down();
-            auto result = migration->markAsExecuted();
+            auto result = migration->markAsUnexecuted();
             if (!result) throw SchemaException(QString(), result.error().sqlError());
             ++executed;
             --steps;
@@ -84,16 +95,16 @@ Result<int, Error> Migrator::rollback(int steps)
     return executed;
 }
 
-Result<int, Error> Migrator::refresh()
+Result<int, Error> Migrator::refresh(const MigrationMonitor &monitor)
 {
     int executed = 0;
 
     // Revert all migrations
-    auto rollbackResult = rollback(storage->migrations.count());
+    auto rollbackResult = rollback(monitor, storage->migrations.count());
     if (rollbackResult) executed += rollbackResult.value();
     else return rollbackResult;
 
-    auto migrateResult = migrate();
+    auto migrateResult = migrate(monitor);
     if (migrateResult) executed += migrateResult.value();
     else return migrateResult;
 
@@ -126,19 +137,30 @@ Result<bool, Error> Migrator::prepareMigrations()
 {
     QSqlDatabase db = Connection::defaultConnection().database();
 
-    // If the migrations table already exists, we are done
-    const QStringList tables = db.tables(QSql::Tables);
-    if (tables.contains(MIGRATIONS_TABLE)) return true;
+    // We create the migrations table if it doesn't exists already
+    if (!Schema::hasTable(MIGRATIONS_TABLE)) {
+        try {
+            Schema::create(MIGRATIONS_TABLE, [](TableBlueprint &table) {
+                table.id();
+                table.string("name", 30).unique();
+                table.timestamp("executed_at");
+            });
+        } catch (const SchemaException &e) {
+            return failWith(Error(Error::DatabaseError, QString(), e.error));
+        }
+    }
 
-    // We create the migrations table
-    try {
-        Schema::create(MIGRATIONS_TABLE, [](TableBlueprint &table) {
-            table.id();
-            table.string("name", 30).unique();
-            table.timestamp("executed_at");
-        });
-    } catch (const SchemaException &e) {
-        return failWith(Error(Error::DatabaseError, QString(), e.error));
+    // Fetching migrations data
+    Query query;
+    query.table(MIGRATIONS_TABLE);
+    auto result = QueryRunner::select(QStringList() << "id" << "name" << "executed_at", query);
+    if (!result) return failWith(Error(Error::DatabaseError, QString(), result.error()));
+
+    while (result->next()) {
+        const QString name = result->value(1).toString();
+        for (Migration *migration : std::as_const(storage->migrations))
+            if (migration->name() == name)
+                migration->updateData(result->value(0).toInt(), result->value(2).toDateTime());
     }
 
     return true;

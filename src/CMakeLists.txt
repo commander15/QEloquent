@@ -3,6 +3,7 @@ set(BUILD_SHARED_LIBS 1)
 qt_add_library(QEloquent)
 
 add_subdirectory(core)
+add_subdirectory(drivers)
 add_subdirectory(serialization)
 add_subdirectory(utils)
 add_subdirectory(query)

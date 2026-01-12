@@ -16,12 +16,14 @@ class QELOQUENT_EXPORT Migrator
 {
 public:
     using MigrationCallback = std::function<void()>;
+    using MigrationMonitor = std::function<void(const Migration *migration)>;
 
     static Result<bool, Error> init(const QString &connectionName);
 
-    static Result<int, Error> migrate();
+    static Result<int, Error> migrate(const MigrationMonitor &monitor = nullptr);
     static Result<int, Error> rollback(int steps = 1);
-    static Result<int, Error> refresh();
+    static Result<int, Error> rollback(const MigrationMonitor &monitor, int steps = 1);
+    static Result<int, Error> refresh(const MigrationMonitor &monitor = nullptr);
 
     template<typename MigrationClass>
     static void registerMigration() { registerMigration(new MigrationClass()); }

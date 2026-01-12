@@ -1,9 +1,11 @@
 #include "connection.h"
 
+#include <QEloquent/error.h>
 #include <QEloquent/driver.h>
 
 #include <QDateTime>
 #include <QTimeZone>
+#include <QElapsedTimer>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -18,6 +20,9 @@ public:
     QString connectionName;
     QString databaseConnectionName;
     bool databaseConnectionOwned = false;
+
+    QDateTime lastNow;
+    QElapsedTimer nowTimer;
 
     Driver *driver = nullptr;
 };
@@ -145,17 +150,48 @@ bool Connection::rollbackTransaction()
     return database().rollback();
 }
 
-QDateTime Connection::now() const
+Result<QDateTime, Error> Connection::now(TimePrecision precision) const
 {
-    const QString statement = "SELECT " + data->driver->timestampDefault();
-    auto result = exec(statement, false);
-    if (result && result->next()) {
-        QDateTime now = result->value(0).toDateTime();
-        now.setTimeZone(QTimeZone::utc());
-        return now;
+    // Determine refresh interval
+    qint64 intervalMs;
+    switch (precision) {
+    case TimePrecision::DefaultPrecision:    intervalMs = 3600000LL;  break;  // 1 hour
+    case TimePrecision::HighPrecision:       intervalMs = 10000LL;    break;  // 10 seconds
+    case TimePrecision::RealTimePrecision:   intervalMs = 60000LL;    break;  // 1 minute
+    case TimePrecision::LowPrecision:        intervalMs = 21600000LL; break;  // 6 hours
+    default:                                 intervalMs = 3600000LL;  break;  // fallback
     }
 
-    return QDateTime::currentDateTimeUtc();
+    // Cache hit: return adjusted cached time
+    if (data->lastNow.isValid() &&
+        data->nowTimer.isValid() &&
+        data->nowTimer.elapsed() < intervalMs)
+    {
+        return data->lastNow.addMSecs(data->nowTimer.elapsed());
+    }
+
+    // Cache miss or stale: refresh from DB
+    const QString stmt = "SELECT " + data->driver->currentTimestamp();
+    auto result = exec(stmt, false);
+
+    if (!result || !result->next()) {
+        return failWith(Error::fromSqlError(result.error()));
+    }
+
+    QDateTime dbNow = result->value(0).toDateTime();
+    if (!dbNow.isValid()) {
+        return failWith(Error(Error::DatabaseError, "Invalid timestamp from DB"));
+    }
+    dbNow.setTimeZone(QTimeZone::utc());
+
+    // Update cache
+    data->lastNow = dbNow;
+    if (data->nowTimer.isValid())
+        data->nowTimer.restart();
+    else
+        data->nowTimer.start();
+
+    return dbNow;
 }
 
 /*!

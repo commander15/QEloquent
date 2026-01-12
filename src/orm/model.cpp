@@ -199,11 +199,11 @@ bool Model::insert()
 {
     MODEL_DATA(Model);
 
-    if (data.metaObject.hasCreationTimestamp())
-        data.metaObject.creationTimestamp().write(this, data.metaObject.connection().now());
+    const MetaProperty timestamp = data.metaObject.creationTimestamp();
+    if (timestamp.isValid()) timestamp.write(this, now());
 
-    const DataMap values = data.metaObject.read(
-        this, MetaProperty::FillableProperty,
+    const DataMap values = data.metaObject.read(this,
+        (timestamp.hasAttribute(MetaProperty::DatabaseField) ? MetaProperty::CreationTimestamp : MetaProperty::NoAttibutes) | MetaProperty::FillableProperty,
         MetaObject::StandardProperties | MetaObject::DynamicProperties,
         MetaObject::ResolveByFieldName);
 
@@ -226,10 +226,14 @@ bool Model::update()
 {
     MODEL_DATA(Model);
 
-    if (data.metaObject.hasUpdateTimestamp())
-        data.metaObject.updateTimestamp().write(this, data.metaObject.connection().now());
+    const MetaProperty timestamp = data.metaObject.updateTimestamp();
+    if (timestamp.isValid()) timestamp.write(this, now());
 
-    const DataMap values = data.metaObject.readFillableFields(this);
+    const DataMap values = data.metaObject.read(this,
+        (timestamp.hasAttribute(MetaProperty::DatabaseField) ? MetaProperty::CreationTimestamp : MetaProperty::NoAttibutes) | MetaProperty::FillableProperty,
+        MetaObject::StandardProperties | MetaObject::DynamicProperties,
+        MetaObject::ResolveByFieldName);
+
     auto result = exec([&values](const Query &query) {
         return QueryBuilder::updateStatement(values, query);
     }, true);
@@ -244,11 +248,20 @@ bool Model::deleteData()
 {
     MODEL_DATA(Model);
 
-    if (data.metaObject.hasDeletionTimestamp()) {
-        data.metaObject.deletionTimestamp().write(this, QDateTime::currentDateTime());
-        return update();
+    // If soft delete is enabled (deletion timestamp available), we just update it value
+    const MetaProperty timestamp = data.metaObject.deletionTimestamp();
+    if (timestamp.isValid()) {
+        const QDateTime now = this->now();
+        timestamp.write(this, now);
+
+        const DataMap values = { { timestamp.fieldName(), now } };
+        auto r = exec([&values](const Query &query) {
+            return QueryBuilder::updateStatement(values, query);
+        }, true);
+        return (r ? r->numRowsAffected() == 1 : false);
     }
 
+    // Regular deletion
     auto result = exec([](const Query &query) {
         return QueryBuilder::deleteStatement(query);
     }, true);
@@ -274,6 +287,7 @@ bool Model::load(const QStringList &relations)
             property.read(this); // We just read to init the relation
         }
 
+        // We must make sure that the relation is initialized
         if (!data->relationData.contains(relation))
             continue;
 
@@ -387,6 +401,12 @@ DataMap Model::fullDataMap() const
 
     map.insert(data->dynamicProperties);
     return map;
+}
+
+QDateTime Model::now() const
+{
+    auto result = connection().now();
+    return (result ? result.value() : QDateTime::currentDateTimeUtc());
 }
 
 Query Model::newQuery(const std::function<QString (const Query &)> &statementGenerator, bool filter = true) const

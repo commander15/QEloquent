@@ -8,6 +8,7 @@
 namespace QEloquent {
 
 class Connection;
+class Driver;
 
 class ModelQueryData;
 class QELOQUENT_EXPORT Query
@@ -56,23 +57,32 @@ public:
     QString connectionName() const;
     Query &connection(const QString &connectionName);
 
+    bool hasJoins() const;
+    QString joinClauses() const;
+    QString joinClauses(const Connection &connection) const;
+    QString joinClauses(const Driver *driver) const;
+
     bool hasWhere() const;
     QString whereClause() const;
-    QString whereClause(const Connection connection) const;
+    QString whereClause(const Connection &connection) const;
+    QString whereClause(const Driver *driver) const;
 
     bool hasGroupBy() const;
     QString groupByClause() const;
-    QString groupByClause(const Connection connection) const;
+    QString groupByClause(const Connection &connection) const;
+    QString groupByClause(const Driver *driver) const;
 
     bool hasOrderBy() const;
     QString orderByClause() const;
-    QString orderByClause(const Connection connection) const;
+    QString orderByClause(const Connection &connection) const;
+    QString orderByClause(const Driver *driver) const;
 
     QString limitClause() const;
     QString offsetClause() const;
 
     QString toString() const;
-    QString toString(const Connection connection) const;
+    QString toString(const Connection &connection) const;
+    QString toString(const Driver *driver) const;
 
     QStringList relations() const;
 

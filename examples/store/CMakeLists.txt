@@ -11,6 +11,9 @@ qt_add_executable(Store
     ui/logindialog.h ui/logindialog.cpp
     ui/session.h
     models/model.h models/model.cpp
+    common.h
+    migration.cpp
+    seeding.cpp
 )
 
 target_link_libraries(Store PRIVATE Qt6::Widgets QEloquent)

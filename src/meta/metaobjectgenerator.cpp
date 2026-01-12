@@ -177,6 +177,8 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
     // Dynamic properties
     // potential dynamic properties (from fillable, hidden, ...)
     QStringList potentialDynamicProperties = generation->fillable + generation->hidden;
+    potentialDynamicProperties.append(generation->info(META_CREATED_AT, "createdAt"));
+    potentialDynamicProperties.append(generation->info(META_UPDATED_AT, "updatedAt"));
     potentialDynamicProperties.removeDuplicates();
     potentialDynamicProperties.removeIf([&firstClass, &append, &relations](const QString &propertyName) {
         auto checker = [&propertyName](MetaPropertyData *property) {
@@ -287,19 +289,19 @@ void MetaObjectGenerator::tuneProperty(int &index, MetaPropertyData *property, M
     }
 
     if (property->propertyName == generation->info(META_CREATED_AT, "createdAt")) {
-        property->attributes.setFlag(MetaProperty::CreationTimestamp);
+        property->attributes.setFlag(MetaProperty::CreationTimestamp, true);
         property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->creationTimestampIndex = index;
     }
 
     if (property->propertyName == generation->info(META_UPDATED_AT, "updatedAt")) {
-        property->attributes.setFlag(MetaProperty::UpdateTimestamp);
+        property->attributes.setFlag(MetaProperty::UpdateTimestamp, true);
         property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->updateTimestampIndex = index;
     }
 
     if (property->propertyName == generation->info(META_DELETED_AT, "deletedAt")) {
-        property->attributes.setFlag(MetaProperty::CreationTimestamp);
+        property->attributes.setFlag(MetaProperty::DeletionTimestamp, true);
         property->attributes.setFlag(MetaProperty::FillableProperty, false);
         generation->object->deletionTimestampIndex = index;
     }

@@ -3,12 +3,10 @@ target_headers(QEloquent
         global.h
         entity.h
         connection.h
-        driver.h
 )
 
 target_sources(QEloquent
     PRIVATE
         entity.cpp
         connection.cpp
-        driver.cpp
 )

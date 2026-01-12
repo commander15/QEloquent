@@ -1,4 +1,6 @@
 # 🚀 QEloquent 1.1.0
 
 - Bug fixes
-- Experimental migration support
+- Added migration support (SQLite only)
+- Enhanced Query API
+- Performance improvements

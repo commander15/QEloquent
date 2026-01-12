@@ -8,8 +8,10 @@
 #include <QSqlRecord>
 #include <QSqlField>
 
+using Blueprint = QEloquent::TableBlueprint;
+
 TEST_F(Schema, SimpleTableCreationSucceed) {
-    QEloquent::Schema::create("tests", [](QEloquent::TableBlueprint &table) {
+    QEloquent::Schema::create("tests", [](Blueprint &table) {
         table.id();
         table.string("name", 30);
         table.string("first_name", 15).nullable();
@@ -81,4 +83,79 @@ TEST_F(Schema, SimpleTableCreationSucceed) {
     ASSERT_EQ(TEST_STR(field.name()), "updated_at");
     ASSERT_EQ(TEST_STR(field.metaType().name()), TEST_STR(QMetaType::fromType<QString>().name()));
     ASSERT_EQ(field.requiredStatus(), QSqlField::Optional);
+}
+
+TEST_F(Schema, ExistingTableCreationFail) {
+    auto migration = migrate();
+    ASSERT_TRUE(migration);
+
+    try {
+        QEloquent::Schema::create("Products", [](Blueprint &table) {
+            table.id();
+            table.string("name", 30);
+            table.timestamps();
+        });
+
+        // Must not reach here
+        ASSERT_TRUE(false);
+    } catch (const QEloquent::SchemaException &e) {
+        const QStringList expected = {
+            R"(CREATE TABLE "Products" ()",
+            R"("id" INTEGER PRIMARY KEY AUTOINCREMENT, )",
+            R"("name" TEXT NOT NULL, )",
+            R"("created_at" TEXT NOT NULL, )",
+            R"("updated_at" TEXT)",
+            R"())"
+        };
+
+        ASSERT_EQ(TEST_STR(e.statement), TEST_STR(expected.join(QString())));
+        ASSERT_TRUE(e.error.isValid());
+        ASSERT_EQ(e.error.type(), QSqlError::StatementError) << TEST_STR(e.error.text());
+        ASSERT_EQ(TEST_STR(e.error.nativeErrorCode()), "1");
+    }
+}
+
+TEST_F(Schema, ExistingTableDropSucceed) {
+    auto migration = migrate();
+    ASSERT_TRUE(migration);
+
+    try {
+        QEloquent::Schema::drop("Products");
+    } catch (const QEloquent::SchemaException &e) {
+        ASSERT_TRUE(false) << TEST_STR(e.error.text());
+    }
+}
+
+TEST_F(Schema, UnexistingTableDropFail) {
+    try {
+        QEloquent::Schema::drop("Products");
+
+        // Must not reach here
+        ASSERT_TRUE(false);
+    } catch (const QEloquent::SchemaException &e) {
+        ASSERT_EQ(TEST_STR(e.statement), R"(DROP TABLE "Products")");
+        ASSERT_TRUE(e.error.isValid());
+        ASSERT_EQ(e.error.type(), QSqlError::StatementError) << TEST_STR(e.error.text());
+        ASSERT_EQ(TEST_STR(e.error.nativeErrorCode()), "1");
+    }
+}
+
+TEST_F(Schema, ExistingTableDropIfExistsSucceed) {
+    auto migration = migrate();
+    ASSERT_TRUE(migration);
+
+    try {
+        QEloquent::Schema::dropIfExists("Products");
+    } catch (const QEloquent::SchemaException &e) {
+        ASSERT_TRUE(false) << TEST_STR(e.error.text());
+    }
+}
+
+TEST_F(Schema, UnexistingTableDropIfExistsSucceed) {
+    try {
+        QEloquent::Schema::dropIfExists("Products");
+    } catch (const QEloquent::SchemaException &e) {
+        ASSERT_TRUE(false) << TEST_STR(e.error.text());
+    }
+
 }
