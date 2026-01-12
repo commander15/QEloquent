@@ -66,13 +66,13 @@ public:
     static TableBlueprint create(const QString &table, bool create, const QString &connectionName);
 
 private:
+    using Column = ColumnData;
+
     TableBlueprint(TableBlueprintPrivate *data);
 
     ColumnDefinition idTyped(const QString &name);
 
     QExplicitlySharedDataPointer<TableBlueprintPrivate> data;
-
-    using Column = ColumnData;
 
     friend class Schema;
     friend class SchemaGrammar;
@@ -83,6 +83,10 @@ class QELOQUENT_EXPORT ColumnDefinition
 {
 public:
     ColumnDefinition();
+    ColumnDefinition(const ColumnDefinition &);
+    ColumnDefinition(ColumnDefinition &&);
+    ColumnDefinition &operator=(const ColumnDefinition &);
+    ColumnDefinition &operator=(ColumnDefinition &&);
     virtual ~ColumnDefinition();
 
     ColumnDefinition &primaryKey(bool enable = true);

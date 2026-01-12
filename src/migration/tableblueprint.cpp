@@ -16,29 +16,11 @@ TableBlueprint::TableBlueprint()
     : data(new TableBlueprintPrivate())
 {}
 
-TableBlueprint::TableBlueprint(const TableBlueprint &rhs)
-    : data{rhs.data}
-{}
-
-TableBlueprint::TableBlueprint(TableBlueprint &&rhs)
-    : data{std::move(rhs.data)}
-{}
-
-TableBlueprint &TableBlueprint::operator=(const TableBlueprint &rhs)
-{
-    if (this != &rhs)
-        data = rhs.data;
-    return *this;
-}
-
-TableBlueprint &TableBlueprint::operator=(TableBlueprint &&rhs)
-{
-    if (this != &rhs)
-        data = std::move(rhs.data);
-    return *this;
-}
-
-TableBlueprint::~TableBlueprint() {}
+TableBlueprint::TableBlueprint(const TableBlueprint &) = default;
+TableBlueprint::TableBlueprint(TableBlueprint &&) = default;
+TableBlueprint &TableBlueprint::operator=(const TableBlueprint &) = default;
+TableBlueprint &TableBlueprint::operator=(TableBlueprint &&) = default;
+TableBlueprint::~TableBlueprint() = default;
 
 ColumnDefinition TableBlueprint::id(const QString &name)
 {
@@ -71,7 +53,6 @@ ColumnDefinition TableBlueprint::unsignedInteger(const QString &name, bool autoI
 ColumnDefinition TableBlueprint::bigInteger(const QString &name, bool autoIncrement, bool positive)
 {
     auto d = data->fieldData(name, Column::ColumnType::BigInteger);
-    d->constraints.setFlag(Column::PrimaryKey, autoIncrement);
     d->constraints.setFlag(Column::AutoIncrement, autoIncrement);
     d->numberSign = (positive ? Column::NumberSign::Unsigned : Column::NumberSign::Signed);
     return ColumnDefinition(d);
@@ -226,18 +207,19 @@ ColumnDefinition::ColumnDefinition()
     : data(new ColumnDefinitionPrivate())
 {}
 
-
 ColumnDefinition::ColumnDefinition(ColumnDefinitionPrivate *data)
     : data(data)
-{
-}
+{}
 
 ColumnDefinition::ColumnDefinition(const QExplicitlySharedDataPointer<ColumnDefinitionPrivate> &data)
     : data(data)
 {}
 
-ColumnDefinition::~ColumnDefinition()
-{}
+ColumnDefinition::ColumnDefinition(const ColumnDefinition &) = default;
+ColumnDefinition::ColumnDefinition(ColumnDefinition &&) = default;
+ColumnDefinition &ColumnDefinition::operator=(const ColumnDefinition &) = default;
+ColumnDefinition &ColumnDefinition::operator=(ColumnDefinition &&) = default;
+ColumnDefinition::~ColumnDefinition() = default;
 
 ColumnDefinition &ColumnDefinition::primaryKey(bool enable)
 {
