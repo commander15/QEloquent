@@ -2,6 +2,7 @@
 #include "driver_p.h"
 
 #include "impl/sqlitedriver_p.h"
+#include "impl/mysqldriver_p.h"
 
 #include <QSqlDriver>
 #include <QSqlIndex>
@@ -80,6 +81,10 @@ Driver *Driver::create(const QString &qtDriverName, QSqlDriver *qtDriver)
     // SQLite
     if (qtDriverName == QStringLiteral("QSQLITE"))
         return new SQLiteDriver(qtDriver);
+
+    // MySQL / MariaDB
+    if (qtDriverName == QStringLiteral("QMYSQL") || qtDriverName == QStringLiteral("QMARIADB"))
+        return new MySQLDriver(qtDriver);
 
     return new DefaultDriver(qtDriver);
 }

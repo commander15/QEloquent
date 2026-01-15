@@ -4,10 +4,12 @@ target_headers(QEloquent
     PRIVATE
         driver_p.h
         impl/sqlitedriver_p.h
+        impl/mysqldriver_p.h
 )
 
 target_sources(QEloquent
     PRIVATE
         driver.cpp
         impl/sqlitedriver.cpp
+        impl/mysqldriver.cpp
 )
