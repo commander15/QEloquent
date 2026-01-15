@@ -28,8 +28,8 @@ public:
 
     template<typename MigrationClass>
     static void registerMigration() { registerMigration(new MigrationClass()); }
-    static void registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QDateTime &creationTime);
-    static void registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QDateTime &creationTime, const QString &connectionName);
+    static void registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down);
+    static void registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QString &connectionName);
     static void registerMigration(Migration *migration);
 
     static void clear();

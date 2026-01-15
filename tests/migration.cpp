@@ -28,8 +28,7 @@ TEST_F(Migration, InvalidMigrationMakesMigrateToFail) {
     auto init = Migrator::init(connection.name());
     ASSERT_TRUE(init);
 
-    QEloquent::Migration *user = QEloquent::Migration::create(
-        "create_users_table", userUp, userDown, QDateTime(QDate(2026, 1, 15), QTime(11, 56)));
+    QEloquent::Migration *user = QEloquent::Migration::create("create_users_table", userUp, userDown);
     Migrator::registerMigration(user);
 
     auto result = Migrator::migrate();
@@ -51,8 +50,7 @@ TEST_F(Migration, ValidMigrationMakesMigrateToSucceed) {
     auto init = Migrator::init(connection.name());
     ASSERT_TRUE(init);
 
-    QEloquent::Migration *user = QEloquent::Migration::create(
-        "create_users_table", userUp, userDown, QDateTime(QDate(2026, 1, 15), QTime(11, 56)));
+    QEloquent::Migration *user = QEloquent::Migration::create("create_users_table", userUp, userDown);
     Migrator::registerMigration(user);
 
     auto result = Migrator::migrate();

@@ -127,15 +127,15 @@ Result<int, Error> Migrator::refresh(const MigrationMonitor &monitor)
     return executed;
 }
 
-void Migrator::registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QDateTime &creationTime)
+void Migrator::registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down)
 {
-    Migration *migration = Migration::create(name, up, down, creationTime, Connection::defaultConnectionName());
+    Migration *migration = Migration::create(name, up, down, Connection::defaultConnectionName());
     registerMigration(migration);
 }
 
-void Migrator::registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QDateTime &creationTime, const QString &connectionName)
+void Migrator::registerMigration(const QString &name, const MigrationCallback &up, const MigrationCallback &down, const QString &connectionName)
 {
-    Migration *migration = Migration::create(name, up, down, creationTime, connectionName);
+    Migration *migration = Migration::create(name, up, down, connectionName);
     registerMigration(migration);
 }
 
@@ -167,7 +167,6 @@ Result<bool, Error> Migrator::createMigrationsTable()
         Schema::create(MIGRATIONS_TABLE, [](TableBlueprint &table) {
             table.id();
             table.string("name", 30).unique();
-            table.timestamp("created_at");
             table.timestamp("executed_at");
         });
 
@@ -229,7 +228,6 @@ Result<int, Error> Migrator::saveMigrationRecord(Migration *migration, bool exec
     DataMap data = {
         { "name", migration->name() },
         { "executed_at", nowResult.value() },
-        { "created_at", migration->createdAt() },
     };
 
     auto result = QueryRunner::insert(data, query);

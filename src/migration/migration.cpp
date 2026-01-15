@@ -27,26 +27,26 @@ Connection Migration::connection() const
     return Connection::connection(connectionName());
 }
 
-Migration *Migration::create(const QString &name, const Callback &up, const Callback &down, const QDateTime &createdAt)
+Migration *Migration::create(const QString &name, const Callback &up, const Callback &down)
 {
-    Migration *m = new GenericMigration(name, up, down, createdAt, Connection::defaultConnectionName());
+    Migration *m = new GenericMigration(name, up, down, Connection::defaultConnectionName());
     if (s_autoRegistrationOn) Migrator::registerMigration(m);
     return m;
 }
 
-Migration *Migration::create(const QString &name, const Callback &up, const Callback &down, const QDateTime &createdAt, const QString &connectionName)
+Migration *Migration::create(const QString &name, const Callback &up, const Callback &down, const QString &connectionName)
 {
-    Migration *m = new GenericMigration(name, up, down, createdAt, connectionName);
+    Migration *m = new GenericMigration(name, up, down, connectionName);
     if (s_autoRegistrationOn) Migrator::registerMigration(m);
     return m;
 }
 
-Migration *Migration::createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QDateTime &createdAt)
+Migration *Migration::createTable(const QString &tableName, const Schema::BlueprintCallback &callback)
 {
-    return createTable(tableName, callback, createdAt, Connection::defaultConnectionName());
+    return createTable(tableName, callback, Connection::defaultConnectionName());
 }
 
-Migration *Migration::createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QDateTime &createdAt, const QString &connectionName)
+Migration *Migration::createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QString &connectionName)
 {
     auto up = [tableName, callback] {
         Schema::create(tableName, callback);
@@ -56,25 +56,25 @@ Migration *Migration::createTable(const QString &tableName, const Schema::Bluepr
         Schema::dropIfExists(tableName);
     };
 
-    return create("create_" + tableName + "_table", up, down, createdAt, connectionName);
+    return create("create_" + tableName + "_table", up, down, connectionName);
 }
 
-Migration *Migration::fromScriptFilePattern(const QString &name, const QString &filePrefix, const QDateTime &createdAt)
+Migration *Migration::fromScriptFilePattern(const QString &name, const QString &filePrefix)
 {
-    return fromScriptFiles(name, filePrefix + "_up.sql", filePrefix + "_down.sql", createdAt, Connection::defaultConnectionName());
+    return fromScriptFiles(name, filePrefix + "_up.sql", filePrefix + "_down.sql", Connection::defaultConnectionName());
 }
 
-Migration *Migration::fromScriptFilePattern(const QString &name, const QString &filePrefix, const QDateTime &createdAt, const QString &connectionName)
+Migration *Migration::fromScriptFilePattern(const QString &name, const QString &filePrefix, const QString &connectionName)
 {
-    return fromScriptFiles(name, filePrefix + "_up.sql", filePrefix + "_down.sql", createdAt, connectionName);
+    return fromScriptFiles(name, filePrefix + "_up.sql", filePrefix + "_down.sql", connectionName);
 }
 
-Migration *Migration::fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QDateTime &createdAt)
+Migration *Migration::fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName)
 {
-    return fromScriptFiles(name, upFileName, downFileName, createdAt, Connection::defaultConnectionName());
+    return fromScriptFiles(name, upFileName, downFileName, Connection::defaultConnectionName());
 }
 
-Migration *Migration::fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QDateTime &createdAt, const QString &connectionName)
+Migration *Migration::fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QString &connectionName)
 {
     QByteArray up;
     QByteArray down;
@@ -92,15 +92,15 @@ Migration *Migration::fromScriptFiles(const QString &name, const QString &upFile
         file.close();
     }
 
-    return fromScriptContents(name, up, down, createdAt, connectionName);
+    return fromScriptContents(name, up, down, connectionName);
 }
 
-Migration *Migration::fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QDateTime &createdAt)
+Migration *Migration::fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript)
 {
-    return fromScriptContents(name, upScript, downScript, createdAt, Connection::defaultConnectionName());
+    return fromScriptContents(name, upScript, downScript, Connection::defaultConnectionName());
 }
 
-Migration *Migration::fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QDateTime &createdAt, const QString &connectionName)
+Migration *Migration::fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QString &connectionName)
 {
     const Callback up = [upScript] {
         QStringList statements = QueryBuilder::statementsFromScriptContent(upScript);
@@ -112,7 +112,7 @@ Migration *Migration::fromScriptContents(const QString &name, const QByteArray &
         Schema::exec(statements);
     };
 
-    return create(name, up, down, createdAt, connectionName);
+    return create(name, up, down, connectionName);
 }
 
 void Migration::enableAutoRegistration()
