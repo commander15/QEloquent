@@ -34,10 +34,12 @@ class QELOQUENT_EXPORT Migration
 public:
     typedef std::function<void()> Callback;
 
+    Migration(const QDateTime &creationTime) : m_createdAt(creationTime) {}
     virtual ~Migration() = default;
 
     int id() const { return m_id; }
     virtual QString name() const = 0;
+    QDateTime createdAt() const { return m_createdAt; }
     QDateTime executedAt() const { return m_executedAt; }
     bool isExecuted() const { return m_id > 0 && m_executedAt.isValid(); }
 
@@ -47,20 +49,20 @@ public:
     virtual QString connectionName() const;
     Connection connection() const;
 
-    static Migration *create(const QString &name, const Callback &up, const Callback &down);
-    static Migration *create(const QString &name, const Callback &up, const Callback &down, const QString &connectionName);
+    static Migration *create(const QString &name, const Callback &up, const Callback &down, const QDateTime &createdAt);
+    static Migration *create(const QString &name, const Callback &up, const Callback &down, const QDateTime &createdAt,  const QString &connectionName);
 
-    static Migration *createTable(const QString &tableName, const Schema::BlueprintCallback &callback);
-    static Migration *createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QString &connectionName);
+    static Migration *createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QDateTime &createdAt);
+    static Migration *createTable(const QString &tableName, const Schema::BlueprintCallback &callback, const QDateTime &createdAt, const QString &connectionName);
 
-    static Migration *fromScriptFilePattern(const QString &name, const QString &filePrefix);
-    static Migration *fromScriptFilePattern(const QString &name, const QString &filePrefix, const QString &connectionName);
+    static Migration *fromScriptFilePattern(const QString &name, const QString &filePrefix, const QDateTime &createdAt);
+    static Migration *fromScriptFilePattern(const QString &name, const QString &filePrefix, const QDateTime &createdAt, const QString &connectionName);
 
-    static Migration *fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName);
-    static Migration *fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QString &connectionName);
+    static Migration *fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QDateTime &createdAt);
+    static Migration *fromScriptFiles(const QString &name, const QString &upFileName, const QString &downFileName, const QDateTime &createdAt, const QString &connectionName);
 
-    static Migration *fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript);
-    static Migration *fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QString &connectionName);
+    static Migration *fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QDateTime &createdAt);
+    static Migration *fromScriptContents(const QString &name, const QByteArray &upScript, const QByteArray &downScript, const QDateTime &createdAt, const QString &connectionName);
 
     static void enableAutoRegistration();
     static void disableAutoRegistration();
@@ -68,11 +70,11 @@ public:
 private:
     int m_id = 0;
     QDateTime m_executedAt;
+    const QDateTime m_createdAt;
 
-    Result<bool, Error> getStatus(bool cached = false);
     void updateData(int id, const QDateTime &execTime);
-    Result<bool, Error> markAsExecuted();
-    Result<bool, Error> markAsUnexecuted();
+    void markAsExecuted();
+    void markAsUnexecuted();
 
     static bool s_autoRegistrationOn;
 

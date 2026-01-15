@@ -37,13 +37,11 @@ find_package(Qt6 REQUIRED COMPONENTS ${REQUIRED_MODULES} OPTIONAL_COMPONENTS ${O
 set(EXPECTED_BUILD_PACKAGE OFF)
 set(EXPECTED_BUILD_TESTS   OFF)
 include(FetchContent)
-
 FetchContent_Declare(
     Expected
     GIT_REPOSITORY https://github.com/TartanLlama/expected.git
     GIT_TAG v1.3.1
 )
-
 FetchContent_MakeAvailable(Expected)
 
 add_subdirectory(src)
@@ -58,8 +56,10 @@ if (QELOQUENT_BUILD_DOC)
     add_subdirectory(doc)
 endif()
 
-if (QELOQUENT_BUILD_EXAMPLES AND Qt6Widgets_FOUND)
-    add_subdirectory(examples/store)
+if (QELOQUENT_BUILD_EXAMPLES)
+    if (Qt6Widgets_FOUND)
+        add_subdirectory(examples/store)
+    endif()
 endif()
 
 # CI/CD workflow

@@ -1,5 +1,3 @@
-set(BUILD_SHARED_LIBS 1)
-
 qt_add_library(QEloquent)
 
 add_subdirectory(core)
@@ -9,7 +7,10 @@ add_subdirectory(utils)
 add_subdirectory(query)
 add_subdirectory(meta)
 add_subdirectory(orm)
- add_subdirectory(migration)
+
+if (TRUE)
+    add_subdirectory(migration)
+endif()
 
 set_target_properties(QEloquent
     PROPERTIES
@@ -18,12 +19,15 @@ set_target_properties(QEloquent
 
 target_compile_definitions(QEloquent
     PUBLIC
-        QELOQUENT_LIB QELOQUENT_$<IF:${BUILD_SHARED_LIBS},SHARED,STATIC>
+        QELOQUENT_LIB
+        QELOQUENT_$<IF:$<BOOL:${BUILD_SHARED_LIBS}>,SHARED,STATIC>
     PRIVATE
         QELOQUENT_BUILD
 )
 
 target_link_libraries(QEloquent PUBLIC Qt::Sql expected)
+
+target_compile_features(QEloquent PUBLIC cxx_std_20)
 
 target_include_directories(QEloquent
     PUBLIC

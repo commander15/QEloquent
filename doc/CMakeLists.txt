@@ -18,7 +18,7 @@ if(DOXYGEN_FOUND)
         VERBATIM
     )
 
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doxygen DESTINATION doc/QEloquent)
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doxygen/ DESTINATION doc/QEloquent)
 else()
     message(STATUS "Doxygen not found, 'doc' target will not be available")
 endif()

@@ -1,7 +1,16 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(Qt6 COMPONENTS Core Sql)
+include(GNUInstallDirs)
+
+# Qt
+find_dependency(Qt6 REQUIRED COMPONENTS Core Sql)
+
+# tl-expected
+find_dependency(tl-expected REQUIRED
+    PATHS
+        ${PACKAGE_PREFIX_DIR}/${CMAKE_INSTALL_DATADIR}/cmake/tl-expected
+)
 
 include("${CMAKE_CURRENT_LIST_DIR}/QEloquentTargets.cmake")
 
