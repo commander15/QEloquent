@@ -77,6 +77,7 @@ QSqlDriver *Driver::qtDriver() const
 
 Driver *Driver::create(const QString &qtDriverName, QSqlDriver *qtDriver)
 {
+    // SQLite
     if (qtDriverName == QStringLiteral("QSQLITE"))
         return new SQLiteDriver(qtDriver);
 

@@ -31,16 +31,16 @@ class SQLiteDriver final : public Driver
 {
 public:
     SQLiteDriver(QSqlDriver *qtDriver)
-#ifndef QELOQUENT_MIGRATIONS_SUPPORT
-        : Driver(qtDriver) {}
-#else
-        : Driver(qtDriver), m_grammar(this) {}
+        : Driver(qtDriver)
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+        , m_grammar(this)
+#endif
+    {}
 
-    SchemaGrammar *schemaGrammar() const override {
-        return &m_grammar;
-    }
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+    SchemaGrammar *schemaGrammar() const override
+    { return &m_grammar; }
 
-private:
     mutable SQLiteGrammar m_grammar;
 #endif
 };
