@@ -12,6 +12,8 @@ if (TRUE)
     add_subdirectory(migration)
 endif()
 
+add_subdirectory(seeding)
+
 set_target_properties(QEloquent
     PROPERTIES
         VERSION ${PROJECT_VERSION}

@@ -1,5 +1,7 @@
 #include "common.h"
 
+#include <QEloquent/seeder.h>
+
 #include "models/product.h"
 #include "models/user.h"
 #include "models/sale.h"
@@ -9,13 +11,7 @@ using namespace QEloquent;
 
 Result<int> seed()
 {
-    // Checks
-    auto roleCount = UserRole::count();
-    if (roleCount && roleCount.value() > 0)
-        return 0;
-
     int count = 0;
-
     auto save = [&count](Model &model) {
         if (!model.save()) {
             qDebug() << model.lastQuery().toString();
@@ -25,57 +21,107 @@ Result<int> seed()
         }
     };
 
-    // Initial Seed
-    UserRole adminRole;
-    adminRole.name = "Store Manager";
-    save(adminRole);
+    Seeder::enableAutoRegistration();
 
-    User amadou;
-    amadou.name = "Amadou";
-    amadou.email = "amadou@store.com";
-    amadou.roleId = adminRole.id;
-    save(amadou);
+    Seeder::create("initial user roles", [] {
+        auto count = UserRole::count();
+        return (count ? count.value() == 0 : false);
+    }, [&save] {
+        UserRole adminRole;
+        adminRole.name = "Store Manager";
+        save(adminRole);
+    });
 
-    Category fruits;
-    fruits.name = "Fruits";
-    fruits.description = "Fresh farm fruits";
-    save(fruits);
+    Seeder::create("initial user", [] {
+        auto count = User::count();
+        return (count ? count.value() == 0 : false);
+    }, [&save] {
+        auto role = UserRole::find(Query().where("name", "Store Manager"));
+        if (!role || role->isEmpty()) {
+            // ...
+            return;
+        }
 
-    Product apple;
-    apple.name = "Organic Apple";
-    apple.price = 1.50;
-    apple.categoryId = fruits.id;
-    save(apple);
+        User amadou;
+        amadou.name = "Amadou";
+        amadou.email = "amadou@store.com";
+        amadou.password = "1234";
+        amadou.roleId = role->constFirst().id;
+        save(amadou);
 
-    Stock appleStock;
-    appleStock.quantity = 50;
-    appleStock.productId = apple.id;
-    save(appleStock);
+        User guest;
+        guest.name = "Celestin";
+        guest.email = "guest@store.com";
+        guest.password = "1234";
+        guest.roleId = role->constFirst().id;
+        save(guest);
+    });
 
-    Product banana;
-    banana.name = "Fairtrade Banana";
-    banana.price = 0.80;
-    banana.categoryId = fruits.id;
-    save(banana);
+    Seeder::create("initial products", [] {
+        auto count = Product::count();
+        return (count ? count.value() == 0 : false);
+    }, [&save] {
+        Category fruits;
+        fruits.name = "Fruits";
+        fruits.description = "Fresh farm fruits";
+        save(fruits);
 
-    Stock bananaStock;
-    bananaStock.quantity = 5; // Low stock
-    bananaStock.productId = banana.id;
-    save(bananaStock);
+        Product apple;
+        apple.name = "Organic Apple";
+        apple.price = 1.50;
+        apple.categoryId = fruits.id;
+        save(apple);
 
-    // A sample sale
-    Sale s;
-    s.number = 1001;
-    s.amount = apple.price * 2;
-    s.sellerId = amadou.id;
-    save(s);
+        Stock appleStock;
+        appleStock.quantity = 50;
+        appleStock.productId = apple.id;
+        save(appleStock);
 
-    SaleItem item;
-    item.saleId = s.id;
-    item.productId = apple.id;
-    item.unitPrice = apple.price;
-    item.quantity = 2;
-    save(item);
+        Product banana;
+        banana.name = "Fairtrade Banana";
+        banana.price = 0.80;
+        banana.categoryId = fruits.id;
+        save(banana);
 
-    return count;
+        Stock bananaStock;
+        bananaStock.quantity = 5; // Low stock
+        bananaStock.productId = banana.id;
+        save(bananaStock);
+    });
+
+    Seeder::create("sample sale", [] {
+        auto count = Sale::count();
+        return (count ? count.value() == 0 : false);
+    }, [&save] {
+        auto users = User::find(Query().where("name", "Amadou"));
+        if (!users || users->isEmpty())
+            return;
+
+        auto products = Product::find(Query().where("name", "Organic Apple"));
+        if (!products || products->isEmpty())
+            return;
+
+        const User amadou = users->constFirst();
+        const Product apple = products->constFirst();
+
+        Sale s;
+        s.number = 1001;
+        s.amount = apple.price * 2;
+        s.sellerId = amadou.id;
+        save(s);
+
+        SaleItem item;
+        item.saleId = s.id;
+        item.productId = apple.id;
+        item.unitPrice = apple.price;
+        item.quantity = 2;
+        save(item);
+    });
+
+    Seeder::disableAutoRegistration();
+
+    qDebug() << "Seeding...";
+    return Seeder::runAll([](Seeder *seeder) {
+        qDebug() << "running " << seeder->name();
+    });
 }

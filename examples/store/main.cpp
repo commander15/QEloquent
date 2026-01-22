@@ -21,8 +21,9 @@ void initDatabase()
         qFatal("Could not open database connection");
     }
 
-    migrate();
-    seed();
+    auto migrationResult = migrate();
+    if (migrationResult && migrationResult.value() > 0)
+        seed();
 }
 
 int main(int argc, char *argv[])

@@ -1,7 +1,7 @@
 #ifndef QELOQUENT_RELATION_IMPL_H
 #define QELOQUENT_RELATION_IMPL_H
 
-#include <QEloquent/relation.h>
+#include <QEloquent/private/relation_p.h>
 #include <QEloquent/namingconvention.h>
 #include <QEloquent/query.h>
 

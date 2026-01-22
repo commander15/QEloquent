@@ -10,6 +10,7 @@
 
 #include <QObject>
 #include <QSharedDataPointer>
+#include <QDateTime>
 
 #include <source_location>
 
@@ -41,10 +42,10 @@ public:
     QVariant primary() const;
     void setPrimary(const QVariant &value);
 
+    QVariant label() const;
+
     QVariant property(const QString &name) const;
     void setProperty(const QString &name, const QVariant &value);
-
-    QVariant label() const;
 
     QVariant field(const QString &name) const;
     void setField(const QString &name, const QVariant &value);
@@ -54,6 +55,7 @@ public:
     bool insert() override final;
     bool update() override final;
     bool deleteData() override final;
+    bool deletePermanently();
 
     bool load(const QString &relation);
     bool load(const QStringList &relations);
@@ -72,7 +74,9 @@ public:
     DataMap fullDataMap() const;
 
 protected:
-    template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type* = nullptr> Model(T *self);
+    template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type* = nullptr>
+    Model(T *self);
+
     Model(const QMetaObject &metaObject);
     Model(ModelData *data);
 
@@ -118,14 +122,69 @@ private:
     friend class RelationData;
 };
 
+class QELOQUENT_EXPORT SimpleModel : public Model
+{
+    Q_GADGET
+    Q_PROPERTY(qint64 id READ id WRITE setId FINAL)
+
+public:
+    SimpleModel(const SimpleModel &);
+    SimpleModel(SimpleModel &&);
+    SimpleModel &operator=(const SimpleModel &);
+    SimpleModel &operator=(SimpleModel &&);
+    virtual ~SimpleModel();
+
+    qint64 id() const;
+    virtual void setId(qint64 id);
+
+protected:
+    template<typename T, std::enable_if<std::is_base_of<SimpleModel, T>::value>::type* = nullptr>
+    SimpleModel(T *m) : Model(m) {}
+
+    qint64 m_id = 0;
+};
+
+class QELOQUENT_EXPORT StandardModel : public Model
+{
+    Q_GADGET
+    Q_PROPERTY(qint64 id READ id WRITE setId FINAL)
+    Q_PROPERTY(QDateTime createdAt MEMBER m_createdAt FINAL)
+    Q_PROPERTY(QDateTime updatedAt MEMBER m_updatedAt FINAL)
+
+public:
+    StandardModel(const StandardModel &);
+    StandardModel(StandardModel &&);
+    StandardModel &operator=(const StandardModel &);
+    StandardModel &operator=(StandardModel &&);
+    virtual ~StandardModel();
+
+    qint64 id() const;
+    virtual void setId(qint64 id);
+
+    QDateTime createdAt() const;
+    QDateTime updatedAt() const;
+
+protected:
+    template<typename T, std::enable_if<std::is_base_of<StandardModel, T>::value>::type* = nullptr>
+    StandardModel(T *m) : Model(m) {}
+
+    qint64 m_id = 0;
+    QDateTime m_createdAt;
+    QDateTime m_updatedAt;
+};
+
+/*!
+ * \brief Construct a Model instance and use the QMetaObject of 'self' as base for meta functions.
+ * \note Typically, you must use QEloquent::Model(this) on your model classes.
+ */
+template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
+inline Model::Model(T *self) : Model(T::staticMetaObject) {}
+
 } // namespace QEloquent
 
-#include "relation_impl.h"
+#include <QEloquent/private/relation_impl.h>
 
 namespace QEloquent {
-
-template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
-inline Model::Model(T *) : Model(T::staticMetaObject) {}
 
 /*!
  * \fn QEloquent::Model::hasOne
@@ -166,17 +225,18 @@ inline Relation<T> Model::hasMany(const QString &foreignKey, const QString &loca
 }
 
 /*!
- * \fn QEloquent::Model::hasManyThrough
  * \brief Defines a has-many-through relationship.
  * \param foreignKey The foreign key of the intermediate model.
  * \param localKey The local key of the parent model.
- * \param throughForeignKey The foreignKey referenced on the through table
+ * \param throughForeignKey The foreignKey referenced on the through table.
+ * \param throughLocalKey The localKey referenced on the through table.
  * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T, typename Through>
 inline Relation<T> Model::hasManyThrough(const QString &foreignKey, const QString &localKey,
-                                         const QString &throughForeignKey, const QString &throughLocalKey, const std::source_location &location) const
+                                         const QString &throughForeignKey, const QString &throughLocalKey,
+                                         const std::source_location &location) const
 {
     return Relation<T>(location, this, [=]() {
         auto d = new HasManyThroughRelationData<T, Through>();
@@ -208,18 +268,20 @@ inline Relation<T> Model::belongsTo(const QString &foreignKey, const QString &ow
 }
 
 /*!
- * \fn QEloquent::Model::belongsToMany
  * \brief Defines a many-to-many relationship.
  * \param table The pivot table name.
  * \param foreignPivotKey The foreign key of the current model in the pivot table.
  * \param relatedPivotKey The foreign key of the related model in the pivot table.
+ * \param parentKey The parent's field that must match.
+ * \param relatedKey The related key that must match.
  * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T>
-inline Relation<T> Model::belongsToMany(const QString &table, const QString &foreignPivotKey,
-                                        const QString &relatedPivotKey, const QString &parentKey,
-                                        const QString &relatedKey, const std::source_location &location) const
+inline Relation<T> Model::belongsToMany(const QString &table,
+                                        const QString &foreignPivotKey, const QString &relatedPivotKey,
+                                        const QString &parentKey, const QString &relatedKey,
+                                        const std::source_location &location) const
 {
     return Relation<T>(location, this, [=]() {
         auto d = new BelongsToManyRelationData<T>();
@@ -233,18 +295,20 @@ inline Relation<T> Model::belongsToMany(const QString &table, const QString &for
 }
 
 /*!
- * \fn QEloquent::Model::belongsToManyThrough
  * \brief Defines a belongs-to-many-through relationship.
  * \param table The pivot table name.
  * \param foreignPivotKey The foreign key of the intermediate model in the pivot table.
  * \param relatedPivotKey The foreign key of the related model in the pivot table.
+ * \param parentKey The parent's field that must match.
+ * \param relatedKey The related key that must match.
  * \param location The source location, used to compute the function name to name relation.
  * \return A Relation object.
  */
 template<typename T, typename Through>
-inline Relation<T> Model::belongsToManyThrough(const QString &table, const QString &foreignPivotKey,
-                                               const QString &relatedPivotKey, const QString &parentKey,
-                                               const QString &relatedKey, const std::source_location &location) const
+inline Relation<T> Model::belongsToManyThrough(const QString &table,
+                                               const QString &foreignPivotKey, const QString &relatedPivotKey,
+                                               const QString &parentKey, const QString &relatedKey,
+                                               const std::source_location &location) const
 {
     return Relation<T>(location, this, [=]() {
         auto d = new BelongsToManyThroughRelationData<T, Through>();
@@ -258,25 +322,5 @@ inline Relation<T> Model::belongsToManyThrough(const QString &table, const QStri
 }
 
 } // namespace QEloquent
-
-namespace QEloquent {
-
-class QELOQUENT_EXPORT SimpleModel : public Model
-{
-    Q_GADGET
-    Q_PROPERTY(qint64 id READ id WRITE setId FINAL)
-
-public:
-    template<typename T> SimpleModel(T *m) : Model(m) {}
-    virtual ~SimpleModel() = default;
-
-    qint64 id() const { return m_id; }
-    virtual void setId(qint64 id) { m_id = (id < 0 ? 0 : id); }
-
-protected:
-    qint64 m_id;
-};
-
-}
 
 #endif // QELOQUENT_MODEL_H

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 
 project(
     QEloquent
-    VERSION 1.1.0
+    VERSION 1.2.0
     DESCRIPTION "Qt most flexible ORM."
     HOMEPAGE_URL "commander15.github.io/QEloquent"
     LANGUAGES CXX C

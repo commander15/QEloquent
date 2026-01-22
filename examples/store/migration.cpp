@@ -4,8 +4,6 @@
 #include <QEloquent/migrator.h>
 #include <QEloquent/queryrunner.h>
 
-#include <QSqlQuery>
-
 using namespace QEloquent;
 
 QEloquent::Result<int> migrate()

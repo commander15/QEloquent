@@ -5,7 +5,7 @@ target_headers(QEloquent
         relation.h
     PRIVATE
         model_p.h
-        relation_impl.h
+        relation_p.h relation_impl.h
 )
 
 target_sources(QEloquent

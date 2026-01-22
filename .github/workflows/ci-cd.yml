@@ -8,7 +8,7 @@ on:
 
 env:
   PACKAGE_NAME: QEloquent
-  PACKAGE_VERSION: 1.1.0
+  PACKAGE_VERSION: 1.2.0
   QT_VERSION: 6.5.0
   QT_MODULES: 
   BUILD_DIR: ${{ github.workspace }}/build
@@ -154,4 +154,4 @@ jobs:
           subject: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} released !
           from: ${{ secrets.MAIL_AUTHOR }}
           to: ${{ secrets.MAIL_RECEIVERS }}
-          body: "Hello, ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n# 🚀 QEloquent 1.1.0\n\n- Bug fixes\n- Added migration support (SQLite only)\n- Enhanced Query API\n- Performance improvements\n\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"
+          body: "Hello, ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n# 🚀 QEloquent 1.2.0\n\n- Bug fixes\n- Enhanced migration handling\n- Added Seeding functions\n- Performance improvements\n\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"

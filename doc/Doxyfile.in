@@ -6,6 +6,7 @@ STRIP_FROM_PATH        = @PROJECT_SOURCE_DIR@
 INPUT                  = @PROJECT_SOURCE_DIR@/README.md \
                          @PROJECT_SOURCE_DIR@/src/orm \
                          @PROJECT_SOURCE_DIR@/src/core \
+                         @PROJECT_SOURCE_DIR@/src/serialization \
                          @PROJECT_SOURCE_DIR@/src/query \
                          @PROJECT_SOURCE_DIR@/src/utils \
                          @PROJECT_SOURCE_DIR@/doc/introduction.md \

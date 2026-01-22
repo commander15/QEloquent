@@ -23,7 +23,7 @@ public:
 
 #endif
 
-class MySQLDriver : public QEloquent::Driver
+class MySQLDriver final : public QEloquent::Driver
 {
 public:
     MySQLDriver(QSqlDriver *qtDriver)

@@ -1,4 +1,5 @@
 #include "relation.h"
+#include "relation_p.h"
 
 #include <QEloquent/model.h>
 #include <QEloquent/private/model_p.h>
