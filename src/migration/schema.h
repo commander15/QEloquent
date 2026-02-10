@@ -54,17 +54,12 @@ private:
 class QELOQUENT_EXPORT SchemaException : public QException
 {
 public:
-    SchemaException(const QString &statement, const QSqlError &error)
-        : statement(statement)
-        , error(error)
-        , m_what(statement.toUtf8() + '\n' + error.text().toUtf8())
-    {}
+    SchemaException(const QString &statement, const QSqlError &error);
 
-    const char *what() const noexcept override
-    { return m_what.data(); }
+    const char *what() const noexcept override;
 
-    void raise() const override { throw *this; }
-    SchemaException *clone() const override { return new SchemaException(*this); }
+    void raise() const override;
+    SchemaException *clone() const override;
 
     const QString statement;
     const QSqlError error;

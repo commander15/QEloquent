@@ -9,6 +9,8 @@ INPUT                  = @PROJECT_SOURCE_DIR@/README.md \
                          @PROJECT_SOURCE_DIR@/src/serialization \
                          @PROJECT_SOURCE_DIR@/src/query \
                          @PROJECT_SOURCE_DIR@/src/utils \
+                         @PROJECT_SOURCE_DIR@/src/migration \
+                         @PROJECT_SOURCE_DIR@/src/seeding \
                          @PROJECT_SOURCE_DIR@/doc/introduction.md \
                          @PROJECT_SOURCE_DIR@/doc/model_definition.md \
                          @PROJECT_SOURCE_DIR@/doc/usage.md \

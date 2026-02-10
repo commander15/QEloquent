@@ -34,12 +34,12 @@ class QELOQUENT_EXPORT Migration
 public:
     typedef std::function<void()> Callback;
 
-    virtual ~Migration() = default;
+    virtual ~Migration();
 
-    int id() const { return m_id; }
+    int id() const;
     virtual QString name() const = 0;
-    QDateTime executedAt() const { return m_executedAt; }
-    bool isExecuted() const { return m_id > 0 && m_executedAt.isValid(); }
+    QDateTime executedAt() const;
+    bool isExecuted() const;
 
     virtual void up() = 0;
     virtual void down() = 0;

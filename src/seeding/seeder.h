@@ -17,11 +17,11 @@ public:
     typedef std::function<void()> RunCallback;
     typedef std::function<void(Seeder *seeder)> SeedMonitor;
 
-    virtual ~Seeder() = default;
+    virtual ~Seeder();
 
     virtual QString name() const = 0;
 
-    virtual bool shouldSeed() const { return true; }
+    virtual bool shouldSeed() const;
     virtual void seed() = 0;
 
     static Seeder *create(const QString &name, const RunCallback &run);

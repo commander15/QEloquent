@@ -33,11 +33,11 @@ public:
 
     ColumnDefinition boolean(const QString &name);
 
-    ColumnDefinition integer(const QString &name, bool autoIncrement = false, bool positive = false);
+    ColumnDefinition integer(const QString &name, bool positive = false, bool autoIncrement = false);
     ColumnDefinition unsignedInteger(const QString &name, bool autoIncrement = false);
-    ColumnDefinition bigInteger(const QString &name, bool autoIncrement = false, bool positive = false);
+    ColumnDefinition bigInteger(const QString &name, bool positive = false, bool autoIncrement = false);
     ColumnDefinition unsignedBigInteger(const QString &name, bool autoIncrement = false);
-    ColumnDefinition tinyInteger(const QString &name, bool autoIncrement = false, bool positive = false);
+    ColumnDefinition tinyInteger(const QString &name, bool positive = false, bool autoIncrement = false);
     ColumnDefinition unsignedTinyInteger(const QString &name, bool autoIncrement = false);
 
     ColumnDefinition doubleNumber(const QString &name);
@@ -61,7 +61,6 @@ public:
     void rawColumn(const QString &name, const QString &definition);
 
     TableData table() const;
-    void exploreTable(const TableExplorer &tableExplorer) const;
 
     static TableBlueprint create(const QString &table, bool create, const QString &connectionName);
 
