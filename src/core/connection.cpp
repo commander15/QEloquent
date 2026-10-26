@@ -325,27 +325,32 @@ Connection Connection::addConnection(const QString &name, const QUrl &url)
 /*!
  * @brief Adds a new connection with basic parameters.
  */
-Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, int port)
+Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName)
 {
-    QSqlDatabase db = QSqlDatabase::addDatabase(type, name);
-    db.setDatabaseName(dbName);
-    if (port > 0)
-        db.setPort(port);
-
-    return addConnection(name, db, true);
+    return addConnection(name, type, dbName, QString(), QString(), QString(), -1);
 }
 
 /*!
  * @brief Adds a new connection with full credentials.
  */
-Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, int port, const QString &userName, const QString &password)
+Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, const QString &userName, const QString &password, const QString &hostName, int port)
 {
-    QSqlDatabase db = QSqlDatabase::addDatabase(type, name);
+    const QString driver = (type.startsWith("Q") ? type : 'Q' + type).toUpper();
+    QSqlDatabase db = QSqlDatabase::addDatabase(driver, name);
+
     db.setDatabaseName(dbName);
+
+    if (!userName.isEmpty())
+        db.setUserName(userName);
+
+    if (!password.isEmpty())
+        db.setPassword(password);
+
+    if (!hostName.isEmpty())
+        db.setHostName(hostName);
+
     if (port > 0)
         db.setPort(port);
-    db.setUserName(userName);
-    db.setPassword(password);
 
     return addConnection(name, db, true);
 }
