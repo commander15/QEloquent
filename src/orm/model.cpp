@@ -31,8 +31,8 @@ namespace QEloquent {
  *
  * \param metaObject The QMetaObject describing the model's properties and metadata.
  */
-Model::Model(const QMetaObject &metaObject)
-    : data(new ModelData())
+Model::Model(const QMetaObject &metaObject, ModelData *data)
+    : data(data == nullptr ? new ModelData() : data)
 {
     data->metaObject = MetaObject::fromQtMetaObject(metaObject);
 }
@@ -492,7 +492,7 @@ Result<QSqlQuery, QSqlError> Model::exec(const std::function<QString (const Quer
  * Constructs a new SimpleModel by copying another instance.
  * This is the default implementation (member-wise copy).
  */
-SimpleModel::SimpleModel(const SimpleModel &) = default;
+SmartModel::SmartModel(const SmartModel &) = default;
 
 /*!
  * \brief Move constructor.
@@ -500,7 +500,7 @@ SimpleModel::SimpleModel(const SimpleModel &) = default;
  * Constructs a new SimpleModel by moving from another instance.
  * This is the default implementation (member-wise move).
  */
-SimpleModel::SimpleModel(SimpleModel &&) = default;
+SmartModel::SmartModel(SmartModel &&) = default;
 
 /*!
  * \brief Copy assignment operator.
@@ -510,7 +510,7 @@ SimpleModel::SimpleModel(SimpleModel &&) = default;
  *
  * \return A reference to this object.
  */
-SimpleModel &SimpleModel::operator=(const SimpleModel &) = default;
+SmartModel &SmartModel::operator=(const SmartModel &) = default;
 
 /*!
  * \brief Move assignment operator.
@@ -520,7 +520,7 @@ SimpleModel &SimpleModel::operator=(const SimpleModel &) = default;
  *
  * \return A reference to this object.
  */
-SimpleModel &SimpleModel::operator=(SimpleModel &&) = default;
+SmartModel &SmartModel::operator=(SmartModel &&) = default;
 
 /*!
  * \brief Destructor.
@@ -528,14 +528,14 @@ SimpleModel &SimpleModel::operator=(SimpleModel &&) = default;
  * Cleans up any resources held by the SimpleModel instance.
  * This is the default implementation.
  */
-SimpleModel::~SimpleModel() = default;
+SmartModel::~SmartModel() = default;
 
 /*!
  * \brief Returns the primary key identifier.
  *
  * \return The model's ID value (qint64).
  */
-qint64 SimpleModel::id() const
+qint64 SmartModel::id() const
 {
     return m_id;
 }
@@ -547,7 +547,7 @@ qint64 SimpleModel::id() const
  *
  * \param id The new ID value to set.
  */
-void SimpleModel::setId(qint64 id)
+void SmartModel::setId(qint64 id)
 {
     m_id = (id < 0 ? 0 : id);
 }

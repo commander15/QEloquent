@@ -1,7 +1,7 @@
 target_headers(QEloquent
     PUBLIC
-        model.h
-        modelhelpers.h
+        datatype.h id.h
+        model.h modelhelpers.h smartmodel.h
         relation.h
     PRIVATE
         model_p.h
@@ -10,6 +10,7 @@ target_headers(QEloquent
 
 target_sources(QEloquent
     PRIVATE
-        model.cpp
+        datatype.cpp id.cpp
+        model.cpp smartmodel.cpp
         relation.cpp
 )

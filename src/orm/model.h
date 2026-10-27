@@ -75,9 +75,9 @@ public:
 
 protected:
     template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type* = nullptr>
-    Model(T *self);
+    Model(T *self, ModelData *data = nullptr);
 
-    Model(const QMetaObject &metaObject);
+    Model(const QMetaObject &metaObject, ModelData *data = nullptr);
     Model(ModelData *data);
 
     QDateTime now() const;
@@ -122,63 +122,12 @@ private:
     friend class RelationData;
 };
 
-class QELOQUENT_EXPORT SimpleModel : public Model
-{
-    Q_GADGET
-    Q_PROPERTY(qint64 id READ id WRITE setId FINAL)
-
-public:
-    SimpleModel(const SimpleModel &);
-    SimpleModel(SimpleModel &&);
-    SimpleModel &operator=(const SimpleModel &);
-    SimpleModel &operator=(SimpleModel &&);
-    virtual ~SimpleModel();
-
-    qint64 id() const;
-    virtual void setId(qint64 id);
-
-protected:
-    template<typename T, std::enable_if<std::is_base_of<SimpleModel, T>::value>::type* = nullptr>
-    SimpleModel(T *m) : Model(m) {}
-
-    qint64 m_id = 0;
-};
-
-class QELOQUENT_EXPORT StandardModel : public Model
-{
-    Q_GADGET
-    Q_PROPERTY(qint64 id READ id WRITE setId FINAL)
-    Q_PROPERTY(QDateTime createdAt MEMBER m_createdAt FINAL)
-    Q_PROPERTY(QDateTime updatedAt MEMBER m_updatedAt FINAL)
-
-public:
-    StandardModel(const StandardModel &);
-    StandardModel(StandardModel &&);
-    StandardModel &operator=(const StandardModel &);
-    StandardModel &operator=(StandardModel &&);
-    virtual ~StandardModel();
-
-    qint64 id() const;
-    virtual void setId(qint64 id);
-
-    QDateTime createdAt() const;
-    QDateTime updatedAt() const;
-
-protected:
-    template<typename T, std::enable_if<std::is_base_of<StandardModel, T>::value>::type* = nullptr>
-    StandardModel(T *m) : Model(m) {}
-
-    qint64 m_id = 0;
-    QDateTime m_createdAt;
-    QDateTime m_updatedAt;
-};
-
 /*!
  * \brief Construct a Model instance and use the QMetaObject of 'self' as base for meta functions.
  * \note Typically, you must use QEloquent::Model(this) on your model classes.
  */
 template<typename T, std::enable_if<std::is_base_of<Model, T>::value>::type*>
-inline Model::Model(T *self) : Model(T::staticMetaObject) {}
+inline Model::Model(T *self, ModelData *data) : Model(T::staticMetaObject, data) {}
 
 } // namespace QEloquent
 
