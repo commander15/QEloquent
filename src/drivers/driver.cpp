@@ -3,6 +3,7 @@
 
 #include "impl/sqlitedriver_p.h"
 #include "impl/mysqldriver_p.h"
+#include "impl/postgresdriver_p.h"
 
 #include <QSqlDriver>
 #include <QSqlIndex>
@@ -86,6 +87,11 @@ Driver *Driver::create(const QString &qtDriverName, QSqlDriver *qtDriver)
     if (qtDriverName == QStringLiteral("QMYSQL") || qtDriverName == QStringLiteral("QMARIADB"))
         return new MySQLDriver(qtDriver);
 
+    // Postgres
+    if (qtDriverName == QStringLiteral("QPSQL"))
+        return new PostgresDriver(qtDriver);
+
+    // Default
     return new DefaultDriver(qtDriver);
 }
 
