@@ -21,6 +21,13 @@ Result<int> seed()
         }
     };
 
+
+    auto results = TestModel::all();
+    if (results && results->count() > 0) {
+        qDebug() << results->first();
+        qDebug() << "ID:" << results->first().id();
+    }
+
     Seeder::enableAutoRegistration();
 
     Seeder::create("initial user roles", [] {

@@ -61,6 +61,14 @@ public:
     /** @brief Creates a list of model instances from a list of JSON objects */
     static QList<Model> make(const QList<QJsonObject> &objects);
 
+    /** @brief return a QEloquent::Model ref from any Child Model class */
+    static QEloquent::Model &safeModel(Model &instance)
+    { return static_cast<QEloquent::Model &>(instance); }
+
+    /** @brief return a QEloquent::Model ref from any Child Model class */
+    static const QEloquent::Model &safeModel(const Model &instance)
+    { return static_cast<const QEloquent::Model &>(instance); }
+
     /** @brief Finds a model by its primary key */
     static Result<Model, Error> find(const QVariant &primary);
     /** @brief Finds models matching the given query */
@@ -82,6 +90,13 @@ public:
 
     /** @brief Deletes records matching the given query */
     static Result<int, Error> remove(Query query);
+
+    /** \brief Adds a basic where clause to the query with an implicit equality operator. */
+    static Query where(const QString &field, const QVariant &value) { return query().where(field, "=", value); }
+    /** \brief Adds a conditional where clause to the query using a custom operator. */
+    static Query where(const QString &field, const QString &op, const QVariant &value) { return query().where(field, op, value); }
+    /** \brief Adds a raw SQL expression clause directly to the query filter. */
+    static Query where(const QString &expression) { return query().where(expression); }
 
     /** @brief Returns a new Query object initialized for this model's table */
     static Query query();
@@ -105,7 +120,7 @@ inline QList<Model> ModelHelpers<Model, Maker>::make(const QList<QJsonObject> &o
     QList<Model> models;
     for (const QJsonObject &object : objects) {
         Model m = Maker::make();
-        m.fill(object);
+        safeModel(m).fill(object);
         models.append(m);
     }
     return models;
@@ -142,11 +157,11 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
 
         while (result->next()) {
             Model m = Maker::make();
-            m.fill(result->record());
-            if (m.load(relations))
+            safeModel(m).fill(result->record());
+            if (safeModel(m).load(relations))
                 models.append(m);
             else
-                return failWith(m.lastError());
+                return failWith(safeModel(m).lastError());
         }
 
         return models;
@@ -183,11 +198,11 @@ template<typename Model, typename Maker>
 inline Result<Model, Error> ModelHelpers<Model, Maker>::create(const QJsonObject &object)
 {
     Model model = Maker::make();
-    model.fill(object);
-    if (model.save())
+    safeModel(model).fill(object);
+    if (safeModel(model).save())
         return model;
     else
-        return failWith(model.lastError());
+        return failWith(safeModel(model).lastError());
 }
 
 template<typename Model, typename Maker>

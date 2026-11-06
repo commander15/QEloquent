@@ -14,6 +14,7 @@
 
 #include <source_location>
 
+
 class QSqlRecord;
 class QSqlQuery;
 class QSqlError;
@@ -50,11 +51,11 @@ public:
     QVariant field(const QString &name) const;
     void setField(const QString &name, const QVariant &value);
 
-    bool exists() override final;
-    bool get() override final;
-    bool insert() override final;
-    bool update() override final;
-    bool deleteData() override final;
+    bool exists() override;
+    bool get() override;
+    bool insert() override;
+    bool update() override;
+    bool deleteData() override;
     bool deletePermanently();
 
     bool load(const QString &relation);

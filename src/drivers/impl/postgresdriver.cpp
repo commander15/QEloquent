@@ -2,6 +2,8 @@
 
 namespace QEloquent {
 
+#ifdef QELOQUENT_MIGRATIONS_SUPPORT
+
 QEloquent::PostgresGrammar::PostgresGrammar(Driver *driver) 
     : SchemaGrammar(driver)
 {}
@@ -20,5 +22,7 @@ QPair<SchemaGrammar::ColumnType, SchemaGrammar::NumberSign> PostgresGrammar::pri
 {
     return { ColumnData::BigInteger, ColumnData::Unsigned };
 }
+
+#endif
 
 } // namespace QEloquent

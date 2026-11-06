@@ -22,7 +22,7 @@ void initDatabase()
     }
 
     auto migrationResult = migrate();
-    if (migrationResult && migrationResult.value() > 0)
+    if (migrationResult && migrationResult.value() >= 0)
         seed();
 }
 

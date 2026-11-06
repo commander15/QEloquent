@@ -8,14 +8,15 @@
 
 namespace QEloquent {
 
-class QELOQUENT_EXPORT DataType
+class QELOQUENT_EXPORT AbstractDataType
 {
     Q_GADGET
     Q_PROPERTY(QVariant value READ value WRITE setValue FINAL)
-    Q_PROPERTY(DataType::DataFormat format READ format FINAL)
+    Q_PROPERTY(AbstractDataType::DataFormat format READ format FINAL)
 
 public:
     enum class DataFormat: int {
+        UnknownData = -1,
         BooleanData = 0,
         IntegerData = 1,
         DecimalData = 2,
@@ -24,22 +25,15 @@ public:
     };
     Q_ENUM(DataFormat)
 
-    DataType();
-    DataType(const QVariant &value);
-    virtual ~DataType() = default;
+    virtual ~AbstractDataType() = default;
 
-    virtual QVariant value() const;
-    virtual bool setValue(const QVariant &value);
+    virtual QVariant value() const = 0;
+    virtual bool setValue(const QVariant &value) = 0;
     virtual void unsetValue();
 
-    virtual DataType::DataFormat format() const;
-
-protected:
-    QVariant m_value;
+    virtual AbstractDataType::DataFormat format() const = 0;
 };
 
 } // namespace QEloquent
-
-Q_DECLARE_METATYPE(QEloquent::DataType)
 
 #endif // QELOQUENT_DATATYPE_H

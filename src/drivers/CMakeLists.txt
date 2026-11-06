@@ -5,6 +5,7 @@ target_headers(QEloquent
         driver_p.h
         impl/sqlitedriver_p.h
         impl/mysqldriver_p.h
+        impl/postgresdriver_p.h
 )
 
 target_sources(QEloquent
@@ -12,4 +13,5 @@ target_sources(QEloquent
         driver.cpp
         impl/sqlitedriver.cpp
         impl/mysqldriver.cpp
+        impl/postgresdriver.cpp
 )

@@ -2,6 +2,7 @@
 #include "metaproperty_p.h"
 
 #include <QEloquent/model.h>
+#include <QEloquent/datatype.h>
 #include "../orm/model_p.h"
 
 #include <QMetaType>
@@ -79,6 +80,12 @@ QVariant MetaProperty::read(const Model *model) const
 
     if (data->propertyType == StandardProperty && data->metaProperty.isValid()) {
         value = data->metaProperty.readOnGadget(model);
+
+        const QMetaObject *metaObject = data->metaType.metaObject();
+        if (metaObject != nullptr && metaObject->inherits(&AbstractDataType::staticMetaObject)) {
+            const AbstractDataType *dataType = static_cast<const AbstractDataType *>(value.constData());
+            value = dataType->value();
+        }
     }
 
     if (data->propertyType == DynamicProperty && model->data->dynamicProperties.contains(data->propertyName)) {
@@ -116,6 +123,29 @@ bool MetaProperty::write(Model *model, const QVariant &value) const
     }
 
     if (data->propertyType == StandardProperty) {
+        const QMetaObject *metaObject = data->metaType.metaObject();
+        if (metaObject != nullptr && metaObject->inherits(&AbstractDataType::staticMetaObject)) {
+            QVariant dataTypeVal = data->metaProperty.readOnGadget(model); // To have a good instance to start with
+
+            // If the model doesn't have a valid instance yet, construct one using the metaType
+            if (!dataTypeVal.isValid() || !dataTypeVal.metaType().metaObject() ||
+                !dataTypeVal.metaType().metaObject()->inherits(&AbstractDataType::staticMetaObject)) {
+                dataTypeVal = QVariant(data->metaProperty.metaType());
+            }
+
+            if (auto *dataTypeObj = static_cast<AbstractDataType *>(dataTypeVal.data())) {
+                // Check the boolean return value of setValue
+                if (dataTypeObj->setValue(val)) {
+                    val = dataTypeVal; // Success: pass the full gadget to writeOnGadget
+                } else {
+                    qWarning() << "Failed to set value on"
+                               << metaObject->className() << "::" << data->metaProperty.name()
+                               << "property";
+                    return false;
+                }
+            }
+        }
+
         return data->metaProperty.writeOnGadget(model, val);
     }
 

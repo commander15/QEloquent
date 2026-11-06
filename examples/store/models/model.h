@@ -3,6 +3,7 @@
 
 #include <QEloquent/model.h>
 #include <QEloquent/modelhelpers.h>
+#include <QEloquent/smartmodel.h>
 
 template<typename Model>
 using ModelHelpers = QEloquent::ModelHelpers<Model>;
@@ -34,6 +35,15 @@ public:
 
     QDateTime createdAt;
     QDateTime updatedAt;
+};
+
+class TestModel : public QEloquent::SmartModel, public ModelHelpers<TestModel>
+{
+    Q_GADGET
+    Q_CLASSINFO("table", "Products")
+
+public:
+    TestModel() : SmartModel(this, IntegerID) {}
 };
 
 #endif // MODEL_H

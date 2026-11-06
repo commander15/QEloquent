@@ -10,7 +10,7 @@
 
 namespace QEloquent {
 
-class QELOQUENT_EXPORT ID : public DataType
+class QELOQUENT_EXPORT ID : public AbstractDataType
 {
     Q_GADGET
 
@@ -46,6 +46,7 @@ public:
     bool isNull() const;
     IDType type() const;
 
+    QVariant value() const override;
     bool setValue(qint64 id);
     bool setValue(const QString &id);
     bool setValue(const QUuid &id);
@@ -58,10 +59,11 @@ public:
     operator QUuid() const { return uuid(); }
 
     static ID make(qint64 id) { return ID(id, IntegerID); }
-    static ID make(const QString &id) { return ID(id, (QUuid::fromString(id).isNull() ? StringID : UuidID)); }
+    static ID make(const QString &id) { return make(id, !QUuid::fromString(id).isNull()); }
     static ID make(const QString &id, bool uuid) { return ID(id, (uuid ? UuidID : StringID)); }
 
 private:
+    QVariant m_value;
     IDType m_type;
 };
 
@@ -69,22 +71,25 @@ private:
 
 Q_DECLARE_METATYPE(QEloquent::ID)
 
-bool operator==(qint64 n, const QEloquent::ID &o)
+inline bool operator==(qint64 n, const QEloquent::ID &o)
 { return (o.isInteger() ? n == o.integer() : false); }
 
-bool operator!=(qint64 n, const QEloquent::ID &o)
+inline bool operator!=(qint64 n, const QEloquent::ID &o)
 { return !operator==(n, o); }
 
-bool operator==(const QString &str, const QEloquent::ID &o)
+inline bool operator==(const QString &str, const QEloquent::ID &o)
 { return (o.isString() ? str == o.string() : false); }
 
-bool operator!=(const QString &str, const QEloquent::ID &o)
+inline bool operator!=(const QString &str, const QEloquent::ID &o)
 { return !operator==(str, o); }
 
-bool operator==(const QUuid &uuid, const QEloquent::ID &o)
+inline bool operator==(const QUuid &uuid, const QEloquent::ID &o)
 { return (o.isUuid() ? uuid == o.uuid() : false); }
 
-bool operator!=(const QUuid &uuid, const QEloquent::ID &o)
+inline bool operator!=(const QUuid &uuid, const QEloquent::ID &o)
 { return !operator==(uuid, o); }
+
+inline QDebug operator<<(QDebug d, const QEloquent::ID &o)
+{ if (o.isInteger()) d << o.integer(); else d << o.string(); return d; }
 
 #endif // QELOQUENT_ID_H

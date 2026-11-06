@@ -8,12 +8,20 @@ ID::ID()
 }
 
 ID::ID(const QVariant &value, IDType type)
-    : DataType(value)
+    : m_value(value)
     , m_type(IntegerID)
 {
 }
 
 ID::ID(const ID &other) = default;
+
+bool ID::operator==(const ID &other) const
+{
+    if (m_type != other.m_type)
+        return false;
+
+    return QVariant::compare(m_value, other.m_value) == QPartialOrdering::Equivalent;
+}
 
 ID &ID::operator=(const ID &other)
 {
@@ -31,18 +39,21 @@ ID &ID::operator=(ID &&other)
         return *this;
 
     m_value.swap(other.m_value);
-    qSwap(m_value, other.m_value);
+    qSwap(m_type, other.m_type);
     return *this;
 }
 
 bool ID::isInteger() const
 {
-    return m_value.canConvert<qint64>();
+    return m_type == IntegerID;
 }
 
 qint64 ID::integer() const
 {
-    return m_type == IntegerID;
+    if (m_type != IntegerID || m_value.isNull())
+        return 0;
+    else
+        return m_value.value<qint64>();
 }
 
 bool ID::isString() const
@@ -70,6 +81,11 @@ bool ID::isNull() const
     return m_value.isNull();
 }
 
+QVariant ID::value() const
+{
+    return m_value;
+}
+
 ID::IDType ID::type() const
 {
     return m_type;
@@ -79,7 +95,7 @@ bool ID::setValue(qint64 id)
 {
     if (m_type != IntegerID) return false;
 
-    DataType::setValue(id);
+    m_value = id;
     return true;
 }
 
@@ -87,10 +103,12 @@ bool ID::setValue(const QString &id)
 {
     if (m_type == IntegerID) return false;
 
-    if (m_type == UuidID)
-        return setValue(QUuid::fromString(id));
+    if (m_type == UuidID) {
+        const QUuid uuid = QUuid::fromString(id);
+        if (uuid.isNull()) return false;
+    }
 
-    DataType::setValue(id);
+    m_value = id;
     return true;
 }
 
@@ -98,12 +116,22 @@ bool ID::setValue(const QUuid &id)
 {
     if (m_type != UuidID) return false;
 
-    DataType::setValue(id.toString(QUuid::WithoutBraces));
+    if (id.isNull()) {
+        m_value = QVariant();
+        return false;
+    }
+
+    m_value = id.toString(QUuid::WithoutBraces);
     return true;
 }
 
 bool ID::setValue(const QVariant &id)
 {
+    if (id.isNull()) {
+        m_value = id;
+        return true;
+    }
+
     switch (m_type) {
     case IntegerID:
         return setValue(id.value<qint64>());
@@ -116,7 +144,7 @@ bool ID::setValue(const QVariant &id)
     return false;
 }
 
-DataType::DataFormat ID::format() const
+AbstractDataType::DataFormat ID::format() const
 {
     switch (m_type) {
     case IntegerID:
@@ -127,9 +155,12 @@ DataType::DataFormat ID::format() const
 
     case UuidID:
         return DataFormat::UuidData;
+
+    default:
+        return DataFormat::UnknownData;
     }
 
-    return DataType::format();
+    return AbstractDataType::format();
 }
 
 } // namespace QEloquent
