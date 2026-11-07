@@ -6,6 +6,17 @@
 
 namespace QEloquent {
 
+/**
+ * \class QEloquent::SmartModel
+ * @brief Base model class providing automated ID management and timestamp auditing for QEloquent models.
+ *
+ * The `SmartModel` class extends the core `Model` architecture by introducing built-in
+ * metadata properties for standard entity tracking, including a flexible typed primary key (`id`)
+ * supporting integers, strings, or UUIDs, alongside automated timestamp audit fields (`createdAt`,
+ * `updatedAt`, and `deletedAt`). It serves as the primary base class for domain models requiring
+ * convention-over-configuration features and soft-deletion or creation life-cycle hooks.
+ */
+
 class SmartModelData : public ModelData
 {
 public:

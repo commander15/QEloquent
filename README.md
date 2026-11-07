@@ -30,7 +30,7 @@ Built on top of Qt's robust Meta-Object system, QEloquent allows you to define m
 
 ### Requirements
 
-- **Qt 6.x** (with Sql module)
+- **Qt 6.9.x** or later (with Sql module)
 - **CMake 3.30+**
 - **C++20** compliant compiler (GCC 10+, Clang 10+, or MSVC 2019+)
 
@@ -57,7 +57,7 @@ Before using models, set up a database connection.
 
 void setup() {
     // First added connection is considered as the default one !
-    auto conn = QEloquent::Connection::addConnection("DB", "QSQLITE", ":memory:");
+    auto conn = QEloquent::Connection::addConnection("DB", "sqlite", ":memory:");
     if (!conn.open()) {
         qCritical() << "Failed to open database:" << conn.lastError().text();
         return;
@@ -73,7 +73,6 @@ QEloquent heavily leverages Qt's meta-object system, so most configuration is do
 
 ```cpp
 #include <QEloquent/model.h>
-#include <QEloquent/modelhelpers.h>
 
 struct User : public QEloquent::Model, public QEloquent::ModelHelpers<User>
 {
@@ -164,7 +163,7 @@ public:
 - For any property (standard Q_PROPERTY, appended attribute, or relation), you can manually override the database field name used for serialization using Q_CLASSINFO("<propertyName>Field", "custom_field_name").
   This bypasses the naming convention entirely for that specific property.
 
-- Both append and with require a matching parameterless **Q_INVOKABLE** method with the exact same name as the entry.
+- Both 'append' and 'with' require a matching parameterless **Q_INVOKABLE** method with the exact same name as the entry.
   QEloquent uses the Qt meta-system to discover and call these automatically.
 
 This approach keeps your models *clean*, *expressive*, and *highly configurable* without boilerplate.
@@ -209,7 +208,7 @@ if (result) {
 }
 
 // Find using Query Builder (returns Result<QList<Model>, Error>)
-auto users = User::find(User::query().where("name", "John Doe"));
+auto users = User::where("name", "John Doe").get();
 if (!users) {
     qWarning() << "Query failed:" << users.error().text();
 }
@@ -294,7 +293,7 @@ auto query = User::query()
     .orderBy("created_at", Qt::DescendingOrder)
     .limit(10);
 
-auto results = User::find(query);
+auto results = query.get();
 if (results) {
     for (const User &user : results) {
         qDebug() << "User: " << user.name;

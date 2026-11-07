@@ -2,8 +2,6 @@
 #define MODEL_H
 
 #include <QEloquent/model.h>
-#include <QEloquent/modelhelpers.h>
-#include <QEloquent/smartmodel.h>
 
 template<typename Model>
 using ModelHelpers = QEloquent::ModelHelpers<Model>;

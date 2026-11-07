@@ -276,33 +276,22 @@ Connection Connection::connection(const QString &name)
  */
 Connection Connection::addConnection(const QString &name, const QUrl &url)
 {
-    // Creating db instance
-    const QString driver = 'Q' + url.scheme().toUpper();
-    QSqlDatabase db = QSqlDatabase::addDatabase(driver, name);
+    const QString driver = url.scheme().toLower();
 
     // Database name / file path from url path
     QString path = url.path();
 
     // When using SQLite in memory db, the '/' on path is not needed (Linux only)
     // Also, for the others, it's even unwanted (since not file path based)
-    if ((driver == "QSQLITE" && path.startsWith("/:")) || driver != "QSQLITE")
+    if ((driver == "sqlite" && path.startsWith("/:")) || driver != "sqlite")
         path.remove(0, 1);
-    db.setDatabaseName(path);
 
-    // Host name from url host
-    db.setHostName(url.host());
-
-    // Port from url port
-    const int port = url.port();
-    if (port > 0)
-        db.setPort(port);
-
-    // User credentials from url user infos
-    db.setUserName(url.userName());
-    db.setPassword(url.password());
+    // Creating connection instance
+    Connection con = addConnection(name, driver, path, url.userName(), url.password(), url.host(), url.port());
 
     if (url.hasQuery()) {
         const QUrlQuery query(url.query());
+        QSqlDatabase db = con.database();
 
         // Add connection options (if any)
         if (query.hasQueryItem("options"))
@@ -313,13 +302,13 @@ Connection Connection::addConnection(const QString &name, const QUrl &url)
             const QString precesion = query.queryItemValue("numerical_precision");
             if (precesion == "high")
                 db.setNumericalPrecisionPolicy(QSql::HighPrecision);
-            else
+            else if (precesion == "low")
                 db.setNumericalPrecisionPolicy(QSql::LowPrecisionDouble);
         }
     }
 
-    // Registering and returning the connection
-    return addConnection(name, db, true);
+    // Returning the connection
+    return con;
 }
 
 /*!
@@ -330,13 +319,22 @@ Connection Connection::addConnection(const QString &name, const QString &type, c
     return addConnection(name, type, dbName, QString(), QString(), QString(), -1);
 }
 
+Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, const QString &hostName, int port)
+{
+    return addConnection(name, type, dbName, QString(), QString(), hostName, port);
+}
+
 /*!
  * @brief Adds a new connection with full credentials.
  */
 Connection Connection::addConnection(const QString &name, const QString &type, const QString &dbName, const QString &userName, const QString &password, const QString &hostName, int port)
 {
     const QString driver = (type.startsWith("Q") ? type : 'Q' + type).toUpper();
-    QSqlDatabase db = QSqlDatabase::addDatabase(driver, name);
+    QSqlDatabase db;
+    if (name.isEmpty())
+        db = QSqlDatabase::addDatabase(driver);
+    else
+        db = QSqlDatabase::addDatabase(driver, name);
 
     db.setDatabaseName(dbName);
 
@@ -369,7 +367,7 @@ Connection Connection::addConnection(const QString &name, const QSqlDatabase &db
     Connection con(data);
     s_connections.insert(name, con);
 
-    if (s_defaultConnection.isEmpty())
+    if (s_defaultConnection.isNull())
         s_defaultConnection = name;
 
     return con;
@@ -380,21 +378,23 @@ Connection Connection::addConnection(const QString &name, const QSqlDatabase &db
  */
 void Connection::removeConnection(const QString &name)
 {
-    if (s_connections.contains(name)) {
-        const Connection con = s_connections.take(name);
-
-        // Warn if another instance exists
-        if (con.data->ref > 1) {
-            qWarning().noquote() << "Removing connection" << name
-                                 << "which seems to be used somewhere";
-        }
-
-        if (s_defaultConnection == name)
-            s_defaultConnection.clear();
-
-        if (con.data->databaseConnectionOwned)
-            QSqlDatabase::removeDatabase(name);
+    if (!s_connections.contains(name)) {
+        return;
     }
+
+    const Connection con = s_connections.take(name);
+
+    // Warn if another instance exists
+    if (con.data->ref > 1) {
+        qWarning().noquote() << "Removing connection" << name
+                             << "which seems to be used somewhere";
+    }
+
+    if (s_defaultConnection == name)
+        s_defaultConnection = QString();
+
+    if (con.data->databaseConnectionOwned)
+        QSqlDatabase::removeDatabase(con.data->databaseConnectionName);
 }
 
 QString Connection::defaultConnectionName()
@@ -407,7 +407,7 @@ QString Connection::defaultConnectionName()
  */
 Connection Connection::defaultConnection()
 {
-    if (s_defaultConnection.isEmpty())
+    if (s_defaultConnection.isNull())
         return Connection();
     else
         return s_connections.value(s_defaultConnection);

@@ -20,6 +20,10 @@ FetchContent_Declare(GTest
 
 FetchContent_MakeAvailable(GTest)
 
+if (TARGET gtest AND NOT TARGET GTest::gtest)
+    add_library(GTest::gtest ALIAS gtest)
+endif()
+
 qt_add_executable(QEloquentTest
     main.cpp
     core/mytest.h core/mytest.cpp
@@ -33,7 +37,7 @@ qt_add_executable(QEloquentTest
     complexmodel.h complexmodel.cpp
 )
 
-if (TRUE)
+if (QELOQUENT_MIGRATIONS_SUPPORT)
     target_sources(QEloquentTest
         PRIVATE
             schema.h schema.cpp
@@ -43,7 +47,7 @@ endif()
 
 target_include_directories(QEloquentTest PRIVATE . core models)
 
-target_link_libraries(QEloquentTest PRIVATE gtest QEloquent)
+target_link_libraries(QEloquentTest PRIVATE GTest::gtest QEloquent)
 
 target_compile_definitions(QEloquentTest
     PRIVATE

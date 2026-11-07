@@ -161,7 +161,7 @@ Query &Query::andWhere(const QString &name, const QString &op, const QVariant &v
 /*!
  * \brief Adds a raw AND WHERE expression.
  */
-Query &Query::andWhere(const QString &expression)
+Query &Query::andWhereRaw(const QString &expression)
 {
     ModelQueryData::Filter f;
     f.inclusive = true;
@@ -187,7 +187,7 @@ Query &Query::orWhere(const QString &field, const QString &op, const QVariant &v
 /*!
  * \brief Adds a raw OR WHERE expression.
  */
-Query &Query::orWhere(const QString &expression)
+Query &Query::orWhereRaw(const QString &expression)
 {
     ModelQueryData::Filter f;
     f.inclusive = false;
@@ -229,20 +229,6 @@ Query &Query::orderBy(const QString &field, Qt::SortOrder order)
     s.field = field;
     s.order = order;
     data->sorts.append(s);
-    return *this;
-}
-
-/*!
- * \brief Configures pagination (LIMIT/OFFSET).
- */
-Query &Query::page(int page, int countPerPage)
-{
-    if (countPerPage > 0)
-        limit(countPerPage);
-
-    if (page > 1)
-        offset(page - 1);
-
     return *this;
 }
 

@@ -21,13 +21,6 @@ Result<int> seed()
         }
     };
 
-
-    auto results = TestModel::all();
-    if (results && results->count() > 0) {
-        qDebug() << results->first();
-        qDebug() << "ID:" << results->first().id();
-    }
-
     Seeder::enableAutoRegistration();
 
     Seeder::create("initial user roles", [] {
@@ -43,8 +36,8 @@ Result<int> seed()
         auto count = User::count();
         return (count ? count.value() == 0 : false);
     }, [&save] {
-        auto role = UserRole::find(Query().where("name", "Store Manager"));
-        if (!role || role->isEmpty()) {
+        auto role = UserRole::where("name", "Store Manager").first();
+        if (!role) {
             // ...
             return;
         }
@@ -53,14 +46,14 @@ Result<int> seed()
         amadou.name = "Amadou";
         amadou.email = "amadou@store.com";
         amadou.password = "1234";
-        amadou.roleId = role->constFirst().id;
+        amadou.roleId = role->id;
         save(amadou);
 
         User guest;
         guest.name = "Celestin";
         guest.email = "guest@store.com";
         guest.password = "1234";
-        guest.roleId = role->constFirst().id;
+        guest.roleId = role->id;
         save(guest);
     });
 
@@ -100,16 +93,16 @@ Result<int> seed()
         auto count = Sale::count();
         return (count ? count.value() == 0 : false);
     }, [&save] {
-        auto users = User::find(Query().where("name", "Amadou"));
-        if (!users || users->isEmpty())
+        auto users = User::where("name", "Amadou").first();
+        if (!users)
             return;
 
-        auto products = Product::find(Query().where("name", "Organic Apple"));
-        if (!products || products->isEmpty())
+        auto products = Product::where("name", "Organic Apple").dump().first();
+        if (!products)
             return;
 
-        const User amadou = users->constFirst();
-        const Product apple = products->constFirst();
+        const User amadou = users.value();
+        const Product apple = products.value();
 
         Sale s;
         s.number = 1001;
@@ -126,6 +119,9 @@ Result<int> seed()
     });
 
     Seeder::disableAutoRegistration();
+
+    Product::with({"stock", "category"}).dumpAndDie();
+    //
 
     qDebug() << "Seeding...";
     return Seeder::runAll([](Seeder *seeder) {

@@ -1,13 +1,10 @@
 #ifndef QELOQUENT_MODELHELPERS_H
 #define QELOQUENT_MODELHELPERS_H
 
-#include <QEloquent/model.h>
-#include <QEloquent/metaobject.h>
-#include <QEloquent/query.h>
-#include <QEloquent/error.h>
+#include <QEloquent/model_a.h>
+#include <QEloquent/modelmaker.h>
+#include <QEloquent/queryhelper.h>
 #include <QEloquent/connection.h>
-#include <QEloquent/querybuilder.h>
-#include <QEloquent/queryrunner.h>
 
 #include <QSqlQuery>
 #include <QSqlRecord>
@@ -16,30 +13,16 @@
 #define QELOQUENT_HELPERS(Class) \
 public: \
     using QEloquent::ModelHelpers<Class>::make; \
-    using QEloquent::ModelHelpers<Class>::find; \
-    using QEloquent::ModelHelpers<Class>::paginate; \
-    using QEloquent::ModelHelpers<Class>::all; \
-    using QEloquent::ModelHelpers<Class>::count; \
     using QEloquent::ModelHelpers<Class>::create; \
-    using QEloquent::ModelHelpers<Class>::remove; \
+    using QEloquent::ModelHelpers<Class>::find; \
+    using QEloquent::ModelHelpers<Class>::count; \
+    using QEloquent::ModelHelpers<Class>::all; \
+    using QEloquent::ModelHelpers<Class>::where; \
+    using QEloquent::ModelHelpers<Class>::with; \
     using QEloquent::ModelHelpers<Class>::query; \
-    using QEloquent::ModelHelpers<Class>::fixQuery; \
 private:
 
 namespace QEloquent {
-
-/**
- * @brief Internal helper to create model instances and access metadata.
- * @tparam Model The model type.
- */
-template<typename Model>
-class ModelMaker {
-public:
-    /** @brief Creates a default model instance */
-    static Model make() { return Model(); }
-    /** @brief Returns the MetaObject for the model type */
-    static MetaObject metaObject() { return MetaObject::fromQtMetaObject(Model::staticMetaObject); }
-};
 
 /**
  * @brief Provides static CRUD and query helpers for Model types.
@@ -61,56 +44,41 @@ public:
     /** @brief Creates a list of model instances from a list of JSON objects */
     static QList<Model> make(const QList<QJsonObject> &objects);
 
-    /** @brief return a QEloquent::Model ref from any Child Model class */
-    static QEloquent::Model &safeModel(Model &instance)
-    { return static_cast<QEloquent::Model &>(instance); }
-
-    /** @brief return a QEloquent::Model ref from any Child Model class */
-    static const QEloquent::Model &safeModel(const Model &instance)
-    { return static_cast<const QEloquent::Model &>(instance); }
-
-    /** @brief Finds a model by its primary key */
-    static Result<Model, Error> find(const QVariant &primary);
-    /** @brief Finds models matching the given query */
-    static Result<QList<Model>, Error> find(Query query);
-
-    /** @brief Finds models matching the given query and limit output using pagination */
-    static Result<QList<Model>, Error> paginate(int page = 1, int itemsPerPage = 20, Query query = Query());
-
-    /** @brief Finds all models, optionaly matching the given query */
-    static Result<QList<Model>, Error> all(Query query = Query());
-
-    /** @brief Returns the number of records matching the query */
-    static Result<int, Error> count(Query query = Query());
-
     /** @brief Creates and persists a new model from JSON data */
     static Result<Model, Error> create(const QJsonObject &object);
     /** @brief Creates and persists multiple models from JSON data */
     static Result<QList<Model>, Error> create(const QList<QJsonObject> &objects);
 
-    /** @brief Deletes records matching the given query */
-    static Result<int, Error> remove(Query query);
+    /** @brief Finds a model by its primary key */
+    static Result<Model, Error> find(const QVariant &primary);
+
+    /** @brief Counts the total number of records matching the model's table criteria. */
+    static Result<int, Error> count() { return query().count(); }
+
+    /** @brief Finds all models */
+    static Result<QList<Model>, Error> all() { return query().get(); }
 
     /** \brief Adds a basic where clause to the query with an implicit equality operator. */
-    static Query where(const QString &field, const QVariant &value) { return query().where(field, "=", value); }
+    static QueryHelper<Model, Maker> where(const QString &field, const QVariant &value) { return query().where(field, value); }
     /** \brief Adds a conditional where clause to the query using a custom operator. */
-    static Query where(const QString &field, const QString &op, const QVariant &value) { return query().where(field, op, value); }
-    /** \brief Adds a raw SQL expression clause directly to the query filter. */
-    static Query where(const QString &expression) { return query().where(expression); }
+    static QueryHelper<Model, Maker> where(const QString &field, const QString &op, const QVariant &value) { return query().where(field, op, value); }
+    /** \brief Adds a raw SQL expression directly to the query filter. */
+    static QueryHelper<Model, Maker> whereRaw(const QString &expression) { return query().whereRaw(expression); }
+
+    /** @brief Eager loads a single relationship for the query results. */
+    static QueryHelper<Model, Maker> with(const QString &relation) { return query().with(QStringList() << relation); }
+    /** @brief Eager loads multiple relationships for the query results. */
+    static QueryHelper<Model, Maker> with(const QStringList &relations) { return query().with(relations); }
 
     /** @brief Returns a new Query object initialized for this model's table */
-    static Query query();
-    /** @brief Configures a Query object for this model's table and connection */
-    static Query &fixQuery(Query &query);
-    /** @brief Configures a Query object using a specific MetaObject */
-    static Query &fixQuery(Query &query, const MetaObject &metaObject);
+    static QueryHelper<Model, Maker> query() { return QueryHelper<Model, Maker>(); }
 };
 
 template<typename Model, typename Maker>
 inline Model ModelHelpers<Model, Maker>::make(const QJsonObject &object)
 {
     Model m = Maker::make();
-    m.fill(object);
+    QueryHelper<Model, Maker>::safeModel(m).fill(object);
     return m;
 }
 
@@ -120,7 +88,7 @@ inline QList<Model> ModelHelpers<Model, Maker>::make(const QList<QJsonObject> &o
     QList<Model> models;
     for (const QJsonObject &object : objects) {
         Model m = Maker::make();
-        safeModel(m).fill(object);
+        QueryHelper<Model, Maker>::safeModel(m).fill(object);
         models.append(m);
     }
     return models;
@@ -129,77 +97,18 @@ inline QList<Model> ModelHelpers<Model, Maker>::make(const QList<QJsonObject> &o
 template<typename Model, typename Maker>
 inline Result<Model, Error> ModelHelpers<Model, Maker>::find(const QVariant &primary)
 {
-    Query query;
-    query.where(Maker::metaObject().primaryProperty().fieldName(), primary);
-    query.limit(1);
-
-    Result<QList<Model>, Error> result = find(query);
-    if (result) {
-        const QList<Model> models = result.value();
-        return (models.isEmpty() ? Maker::make() : models.first());
-    } else {
-        return failWith(result.error());
-    }
-}
-
-template<typename Model, typename Maker>
-inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::find(Query query)
-{
-    const MetaObject metaObject = Maker::metaObject();
-    const QString statement = QueryBuilder::selectStatement(fixQuery(query, metaObject));
-
-    auto result = QueryRunner::exec(statement, query.connectionName());
-    if (result) {
-        QList<Model> models;
-
-        QStringList relations = metaObject.relations() + query.relations();
-        relations.removeDuplicates();
-
-        while (result->next()) {
-            Model m = Maker::make();
-            safeModel(m).fill(result->record());
-            if (safeModel(m).load(relations))
-                models.append(m);
-            else
-                return failWith(safeModel(m).lastError());
-        }
-
-        return models;
-    } else {
-        return failWith(Error::fromSqlError(result.error()));
-    }
-}
-
-template<typename Model, typename Maker>
-inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::paginate(int page, int itemsPerPage, Query query)
-{
-    return find(query.page(page, itemsPerPage));
-}
-
-template<typename Model, typename Maker>
-inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::all(Query query)
-{
-    return find(query);
-}
-
-template<typename Model, typename Maker>
-inline Result<int, Error> ModelHelpers<Model, Maker>::count(Query query)
-{
-    const QString statement = QueryBuilder::selectStatement("COUNT(1)", fixQuery(query));
-
-    auto result = QueryRunner::exec(statement, query.connectionName());
-    if (result)
-        return (result->next() ? result->value(0).toInt() : 0);
-    else
-        return failWith(Error::fromSqlError(result.error()));
+    return query()
+        .where(Maker::metaObject().primaryProperty().fieldName(), primary)
+        .limit(1)
+        .first();
 }
 
 template<typename Model, typename Maker>
 inline Result<Model, Error> ModelHelpers<Model, Maker>::create(const QJsonObject &object)
 {
     Model model = Maker::make();
-    safeModel(model).fill(object);
-    if (safeModel(model).save())
+    QueryHelper<Model, Maker>::safeModel(model).fill(object);
+    if (QueryHelper<Model, Maker>::safeModel(model).save())
         return model;
     else
         return failWith(safeModel(model).lastError());
@@ -219,40 +128,6 @@ inline Result<QList<Model>, Error> ModelHelpers<Model, Maker>::create(const QLis
     }
 
     return models;
-}
-
-template<typename Model, typename Maker>
-inline Result<int, Error> ModelHelpers<Model, Maker>::remove(Query query)
-{
-    const QString statement = QueryBuilder::deleteStatement(fixQuery(query));
-
-    auto result = QueryRunner::exec(statement, query.connectionName());
-    if (result)
-        return result->numRowsAffected();
-    else
-        return failWith(Error(Error::DatabaseError, QString(), result.error()));
-}
-
-template<typename Model, typename Maker>
-inline Query ModelHelpers<Model, Maker>::query()
-{
-    Query query;
-    return fixQuery(query, Maker::metaObject());
-}
-
-template<typename Model, typename Maker>
-inline Query &ModelHelpers<Model, Maker>::fixQuery(Query &query)
-{
-    return fixQuery(query, Maker::metaObject());
-}
-
-template<typename Model, typename Maker>
-inline Query &ModelHelpers<Model, Maker>::fixQuery(Query &query, const MetaObject &metaObject)
-{
-    return query
-        .table(metaObject.tableName())
-        .connection(metaObject.connectionName())
-        .raw(QString());
 }
 
 } // namespace QEloquent

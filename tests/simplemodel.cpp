@@ -107,10 +107,8 @@ TEST_F(SimpleModel, DeleteValidInstancesOnDB) {
     // Migration
     ASSERT_TRUE(migrateAndSeed()) << lastErrorText;
 
-    QEloquent::Query query;
-    query.where("category_id", 1); // Fruits
-
-    auto removeResult = SimpleProduct::remove(query);
+    // Fruits
+    auto removeResult = SimpleProduct::where("category_id", 1).deleteData();
     ASSERT_TRUE(removeResult) << TEST_STR(removeResult ? "" : removeResult.error().text());
     ASSERT_EQ(removeResult.value(), 2); // 2 records deleted
 

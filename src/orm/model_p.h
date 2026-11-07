@@ -1,7 +1,7 @@
 #ifndef QLOQUENT_ORM_MODEL_P_H
 #define QLOQUENT_ORM_MODEL_P_H
 
-#include "model.h"
+#include "model_a.h"
 
 #include <QEloquent/datamap.h>
 #include <QEloquent/query.h>

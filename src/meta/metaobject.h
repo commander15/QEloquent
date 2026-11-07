@@ -68,6 +68,7 @@ public:
     QList<MetaProperty> properties(MetaProperty::PropertyAttributes attributes,
                                    PropertyFilters filters = AllProperties) const;
     QList<MetaProperty> properties(PropertyFilters filters = AllProperties) const;
+    QList<MetaProperty> properties(const std::function<bool(const MetaProperty &prop)> &pred) const;
 
     DataMap read(const Model *model,
                  MetaProperty::PropertyAttributes attributes,

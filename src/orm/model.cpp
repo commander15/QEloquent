@@ -1,4 +1,4 @@
-#include "model.h"
+#include "model_a.h"
 #include "model_p.h"
 
 #include <QEloquent/metaproperty.h>
@@ -30,6 +30,7 @@ namespace QEloquent {
  * introspection system (e.g., during meta-object registration or dynamic creation).
  *
  * \param metaObject The QMetaObject describing the model's properties and metadata.
+ * \param data Internal data pointer intended to be used by library classes.
  */
 Model::Model(const QMetaObject &metaObject, ModelData *data)
     : data(data == nullptr ? new ModelData() : data)
@@ -394,17 +395,64 @@ bool Model::isListSerializable() const
 
 QList<DataMap> Model::serialize() const
 {
-    QList<MetaProperty> properties = data->metaObject.properties(
-        MetaProperty::PrimaryProperty | MetaProperty::LabelProperty | MetaProperty::FillableProperty |
-        MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
-        MetaObject::AllProperties);
+    const QList<MetaProperty> properties = data->metaObject.properties([this](const MetaProperty &prop) {
+        if (prop.hasAttribute(MetaProperty::HiddenProperty))
+            return false;
 
-    // We remove hidden properties
-    properties.removeIf([](const MetaProperty &property) {
-        return property.hasAttribute(MetaProperty::HiddenProperty);
+        if (prop.propertyType() == MetaProperty::RelationProperty)
+            return this->data->relationData.contains(prop.propertyName());
+
+        return true;
     });
 
-    return { data->metaObject.read(this, properties, MetaObject::ResolveByFieldName) };
+    QList<MetaProperty> sortedProperties;
+    QList<MetaProperty> standardProperties;
+
+    MetaProperty primaryProp;
+    MetaProperty labelProp;
+    MetaProperty createdAtProp;
+    MetaProperty updatedAtProp;
+    MetaProperty deletedAtProp;
+
+    bool hasPrimary = false;
+    bool hasLabel = false;
+    bool hasCreatedAt = false;
+    bool hasUpdatedAt = false;
+    bool hasDeletedAt = false;
+
+    // 1. Categorize properties
+    for (const MetaProperty &p : properties) {
+        if (p.hasAttribute(MetaProperty::PrimaryProperty)) {
+            primaryProp = p;
+            hasPrimary = true;
+        } else if (p.hasAttribute(MetaProperty::LabelProperty)) {
+            labelProp = p;
+            hasLabel = true;
+        } else if (p.hasAttribute(MetaProperty::CreationTimestamp)) {
+            createdAtProp = p;
+            hasCreatedAt = true;
+        } else if (p.hasAttribute(MetaProperty::UpdateTimestamp)) {
+            updatedAtProp = p;
+            hasUpdatedAt = true;
+        } else if (p.hasAttribute(MetaProperty::DeletionTimestamp)) {
+            deletedAtProp = p;
+            hasDeletedAt = true;
+        } else {
+            standardProperties.append(p);
+        }
+    }
+
+    // 2. Assemble in the desired order: Primary -> Label -> Standards -> Timestamps
+    if (hasPrimary) sortedProperties.append(primaryProp);
+    if (hasLabel)   sortedProperties.append(labelProp);
+
+    sortedProperties.append(standardProperties);
+
+    if (hasCreatedAt) sortedProperties.append(createdAtProp);
+    if (hasUpdatedAt) sortedProperties.append(updatedAtProp);
+    if (hasDeletedAt) sortedProperties.append(deletedAtProp);
+
+    return { data->metaObject.read(this, sortedProperties, MetaObject::ResolveByFieldName) };
 }
 
 void Model::deserialize(const QList<DataMap> &data, bool all)

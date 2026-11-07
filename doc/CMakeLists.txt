@@ -3,7 +3,6 @@ find_package(Doxygen)
 if(DOXYGEN_FOUND)
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
 
     add_custom_target(doc ALL
@@ -18,7 +17,8 @@ if(DOXYGEN_FOUND)
         VERBATIM
     )
 
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doxygen/ DESTINATION doc/QEloquent)
+    include(GNUInstallDirs)
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doxygen/ DESTINATION ${CMAKE_INSTALL_DOCDIR}/QEloquent)
 else()
     message(STATUS "Doxygen not found, 'doc' target will not be available")
 endif()

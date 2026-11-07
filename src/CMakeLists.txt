@@ -1,4 +1,10 @@
-qt_add_library(QEloquent)
+if (BUILD_SHARED_LIBS)
+    set(BUILD_TYPE SHARED)
+else()
+    set(BUILD_TYPE STATIC)
+endif()
+
+qt_add_library(QEloquent ${BUILD_TYPE})
 
 add_subdirectory(core)
 add_subdirectory(drivers)
@@ -8,7 +14,7 @@ add_subdirectory(query)
 add_subdirectory(meta)
 add_subdirectory(orm)
 
-if (TRUE)
+if (QELOQUENT_MIGRATIONS_SUPPORT)
     add_subdirectory(migration)
 endif()
 

@@ -1,19 +1,20 @@
 name: CI/CD
 
 on:
+  workflow_dispatch: # Enables manual trigger from GitHub UI
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-  workflow_dispatch:  # Enables manual trigger from GitHub UI
 
 env:
-  PACKAGE_NAME: QEloquent
-  PACKAGE_VERSION: 1.2.0
-  QT_VERSION: 6.5.0
+  PACKAGE_NAME: 
+  PACKAGE_DISPLAY_NAME: QEloquent
+  PACKAGE_VERSION: 2.0.0
+  QT_VERSION: 6.9.0
   QT_MODULES: 
   BUILD_DIR: ${{ github.workspace }}/build
-  CMAKE_CONFIGURE_ARGS: -DQELOQUENT_BUILD_TESTS=ON -DBUILD_SHARED_LIBS=ON
-  PARALLEL: 4
+  CMAKE_CONFIGURE_ARGS: -DBUILD_SHARED_LIBS=ON -DQELOQUENT_BUILD_TESTS=ON -DQELOQUENT_BUILD_DOC=ON -DQELOQUENT_BUILD_EXAMPLES=ON
+  CMAKE_PARALLEL: 2
 
 jobs:
   build:
@@ -36,7 +37,7 @@ jobs:
             target: desktop
             cmake-args: 
             pm: sudo apt
-            dependencies: doxygen
+            dependencies: doxygen patchelf
 
     runs-on: ${{matrix.os}}
 
@@ -66,7 +67,7 @@ jobs:
         run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR }}  ${{ env.CMAKE_CONFIGURE_ARGS }} ${{ matrix.cmake-args }} -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build ${{ env.BUILD_DIR }} --target all --parallel ${{ env.PARALLEL }}
+        run: cmake --build ${{ env.BUILD_DIR }} --target all --parallel ${{ env.CMAKE_PARALLEL }}
         
       - name: Test
         env:
@@ -74,7 +75,7 @@ jobs:
         run: cmake --build ${{ env.BUILD_DIR }} --target test
         
       - name: Package
-        run: cmake --build ${{ env.BUILD_DIR }} --target package --parallel ${{ env.PARALLEL }}
+        run: cmake --build ${{ env.BUILD_DIR }} --target package --parallel ${{ env.CMAKE_PARALLEL }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -94,7 +95,7 @@ jobs:
           path: ${{ env.BUILD_DIR }}/doc/doxygen/html
 
   release:
-    if: ${{github.event_name != 'workflow_dispatch'}}
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     needs: build
     permissions:
@@ -114,15 +115,14 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }}
+          name: ${{ env.PACKAGE_DISPLAY_NAME }} ${{ env.PACKAGE_VERSION }}
           body_path: ${{ github.workspace }}/RELEASE-${{ env.PACKAGE_VERSION }}.md
           tag_name: v${{ env.PACKAGE_VERSION }}
           files: "binaries/*.*"
           make_latest: true
           
   deploy:
-    if: ${{ github.event_name != 'workflow_dispatch' }}
-    needs: build
+    needs: release
     runs-on: ubuntu-24.04
     
     permissions:
@@ -151,7 +151,7 @@ jobs:
           server_port: ${{ secrets.MAIL_SERVER_PORT }}
           username: ${{ secrets.MAIL_ADDRESS }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} released !
+          subject: ${{ env.PACKAGE_DISPLAY_NAME }} ${{ env.PACKAGE_VERSION }} released !
           from: ${{ secrets.MAIL_AUTHOR }}
           to: ${{ secrets.MAIL_RECEIVERS }}
-          body: "Hello, ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n# 🚀 QEloquent 1.2.0\n\n- Bug fixes\n- Enhanced migration handling\n- Added Seeding functions\n- Performance improvements\n\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"
+          body: "Hello, ${{ env.PACKAGE_DISPLAY_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n# QEloquent v2.0.0 🚀\n*Qt's most expressive, Eloquent-like C++20 ORM framework.*\n\nWe are beyond thrilled to announce the release of **QEloquent v2.0.0**! This major milestone elevates QEloquent to a whole new level, bringing a seamless, Laravel-inspired developer experience directly into the C++20 and Qt6 ecosystem. If you love Laravel's Eloquent, writing data-driven desktop and mobile apps in C++ will now feel instantly familiar and delightful.\n\n---\n\n## 🌟 Major Highlights in v2.0.0\n\n### 1. True Eloquent-Style Fluent Queries (`QueryHelper`)\nThe brand new `QueryHelper` brings the elegance and ergonomics of active-record fluent querying to C++. Chain your constraints with expressive readability:\n* **Rich Filtering & Joins**: Full-featured forwarding for `where`, `andWhere`, `orWhere`, `whereRaw`, standard and inner joins, group-bys, and sorting.\n* **Strict Lookups (`first()`)**: No silent failures or dummy models. Calling `first()` cleanly returns an explicit `Error::NotFoundError` when a record doesn't exist, letting you handle missing data with robust monadic `Result` types.\n* **Developer Diagnostics**: Debugging is a breeze with built-in `dump()` and `dumpAndDie()` utilities leveraging `std::source_location` for exact file and line precision.\n\n```cpp\n// Feels just like Laravel Eloquent, but in modern C++20!\nResult<QList<User>, Error> activeAdmins = User::query()\n    .where(\"status\", \"active\")\n    .andWhere(\"role\", \"admin\")\n    .orderBy(\"created_at\", Qt::DescendingOrder)\n    .limit(10)\n    .get()\n\n\n\n// Single record ? No problems\nResult<User, Error> firstUser = User::find(1)\n\n\n\n// Want more Laravel like ? Let's go !\nResult<QList<User>, Error> activeGuests = User::where(\"status\", \"active\")\n    .andWhere(\"role\", \"guest\")\n\n\n    \n// Eager load from start ? Let's do it\nResult<QList<User>, Error> profiles = User::with(\"profile\")->get()\n\n\n\n// Pagination needed ? Fo for it\nResult<QList<User>, Error> paginated = User::where(\"status\", \"active\")\n    .paginate(1, 25)\n\n // Page 1, 25 per page, 20 items per page (default)\n    \n// You can now delete in bulk without retrieving\nResult<int, Error> deleted = User::where(\"status\", \"inactive\").deleteData()\n\n\n\n// And there is even moren just looks at QEloquent::ModelHelpers in doc !\n\n```\n\n### 2. RAII-Based `TransactionGuard`\n\nSay goodbye to manual transaction boilerplate and uncommitted database locks. The new `TransactionGuard` acts as an RAII guard (`QMutexLocker` style) for your database transactions:\n\n* Automatically begins a transaction upon construction.\n* Automatically triggers a **rollback** on destruction if `.commit()` was never called—protecting your database against early returns and exceptions.\n* Exposes explicit error and state diagnostics (`transactionStarted()`, `errorString()`, and `errorCode()`).\n\n```cpp\nbool processCheckout() {\n    TransactionGuard guard\n\n\n    if (!guard.transactionStarted()) {\n        qDebug() << \"Transaction failed to start:\" << guard.errorString()\n\n\n        return false\n\n\n    }\n    \n    if (!chargeCustomer() || !fulfillOrder()) {\n        return false\n\n // Scope exits -> destructor automatically rolls back!\n    }\n    \n    if (!quard.commit()) {\n        qDebug() << \"Transaction failed to commit:\" << guard.errorString()\n\n\n        return false\n\n\n    }\n    \n    return true\n\n\n}\n\n```\n\n### 3. Polymorphic Primary Keys (`ID`)\n\n* Seamlessly handle different primary key strategies out of the box with the `ID` class.\n* First-class support for **64-bit Integers**, **Strings**, and **UUIDs** with type-safe accessors (`integer()`, `string()`, `uuid()`).\n\n### 4. Smart Model Auditing (`SmartModel`)\n\n* Built on top of the old Model class, it features somme common fields built-in.\n* Leverage the brand new ID type to propose polymorphic id field, wheter it's integer, string or uuid based pk, this class handle all for you and is able to generate UUIDv7 automatically on save.\n* Automatically provisions and tracks auditing timestamps: `createdAt`, `updatedAt`, and `deletedAt` for robust soft-deletion capabilities.\n\n---\n\n## 📦 Installation & Integration\n\nIntegrate QEloquent v2.0.0 into your CMake project:\n\n```cmake\nfind_package(QEloquent REQUIRED)\n\ntarget_link_libraries(YourApp PRIVATE QEloquent::QEloquent)\n\n```\n\n---\n\n## 📋 Full Changelog (v2.0.0)\n\n* **Architectural Leap**: Promoted framework to version `2.0.0` with polished fluent query semantics.\n* **Query Layer**: Introduced `QueryHelper` with robust pagination, eager relation loading (`with`), and strict `Error::NotFoundError` handling on `first()`.\n* **Diagnostics**: Integrated `std::source_location` into `dumpAndDie()` for precise source-code tracing.\n* **Safety**: Added RAII `TransactionGuard` with automatic rollback on scope abandonment and granular error code extraction.\n* **Documentation**: Generated complete, modern Doxygen sidebar documentation.\n\n---\n\n*Thank you for building with QEloquent! Explore the [Documentation Hub](https://www.google.com/search?q=MainPage) for comprehensive guides and class references.*\n\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"

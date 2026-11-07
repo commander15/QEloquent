@@ -11,11 +11,13 @@ class Category;
 class Product : public SmartModel, public ModelHelpers<Product>
 {
     Q_GADGET
-    Q_PROPERTY(QString name MEMBER name)
+    Q_PROPERTY(QString name MEMBER name USER true)
     Q_PROPERTY(QString description MEMBER description)
     Q_PROPERTY(double price MEMBER price)
     Q_PROPERTY(QString barcode MEMBER barcode)
     Q_PROPERTY(int categoryId MEMBER categoryId)
+
+    Q_CLASSINFO("hidden", "categoryId")
 
 public:
     Product();
@@ -50,6 +52,8 @@ class Stock : public SmartModel, public ModelHelpers<Stock>
     Q_GADGET
     Q_PROPERTY(int quantity MEMBER quantity)
     Q_PROPERTY(int productId MEMBER productId)
+
+    Q_CLASSINFO("hidden", "productId")
 
 public:
     Stock();

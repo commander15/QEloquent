@@ -59,10 +59,10 @@ void LoginDialog::onLoginClicked()
 {
     QString email = m_emailEdit->text().trimmed();
     // In this example, we simplified auth to just check email presence
-    auto result = User::all(User::query().where("email", email).limit(1));
+    auto result = User::where("email", email).first();
     
-    if (result && !result->isEmpty()) {
-        Session::instance().setUser(result->first());
+    if (result) {
+        Session::instance().setUser(result.value());
         accept();
     } else {
         QMessageBox::warning(this, "Login Failed", "Invalid credentials. Try amadou@store.com");

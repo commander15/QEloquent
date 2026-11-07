@@ -2,7 +2,7 @@
 #define SMARTMODEL_H
 
 #include <QEloquent/global.h>
-#include <QEloquent/model.h>
+#include <QEloquent/model_a.h>
 #include <QEloquent/id.h>
 
 #include <type_traits>

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 
 project(
     QEloquent
-    VERSION 1.2.0
+    VERSION 2.0.0
     DESCRIPTION "Qt most flexible ORM."
     HOMEPAGE_URL "commander15.github.io/QEloquent"
     LANGUAGES CXX C
@@ -11,6 +11,8 @@ project(
 option(QELOQUENT_BUILD_TESTS    "Build tests"         OFF)
 option(QELOQUENT_BUILD_DOC      "Build documentation" ON)
 option(QELOQUENT_BUILD_EXAMPLES "Build examples"      ON)
+
+option(QELOQUENT_MIGRATIONS_SUPPORT "Enable migration support" ON)
 
 # Qt specifics
 set(CMAKE_AUTOMOC ON)
@@ -31,7 +33,12 @@ set(REQUIRED_MODULES Core Sql)
 if (QELOQUENT_BUILD_EXAMPLES)
     list(APPEND OPTIONAL_MODULES Widgets)
 endif()
+
 find_package(Qt6 REQUIRED COMPONENTS ${REQUIRED_MODULES} OPTIONAL_COMPONENTS ${OPTIONAL_MODULES})
+
+qt_standard_project_setup(REQUIRES 6.9.0)
+
+set(QT_DEPLOY_USE_PATCHELF ON)
 
 # Findind expected
 set(EXPECTED_BUILD_PACKAGE OFF)
@@ -65,12 +72,14 @@ endif()
 # CI/CD workflow
 
 set(CMAKE_CONFIG_ARGS
-    -DQELOQUENT_BUILD_TESTS=ON
     -DBUILD_SHARED_LIBS=ON
+    -DQELOQUENT_BUILD_TESTS=ON
+    -DQELOQUENT_BUILD_DOC=ON
+    -DQELOQUENT_BUILD_EXAMPLES=ON
 )
 string(JOIN " " CMAKE_CONFIG_ARGS ${CMAKE_CONFIG_ARGS})
 
-set(QT_VERSION 6.5.0)
+set(QT_VERSION 6.9.0)
 
 file(READ notes/RELEASE-${PROJECT_VERSION}.md MAIL_TEXT)
 string(JOIN "\\n\\n" MAIL_TEXT ${MAIL_TEXT})
@@ -80,11 +89,13 @@ string(REPLACE "\n" "\\n" MAIL_TEXT ${MAIL_TEXT})
 configure_file(.github/workflows/ci-cd.yml.in ${CMAKE_CURRENT_SOURCE_DIR}/.github/workflows/ci-cd.yml @ONLY)
 
 # Packaging
-set(CPACK_PACKAGE_NAME QEloquent)
+set(CPACK_PACKAGE_NAME qeloquent)
 set(CPACK_PACKAGE_VENDOR Amadou Benjamain)
 set(CPACK_PACKAGE_DIRECTORY packages)
 set(CPACK_GENERATOR ZIP)
+
 if (LINUX)
     list(APPEND CPACK_GENERATOR TGZ)
 endif()
+
 include(CPack)

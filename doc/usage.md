@@ -37,7 +37,7 @@ auto query = Product::query()
     .where("price", ">", 500)
     .orderBy("name", Qt::AscendingOrder);
 
-auto result = Product::find(query);
+auto result = query.get();
 if (result) {
     QList<Product> products = result.value();
     // ...
@@ -68,7 +68,7 @@ product.deleteData();
 
 ### Static Deletion
 ```cpp
-Product::remove(Product::query().where("id", 1));
+Product::where("id", 1).deleteData();
 ```
 
 Learn more about handling potential database issues in [Error Handling](@ref error_handling).

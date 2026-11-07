@@ -26,4 +26,4 @@ qt_generate_deploy_app_script(
     NO_TRANSLATIONS
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
-install(SCRIPT ${deploy_script})
+# install(SCRIPT ${deploy_script})

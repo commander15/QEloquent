@@ -1,19 +1,20 @@
 name: CI/CD
 
 on:
+  workflow_dispatch: # Enables manual trigger from GitHub UI
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-  workflow_dispatch:  # Enables manual trigger from GitHub UI
 
 env:
-  PACKAGE_NAME: @PROJECT_NAME@
+  PACKAGE_NAME: @CPACK_PACKAGE_NAME@
+  PACKAGE_DISPLAY_NAME: @PROJECT_NAME@
   PACKAGE_VERSION: @PROJECT_VERSION@
   QT_VERSION: @QT_VERSION@
   QT_MODULES: @QT_MODULES@
   BUILD_DIR: ${{ github.workspace }}/build
   CMAKE_CONFIGURE_ARGS: @CMAKE_CONFIG_ARGS@
-  PARALLEL: 4
+  CMAKE_PARALLEL: 2
 
 jobs:
   build:
@@ -36,7 +37,7 @@ jobs:
             target: desktop
             cmake-args: @CMAKE_CONFIG_LINUX_ARGS@
             pm: sudo apt
-            dependencies: doxygen
+            dependencies: doxygen patchelf
 
     runs-on: ${{matrix.os}}
 
@@ -66,7 +67,7 @@ jobs:
         run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR }}  ${{ env.CMAKE_CONFIGURE_ARGS }} ${{ matrix.cmake-args }} -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build ${{ env.BUILD_DIR }} --target all --parallel ${{ env.PARALLEL }}
+        run: cmake --build ${{ env.BUILD_DIR }} --target all --parallel ${{ env.CMAKE_PARALLEL }}
         
       - name: Test
         env:
@@ -74,7 +75,7 @@ jobs:
         run: cmake --build ${{ env.BUILD_DIR }} --target test
         
       - name: Package
-        run: cmake --build ${{ env.BUILD_DIR }} --target package --parallel ${{ env.PARALLEL }}
+        run: cmake --build ${{ env.BUILD_DIR }} --target package --parallel ${{ env.CMAKE_PARALLEL }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -94,7 +95,7 @@ jobs:
           path: ${{ env.BUILD_DIR }}/doc/doxygen/html
 
   release:
-    if: ${{github.event_name != 'workflow_dispatch'}}
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     needs: build
     permissions:
@@ -114,15 +115,14 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }}
+          name: ${{ env.PACKAGE_DISPLAY_NAME }} ${{ env.PACKAGE_VERSION }}
           body_path: ${{ github.workspace }}/RELEASE-${{ env.PACKAGE_VERSION }}.md
           tag_name: v${{ env.PACKAGE_VERSION }}
           files: "binaries/*.*"
           make_latest: true
           
   deploy:
-    if: ${{ github.event_name != 'workflow_dispatch' }}
-    needs: build
+    needs: release
     runs-on: ubuntu-24.04
     
     permissions:
@@ -151,7 +151,7 @@ jobs:
           server_port: ${{ secrets.MAIL_SERVER_PORT }}
           username: ${{ secrets.MAIL_ADDRESS }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} released !
+          subject: ${{ env.PACKAGE_DISPLAY_NAME }} ${{ env.PACKAGE_VERSION }} released !
           from: ${{ secrets.MAIL_AUTHOR }}
           to: ${{ secrets.MAIL_RECEIVERS }}
-          body: "Hello, ${{ env.PACKAGE_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n@MAIL_TEXT@\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"
+          body: "Hello, ${{ env.PACKAGE_DISPLAY_NAME }} ${{ env.PACKAGE_VERSION }} has just been released, look at the new features !\n\n@MAIL_TEXT@\n\nDownload and try: https://github.com/${{ github.repository }}/releases/latest"

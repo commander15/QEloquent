@@ -6,7 +6,7 @@
 #include <QEloquent/metaobjectgenerator.h>
 #include <QEloquent/namingconvention.h>
 #include <QEloquent/connection.h>
-#include <QEloquent/model.h>
+#include <QEloquent/model_a.h>
 #include <QEloquent/private/model_p.h>
 #include <QEloquent/private/metaproperty_p.h>
 
@@ -148,68 +148,114 @@ QList<MetaProperty> MetaObject::properties(
     MetaProperty::PropertyAttributes attributes,
     PropertyFilters filters) const
 {
-    QList<MetaProperty> result;
-
-    for (const MetaProperty& prop : std::as_const(d->properties)) {
-        bool typeMatch;
-        bool filterMatch;
-
+    return properties([&filters, &attributes](const MetaProperty &prop) {
         // Filter by type
+        bool typeMatch = false;
         if (filters == AllProperties) {
             typeMatch = true;
         } else {
-            typeMatch = false;
-            if (filters.testFlag(StandardProperties) && prop.propertyType() == MetaProperty::StandardProperty)
-                typeMatch = true;
-            if (filters.testFlag(DynamicProperties) && prop.propertyType() == MetaProperty::DynamicProperty)
-                typeMatch = true;
-            if (filters.testFlag(AppendedProperties) && prop.propertyType() == MetaProperty::AppendedProperty)
-                typeMatch = true;
-            if (filters.testFlag(RelationProperties) && prop.propertyType() == MetaProperty::RelationProperty)
-                typeMatch = true;
+            switch (prop.propertyType()) {
+            case MetaProperty::StandardProperty:
+                typeMatch = filters.testFlag(StandardProperties);
+                break;
+
+            case MetaProperty::DynamicProperty:
+                typeMatch = filters.testFlag(DynamicProperties);
+                break;
+
+            case MetaProperty::AppendedProperty:
+                typeMatch = filters.testFlag(AppendedProperties);
+                break;
+
+            case MetaProperty::RelationProperty:
+                typeMatch = filters.testFlag(RelationProperties);
+                break;
+            }
         }
+        if (!typeMatch) return false;
 
         // Filter by attributes
+        bool filterMatch;
         if (attributes == MetaProperty::NoAttibutes)
             filterMatch = true;
         else
-            filterMatch = (prop.attributes() & attributes) != MetaProperty::NoAttibutes;
+            filterMatch = (prop.attributes().testAnyFlags(attributes));
+        if (!filterMatch)
+            return false;
 
-        if (typeMatch && filterMatch)
-            result.append(prop);
-    }
+        return true;
+    });
+    QList<MetaProperty> result = d->properties;
+
+    result.removeIf([&filters, &attributes](const MetaProperty &p) {
+        // Filter by type
+        bool typeMatch = false;
+        if (filters == AllProperties) {
+            typeMatch = true;
+        } else {
+            switch (p.propertyType()) {
+            case MetaProperty::StandardProperty:
+                typeMatch = filters.testFlag(StandardProperties);
+                break;
+
+            case MetaProperty::DynamicProperty:
+                typeMatch = filters.testFlag(DynamicProperties);
+                break;
+
+            case MetaProperty::AppendedProperty:
+                typeMatch = filters.testFlag(AppendedProperties);
+                break;
+
+            case MetaProperty::RelationProperty:
+                typeMatch = filters.testFlag(RelationProperties);
+                break;
+            }
+        }
+        if (!typeMatch) return true;
+
+        // Filter by attributes
+        bool filterMatch;
+        if (attributes == MetaProperty::NoAttibutes)
+            filterMatch = true;
+        else
+            filterMatch = (p.attributes().testAnyFlags(attributes));
+        if (!filterMatch)
+            return true;
+
+        return false;
+    });
 
     return result;
 }
 
 QList<MetaProperty> MetaObject::properties(PropertyFilters filters) const
 {
-    if (filters == AllProperties) return d->properties;
+    if (filters == AllProperties)
+        return d->properties;
 
-    QList<MetaProperty> result;
+    return properties([&filters](const MetaProperty &prop) {
+        switch (prop.propertyType()) {
+        case MetaProperty::StandardProperty:
+            return filters.testFlag(StandardProperties);
 
-    for (const MetaProperty& prop : std::as_const(d->properties)) {
-        bool typeMatch;
+        case MetaProperty::DynamicProperty:
+            return filters.testFlag(DynamicProperties);
 
-        // Filter by type
-        if (filters == AllProperties) {
-            typeMatch = true;
-        } else {
-            typeMatch = false;
-            if (filters.testFlag(StandardProperties) && prop.propertyType() == MetaProperty::StandardProperty)
-                typeMatch = true;
-            if (filters.testFlag(DynamicProperties) && prop.propertyType() == MetaProperty::DynamicProperty)
-                typeMatch = true;
-            if (filters.testFlag(AppendedProperties) && prop.propertyType() == MetaProperty::AppendedProperty)
-                typeMatch = true;
-            if (filters.testFlag(RelationProperties) && prop.propertyType() == MetaProperty::RelationProperty)
-                typeMatch = true;
+        case MetaProperty::AppendedProperty:
+            return filters.testFlag(AppendedProperties);
+
+        case MetaProperty::RelationProperty:
+            return filters.testFlag(RelationProperties);
         }
 
-        if (typeMatch)
-            result.append(prop);
-    }
+        return false;
+    });
+}
 
+QList<MetaProperty> MetaObject::properties(const std::function<bool (const MetaProperty &)> &pred) const
+{
+    QList<MetaProperty> result;
+    std::copy_if(d->properties.begin(), d->properties.end(), std::back_inserter(result), pred);
     return result;
 }
 

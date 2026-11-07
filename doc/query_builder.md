@@ -25,6 +25,7 @@ query.where("price", ">=", 100);
 ### Logical AND/OR
 ```cpp
 query.where("active", true)
+     .andWhere("label", "LIKE", "Hop%")
      .orWhere("price", "<", 10);
 ```
 
@@ -49,7 +50,7 @@ query.limit(10).offset(20);
 
 ### Page Helper
 ```cpp
-query.page(2, 50); // Page 2, 50 per page (Offset 50, Limit 50)
+query.page(2, 50); testing// Page 2, 50 per page (Offset 50, Limit 50)
 ```
 
 ## Eager Loading (Eager Relations)
@@ -57,7 +58,7 @@ query.page(2, 50); // Page 2, 50 per page (Offset 50, Limit 50)
 To prevent N+1 query problems, you can tell the query to automatically fetch related models:
 
 ```cpp
-auto result = Product::find(Product::query().with("category"));
+auto result = Product::with("category");
 ```
 
 Next, see the [Utility functions](@ref utilities) available in QEloquent.

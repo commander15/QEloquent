@@ -3,7 +3,7 @@
 
 #include <QEloquent/private/relation_p.h>
 #include <QEloquent/namingconvention.h>
-#include <QEloquent/query.h>
+#include <QEloquent/queryhelper.h>
 
 namespace QEloquent {
 
@@ -52,11 +52,11 @@ public:
 
     bool get() override
     {
-        Query q;
+        QueryHelper<RelatedModel> q;
         q.where(foreignKey, this->parentField(localKey));
         if (!this->multiple()) q.limit(1);
 
-        auto result = RelatedModel::find(q);
+        auto result = q.get();
         if (result) {
             this->related = result.value();
             this->conserve(q);
@@ -120,7 +120,7 @@ public:
 
         const MetaObject through = MetaObject::from<ThroughModel>();
 
-        Query q;
+        QueryHelper<RelatedModel> q;
         q.join(through.tableName(),
                this->relatedObject.tableName() + "." + throughForeignKey,
                "=",
@@ -128,7 +128,7 @@ public:
 
         q.where(through.tableName() + "." + foreignKey, this->parentField(localKey));
 
-        auto result = RelatedModel::find(q);
+        auto result = q.get();
         if (result) {
             this->related = result.value();
             this->conserve(q);
@@ -164,10 +164,10 @@ public:
 
     bool get() override
     {
-        Query q;
+        QueryHelper<RelatedModel> q;
         q.where(ownerKey, this->parentField(foreignKey));
 
-        auto result = RelatedModel::find(q);
+        auto result = q.get();
         if (result) {
             this->related = { result.value() };
             return true;
@@ -214,7 +214,7 @@ public:
         // INNER JOIN pivot ON related.related_key = pivot.related_pivot_key
         // WHERE pivot.foreign_pivot_key = parent.parent_key
         
-        Query q;
+        QueryHelper<RelatedModel> q;
         q.join(table, 
                this->relatedObject.tableName() + "." + relatedKey,
                "=", 
@@ -222,9 +222,7 @@ public:
         
         q.where(table + "." + foreignPivotKey, this->parentField(parentKey));
 
-        QString s = q.toString(this->parent->connection());
-
-        auto result = RelatedModel::find(q);
+        auto result = q.get();
         if (result) {
             this->related = result.value();
             this->conserve(q);
@@ -277,7 +275,7 @@ public:
         // INNER JOIN pivot ON related.related_key = pivot.related_pivot_key
         // WHERE pivot.foreign_pivot_key = parent.parent_key
         
-        Query q;
+        QueryHelper<RelatedModel> q;
         q.join(table, 
                this->relatedObject.tableName() + "." + relatedKey,
                "=", 
@@ -285,7 +283,7 @@ public:
         
         q.where(table + "." + foreignPivotKey, this->parentField(parentKey));
 
-        auto result = RelatedModel::find(q);
+        auto result = q.get();
         if (result) {
             this->related = result.value();
             this->conserve(q);

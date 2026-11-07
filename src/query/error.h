@@ -29,6 +29,7 @@ public:
     Error &operator=(Error &&);
     ~Error();
 
+    inline QString message() const { return text(); }
     QString text() const;
     QSqlError sqlError() const;
     ErrorType type() const;

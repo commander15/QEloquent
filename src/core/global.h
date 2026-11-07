@@ -1,6 +1,8 @@
 #ifndef QELOQUENT_GLOBAL_H
 #define QELOQUENT_GLOBAL_H
 
+#include <QEloquent/config.h>
+
 #include <QtGlobal>
 
 #ifdef QELOQUENT_SHARED

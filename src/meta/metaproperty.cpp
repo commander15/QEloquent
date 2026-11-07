@@ -1,7 +1,7 @@
 #include "metaproperty.h"
 #include "metaproperty_p.h"
 
-#include <QEloquent/model.h>
+#include <QEloquent/model_a.h>
 #include <QEloquent/datatype.h>
 #include "../orm/model_p.h"
 

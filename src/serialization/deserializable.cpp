@@ -65,7 +65,7 @@ void Deserializable::fill(const QList<DataMap> &data)
  */
 void Deserializable::fill(const QJsonObject &object)
 {
-    fill({ object });
+    fill(QJsonArray() << object);
 }
 
 /*!

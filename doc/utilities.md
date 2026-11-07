@@ -36,4 +36,4 @@ QEloquent uses several macros for export and configuration:
 - `Q_GADGET`: Used in models for reflection.
 - `Q_PROPERTY`: Maps class members to database columns.
 
-Return to the [Introduction](@ref intro).
+Return to the [Introduction](@ref introduction).

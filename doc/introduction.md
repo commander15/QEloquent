@@ -1,4 +1,4 @@
-# QEloquent
+# What is QEloquent ? {#introduction}
 
 **Modern, fluent ORM for Qt 6 / C++ — inspired by Laravel Eloquent**
 
@@ -82,8 +82,6 @@ qDebug() << users.first();   // → beautiful YAML-like output
 - Advanced → Multiple DBs, custom drivers, performance
 - FAQ → Common questions & troubleshooting
 - API Reference → Full Doxygen docs (link to generated HTML)
-
-## 
 
 ## Contributing & feedback
 

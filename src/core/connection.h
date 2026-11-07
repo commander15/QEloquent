@@ -64,6 +64,7 @@ public:
     static Connection connection(const QString &name);
     static Connection addConnection(const QString &name, const QUrl &url);
     static Connection addConnection(const QString &name, const QString &type, const QString &dbName);
+    static Connection addConnection(const QString &name, const QString &type, const QString &dbName, const QString &hostName, int port = -1);
     static Connection addConnection(const QString &name, const QString &type, const QString &dbName, const QString &userName, const QString &password, const QString &hostName, int port = -1);
     static Connection addConnection(const QString &name, const QSqlDatabase &db, bool ownDb = false);
     static void removeConnection(const QString &name);

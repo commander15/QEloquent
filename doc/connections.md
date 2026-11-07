@@ -29,16 +29,32 @@ if (conn.open()) {
 
 ## Transactions
 
-QEloquent supports SQL transactions through the Connection class.
+QEloquent provided a transaction utility called QEloquent::TransactionGuard which basically act as a QMutexLocker
+It start the transaction at construction and rollback at deletion if commit() didn't get called on it.
 
 ```cpp
-Connection conn = Connection::defaultConnection();
-if (conn.beginTransaction()) {
+bool process() {
+    // instanciation start the transaction
+    TransactionGuard guard;
+    
+    // If an error occured and the transaction hasn't started, no need to go further, we just log the error
+    if (!guard.transactionStarted()) {
+        qDebug() << guard.errorString();
+        return false;
+    }
+
     bool success = doWork();
-    if (success) {
-        conn.commitTransaction();
+    if (!success) {
+        // By returing without calling commit() on guard, a rollback will be made
+        return;
+    }
+
+    // We make sure we persist data or log the error if any occurs
+    if (guard.commit()) {
+        return true;
     } else {
-        conn.rollbackTransaction();
+        qDebug() << guard.errorString();
+        return false;
     }
 }
 ```

@@ -109,12 +109,12 @@ void DashboardView::refresh()
     auto prodCount = Product::count();
     m_totalProductsLabel->setText(QString::number(prodCount.value_or(0)));
 
-    auto lowStockCount = Stock::count(Stock::query().where("quantity", "<", 10));
-    m_lowStockLabel->setText(QString::number(lowStockCount ? lowStockCount.value() : 0));
+    auto lowStockCount = Stock::where("quantity", "<", 10).count();
+    m_lowStockLabel->setText(QString::number(lowStockCount.value_or(0)));
 
     // Daily Revenue using QueryRunner
-    auto query = Sale::query().where("date(created_at) = date('now')");
-    auto revenueResult = QEloquent::QueryRunner::select("SUM(amount)", query);
+    auto revenueQuery = Sale::whereRaw("date(created_at) = date('now')");
+    auto revenueResult = QEloquent::QueryRunner::select("SUM(amount)", revenueQuery);
     double totalRevenue = (revenueResult && revenueResult->next()) ? revenueResult->value(0).toDouble() : 0.0;
     m_dailyRevenueLabel->setText(QString::number(totalRevenue, 'f', 2) + " $");
 
@@ -123,14 +123,14 @@ void DashboardView::refresh()
 
     const QString fields = "products.name, SUM(sale_items.quantity) as total_qty, categories.name as cat_name, SUM(sale_items.quantity * sale_items.unit_price) as revenue";
 
-    query = SaleItem::query();
-    query.join("products", "product_id", "=", "products.id")
-        .join("categories", "products.category_id", "=", "categories.id")
-        .groupBy("product_id")
-        .orderBy("total_qty", Qt::DescendingOrder)
-        .limit(10);
+    auto topQuery = SaleItem::query()
+                        .join("products", "product_id", "=", "products.id")
+                        .join("categories", "products.category_id", "=", "categories.id")
+                        .groupBy("product_id")
+                        .orderBy("total_qty", Qt::DescendingOrder)
+                        .limit(10);
 
-    auto topResult = QEloquent::QueryRunner::select(fields, query);
+    auto topResult = QEloquent::QueryRunner::select(fields, topQuery);
     if (topResult) {
         int row = 0;
         while (topResult->next()) {
