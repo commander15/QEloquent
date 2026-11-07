@@ -71,6 +71,9 @@ endif()
 
 # CI/CD workflow
 
+set(LINUX_ARCH linux_gcc_64)
+set(WINDOWS_ARCH win64_msvc2019_64)
+
 set(CMAKE_CONFIG_ARGS
     -DBUILD_SHARED_LIBS=ON
     -DQELOQUENT_BUILD_TESTS=ON
@@ -86,8 +89,6 @@ string(JOIN "\\n\\n" MAIL_TEXT ${MAIL_TEXT})
 string(REPLACE "\"" "\\\"" MAIL_TEXT ${MAIL_TEXT})
 string(REPLACE "\n" "\\n" MAIL_TEXT ${MAIL_TEXT})
 
-configure_file(.github/workflows/ci-cd.yml.in ${CMAKE_CURRENT_SOURCE_DIR}/.github/workflows/ci-cd.yml @ONLY)
-
 # Packaging
 set(CPACK_PACKAGE_NAME qeloquent)
 set(CPACK_PACKAGE_VENDOR Amadou Benjamain)
@@ -99,3 +100,6 @@ if (LINUX)
 endif()
 
 include(CPack)
+
+# Generate CI/CD workflow file
+configure_file(.github/workflows/ci-cd.yml.in ${CMAKE_CURRENT_SOURCE_DIR}/.github/workflows/ci-cd.yml @ONLY)

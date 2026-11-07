@@ -7,7 +7,7 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 env:
-  PACKAGE_NAME: 
+  PACKAGE_NAME: qeloquent
   PACKAGE_DISPLAY_NAME: QEloquent
   PACKAGE_VERSION: 2.0.0
   QT_VERSION: 6.9.0
@@ -33,7 +33,7 @@ jobs:
           - platform: Linux
             os: ubuntu-24.04
             host: linux
-            arch: gcc_64
+            arch: linux_gcc_64
             target: desktop
             cmake-args: 
             pm: sudo apt

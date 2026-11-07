@@ -24,7 +24,7 @@ jobs:
           - platform: Windows
             os: windows-2022
             host: windows
-            arch: win64_msvc2019_64
+            arch: @WINDOWS_ARCH@
             target: desktop
             cmake-args: @CMAKE_CONFIG_WINDOWS_ARGS@
             pm: choco
@@ -33,7 +33,7 @@ jobs:
           - platform: Linux
             os: ubuntu-24.04
             host: linux
-            arch: gcc_64
+            arch: @LINUX_ARCH@
             target: desktop
             cmake-args: @CMAKE_CONFIG_LINUX_ARGS@
             pm: sudo apt
