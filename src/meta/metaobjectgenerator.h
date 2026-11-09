@@ -24,17 +24,7 @@ private:
     MetaPropertyData *newDynamicProperty(int index, const QString &name, MetaObjectGeneration *generation);
     MetaPropertyData *newComputedProperty(int index, const QMetaMethod &method, MetaObjectGeneration *generation);
     MetaPropertyData *newRelationProperty(int index, const QMetaMethod &method, MetaObjectGeneration *generation);
-    void tuneProperty(int index, MetaPropertyData *property, MetaObjectGeneration *generation);
-    //void registerProperty(int index, MetaPropertyData *property, MetaObjectGeneration *generation);
-
-    void initDynamicProperty(MetaPropertyData *property, MetaObjectGeneration *generation);
-    void initComputedProperty(MetaPropertyData *property, MetaObjectGeneration *generation);
-    void initRelationProperty(MetaPropertyData *property, MetaObjectGeneration *generation);
-
-    void tuneProperty(int &index, MetaPropertyData *property, MetaObjectGeneration *generation, bool save);
-
-    MetaPropertyData *newProperty(int &index, MetaObjectGeneration *generation) const;
-    void registerProperty(int index, MetaPropertyData *property, MetaObjectGeneration *generation);
+    MetaPropertyData *tuneProperty(int index, MetaPropertyData *property, MetaObjectGeneration *generation);
 };
 
 } // namespace QEloquent
