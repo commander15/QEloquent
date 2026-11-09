@@ -2,7 +2,7 @@
 #define QELOQUENT_ID_H
 
 #include <QEloquent/global.h>
-#include <QEloquent/datatype.h>
+#include <QEloquent/data.h>
 
 #include <QObject>
 #include <QUuid>
@@ -10,7 +10,7 @@
 
 namespace QEloquent {
 
-class QELOQUENT_EXPORT ID : public AbstractDataType
+class QELOQUENT_EXPORT ID : public AbstractData
 {
     Q_GADGET
 

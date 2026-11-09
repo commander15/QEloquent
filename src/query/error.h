@@ -36,6 +36,7 @@ public:
 
     static Error fromSqlQuery(const QSqlQuery &query);
     static Error fromSqlError(const QSqlError &error);
+    static Error fromSqlError(const QString &info, const QSqlError &error);
 
 private:
     Error(ErrorData *data);

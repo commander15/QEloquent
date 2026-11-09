@@ -118,6 +118,18 @@ QVariant Model::label() const
 }
 
 /*!
+ * \brief Check if property value is NULL for database operations.
+ * \param name The property name
+ * \return Returns true if value is considered NULL, false otherwise.
+ */
+bool Model::isNull(const QString &name) const
+{
+    MODEL_DATA(const Model);
+    const MetaProperty property = data.metaObject.property(name, MetaObject::ResolveByPropertyName);
+    return (property.isValid() ? property.isNull(this) : isPropertyNull(name));
+}
+
+/*!
  * \brief Returns a property value by name.
  */
 QVariant Model::property(const QString &name) const
@@ -180,130 +192,17 @@ void Model::setField(const QString &name, const QVariant &value)
  */
 bool Model::exists()
 {
-    auto result = exec([](const Query &query) {
-        return QueryBuilder::selectStatement("COUNT(1)", query);
+    auto result = exec([this](const Query &query) {
+        const MetaProperty primary = data->metaObject.primaryProperty();
+        return QueryBuilder::selectStatement(primary.fieldName(), query);
     }, true);
 
-    if (result && result->next())
-        return result->value(0).toInt() > 0;
-    else
-        return false;
-}
-
-/*!
- * \brief Refreshes the model data from the database.
- */
-bool Model::get()
-{
-    MODEL_DATA(Model);
-
-    if (!primary().isValid()) {
-        data.lastError = Error(Error::NotFoundError, "Primary key not provided");
-        return false;
-    }
-
-    auto result = exec([](const Query &query) {
-        return QueryBuilder::selectStatement(query);
-    }, true);
-
-    if (result) {
-        if (result->next()) {
-            fill(result->record());
-            load(data.metaObject.relations());
-            return true;
-        } else {
-            data.lastError = Error(Error::NotFoundError, "Model not found");
-        }
-    } else {
-        data.lastError = Error(Error::DatabaseError, QString(), result.error());
-    }
-
-    return false;
-}
-
-/*!
- * \brief Inserts the model into the database.
- */
-bool Model::insert()
-{
-    MODEL_DATA(Model);
-
-    const MetaProperty timestamp = data.metaObject.creationTimestamp();
-    if (timestamp.isValid()) timestamp.write(this, now());
-
-    const DataMap values = data.metaObject.read(this,
-        (timestamp.hasAttribute(MetaProperty::DatabaseField) ? MetaProperty::CreationTimestamp : MetaProperty::NoAttibutes) | MetaProperty::FillableProperty,
-        MetaObject::StandardProperties | MetaObject::DynamicProperties,
-        MetaObject::ResolveByFieldName);
-
-    auto result = exec([&values](const Query &query) {
-        return QueryBuilder::insertStatement(values, query);
-    }, false);
-
-    if (result) {
-        setPrimary(result->lastInsertId());
+    if (result && result->next()) {
+        setPrimary(result->value(0));
         return true;
     } else {
         return false;
     }
-}
-
-/*!
- * \brief Updates the model in the database.
- */
-bool Model::update()
-{
-    MODEL_DATA(Model);
-
-    const MetaProperty timestamp = data.metaObject.updateTimestamp();
-    if (timestamp.isValid()) timestamp.write(this, now());
-
-    const DataMap values = data.metaObject.read(this,
-        (timestamp.hasAttribute(MetaProperty::DatabaseField) ? MetaProperty::CreationTimestamp : MetaProperty::NoAttibutes) | MetaProperty::FillableProperty,
-        MetaObject::StandardProperties | MetaObject::DynamicProperties,
-        MetaObject::ResolveByFieldName);
-
-    auto result = exec([&values](const Query &query) {
-        return QueryBuilder::updateStatement(values, query);
-    }, true);
-
-    return (result ? result->numRowsAffected() > 0 : false);
-}
-
-/*!
- * \brief Deletes the model from the database.
- */
-bool Model::deleteData()
-{
-    MODEL_DATA(Model);
-
-    // If soft delete is enabled (deletion timestamp available), we just update it value
-    const MetaProperty timestamp = data.metaObject.deletionTimestamp();
-    if (timestamp.isValid() && timestamp.hasAttribute(MetaProperty::DatabaseField)) {
-        const QDateTime now = this->now();
-        timestamp.write(this, now);
-
-        const DataMap values = { { timestamp.fieldName(), now } };
-        auto r = exec([&values](const Query &query) {
-            return QueryBuilder::updateStatement(values, query);
-        }, true);
-        return (r ? r->numRowsAffected() == 1 : false);
-    }
-
-    // Regular deletion
-    return deletePermanently();
-}
-
-/*!
- * \brief Deletes the model record from DB.
- * \note This method delete the record and by-pass soft delete.
- */
-bool Model::deletePermanently()
-{
-    auto result = exec([](const Query &query) {
-        return QueryBuilder::deleteStatement(query);
-    }, true);
-    return (result ? result->numRowsAffected() > 0 : false);
 }
 
 /*!
@@ -393,14 +292,18 @@ bool Model::isListSerializable() const
     return false;
 }
 
-QList<DataMap> Model::serialize() const
+QList<DataMap> Model::serialize(bool all) const
 {
+    if (all) {
+        return QList<DataMap>() << fullDataMap();
+    }
+
     const QList<MetaProperty> properties = data->metaObject.properties([this](const MetaProperty &prop) {
         if (prop.hasAttribute(MetaProperty::HiddenProperty))
-            return false;
+            return false; // We hide hidden properties
 
         if (prop.propertyType() == MetaProperty::RelationProperty)
-            return this->data->relationData.contains(prop.propertyName());
+            return this->data->relationData.contains(prop.propertyName()); // Hide unloaded relations
 
         return true;
     });
@@ -457,19 +360,21 @@ QList<DataMap> Model::serialize() const
 
 void Model::deserialize(const QList<DataMap> &data, bool all)
 {
-    if (data.isEmpty()) return;
+    if (data.isEmpty())
+        return;
 
-    static const MetaProperty::PropertyAttributes allAttributes =
-        MetaProperty::PrimaryProperty | MetaProperty::FillableProperty |
-        MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp;
-
-    static const MetaProperty::PropertyAttributes fillableAttributes = MetaProperty::FillableProperty;
-
-    const MetaProperty::PropertyAttributes allowedAttributes = (all ? allAttributes : fillableAttributes);
-    const QList<MetaProperty> properties = this->data->metaObject.properties(allowedAttributes, MetaObject::StandardProperties | MetaObject::DynamicProperties);
     const DataMap map = data.constFirst();
+    if (map.isEmpty())
+        return;
 
-    for (const MetaProperty &property : properties) {
+    QList<MetaProperty> properties;
+    if (all) {
+        properties = this->data->metaObject.properties(MetaObject::AllProperties);
+    } else {
+        properties = this->data->metaObject.properties(MetaProperty::FillableProperty, MetaObject::AllProperties);
+    }
+
+    for (const MetaProperty &property : std::as_const(properties)) {
         const QString fieldName = property.fieldName();
         if (map.contains(fieldName))
             property.write(this, map.value(fieldName));
@@ -481,14 +386,148 @@ void Model::deserialize(const QList<DataMap> &data, bool all)
  */
 DataMap Model::fullDataMap() const
 {
-    DataMap map = data->metaObject.read(this,
-        MetaProperty::PrimaryProperty | MetaProperty::FillableProperty | MetaProperty::HiddenProperty |
-        MetaProperty::CreationTimestamp | MetaProperty::UpdateTimestamp | MetaProperty::DeletionTimestamp,
-        MetaObject::StandardProperties | MetaObject::AppendedProperties | MetaObject::RelationProperties,
-        MetaObject::ResolveByFieldName);
-
+    DataMap map = data->metaObject.read(this, MetaObject::ResolveByFieldName);
     map.insert(data->dynamicProperties);
     return map;
+}
+
+bool Model::isPropertyNull(const QString &name) const
+{
+    if (data->dynamicProperties.contains(name))
+        return data->dynamicProperties.value(name).isNull();
+
+    if (data->relationData.contains(name))
+        return true; // Relation are always null on this context
+
+    // By default it's not null
+    return false;
+}
+
+/*!
+ * \internal
+ * \brief Refreshes the model data from the database.
+ */
+bool Model::doGet()
+{
+    MODEL_DATA(Model);
+
+    if (!primary().isValid()) {
+        data.lastError = Error(Error::NotFoundError, "Primary key not provided");
+        return false;
+    }
+
+    auto result = exec([](const Query &query) {
+        return QueryBuilder::selectStatement(query);
+    }, true);
+
+    if (result) {
+        if (result->next()) {
+            fill(result->record());
+            load(data.metaObject.relations());
+            return true;
+        } else {
+            data.lastError = Error(Error::NotFoundError, "Model not found");
+        }
+    } else {
+        data.lastError = Error(Error::DatabaseError, QString(), result.error());
+    }
+
+    return false;
+}
+/*!
+ * \internal
+ * \brief Inserts the model into the database.
+ */
+bool Model::doInsert()
+{
+    MODEL_DATA(Model);
+
+    const MetaProperty primary = data.metaObject.primaryProperty();
+
+    const MetaProperty timestamp = data.metaObject.creationTimestamp();
+    if (timestamp.isValid()) timestamp.write(this, now());
+
+    DataMap values = data.metaObject.read(
+        this,
+        MetaProperty::DatabaseField,
+        MetaObject::AllProperties,
+        MetaObject::ResolveByFieldName);
+    values.remove(primary.fieldName());
+
+    auto result = exec([&values](const Query &query) {
+        return QueryBuilder::insertStatement(values, query);
+    }, false);
+
+    if (result) {
+        setPrimary(result->lastInsertId());
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/*!
+ * \internal
+ * \brief Updates the model in the database.
+ */
+bool Model::doUpdate()
+{
+    MODEL_DATA(Model);
+
+    const MetaProperty primary = data.metaObject.primaryProperty();
+
+    const MetaProperty timestamp = data.metaObject.updateTimestamp();
+    if (timestamp.isValid()) timestamp.write(this, now());
+
+    DataMap values = data.metaObject.read(
+        this,
+        MetaProperty::DatabaseField,
+        MetaObject::AllProperties,
+        MetaObject::ResolveByFieldName);
+    values.remove(primary.fieldName());
+
+    auto result = exec([&values](const Query &query) {
+        return QueryBuilder::updateStatement(values, query);
+    }, true);
+
+    return (result ? result->numRowsAffected() > 0 : false);
+}
+
+/*!
+ * \internal
+ * \brief Deletes the model from the database.
+ */
+bool Model::doDelete()
+{
+    MODEL_DATA(Model);
+
+    // If soft delete is enabled (deletion timestamp available), we just update it value
+    const MetaProperty timestamp = data.metaObject.deletionTimestamp();
+    if (timestamp.isValid() && timestamp.hasAttribute(MetaProperty::DatabaseField)) {
+        const QDateTime now = this->now();
+        timestamp.write(this, now);
+
+        const DataMap values = { { timestamp.fieldName(), now } };
+        auto r = exec([&values](const Query &query) {
+            return QueryBuilder::updateStatement(values, query);
+        }, true);
+        return (r ? r->numRowsAffected() == 1 : false);
+    }
+
+    // Regular deletion
+    return deletePermanently();
+}
+
+/*!
+ * \brief Deletes the model record from DB.
+ * \note This method delete the record and by-pass soft delete.
+ */
+bool Model::deletePermanently()
+{
+    auto result = exec([](const Query &query) {
+        return QueryBuilder::deleteStatement(query);
+    }, true);
+    return (result ? result->numRowsAffected() > 0 : false);
 }
 
 /*!
@@ -530,7 +569,7 @@ Result<QSqlQuery, QSqlError> Model::exec(const std::function<QString (const Quer
     data->lastQuery = newQuery(statementGenerator, filter);
     auto result = QueryRunner::exec(data->lastQuery.rawSql(), data->lastQuery.connection());
     if (!result)
-        data->lastError = Error::fromSqlError(result.error());
+        data->lastError = Error::fromSqlError("SQL: " + data->lastQuery.rawSql(), result.error());
     return result;
 }
 

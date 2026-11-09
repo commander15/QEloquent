@@ -20,11 +20,11 @@ public:
     void *relatedList() const override final
     { return &const_cast<BasicRelationData<RelatedModel> *>(this)->related; }
 
-    QList<DataMap> serialize() const override final {
+    QList<DataMap> serialize(bool all) const override final {
         QList<DataMap> maps;
 
-        std::transform(related.begin(), related.end(), std::back_inserter(maps), [](const Serializable &model) {
-            const QList<DataMap> maps = model.serialize();
+        std::transform(related.begin(), related.end(), std::back_inserter(maps), [&all](const Serializable &model) {
+            const QList<DataMap> maps = model.serialize(all);
             // Model always return a single map
             return maps.first();
         });
@@ -50,7 +50,7 @@ public:
             localKey = this->primaryObject.primaryProperty().fieldName();
     }
 
-    bool get() override
+    bool doGet() override
     {
         QueryHelper<RelatedModel> q;
         q.where(foreignKey, this->parentField(localKey));
@@ -112,7 +112,7 @@ public:
         }
     }
 
-    bool get() override
+    bool doGet() override
     {
         // SELECT related.* FROM related
         // INNER JOIN through ON related.through_foreign_key = through.through_local_key
@@ -162,7 +162,7 @@ public:
             ownerKey = this->relatedObject.primaryProperty().fieldName();
     }
 
-    bool get() override
+    bool doGet() override
     {
         QueryHelper<RelatedModel> q;
         q.where(ownerKey, this->parentField(foreignKey));
@@ -208,7 +208,7 @@ public:
             relatedKey = this->relatedObject.primaryProperty().fieldName();
     }
 
-    bool get() override
+    bool doGet() override
     {
         // SELECT related.* FROM related
         // INNER JOIN pivot ON related.related_key = pivot.related_pivot_key
@@ -269,7 +269,7 @@ public:
             relatedKey = this->relatedObject.primaryProperty().fieldName();
     }
 
-    bool get() override
+    bool doGet() override
     {
         // SELECT related.* FROM related
         // INNER JOIN pivot ON related.related_key = pivot.related_pivot_key

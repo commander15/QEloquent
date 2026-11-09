@@ -20,7 +20,7 @@ public:
 
     virtual QString serializationContext() const;
     virtual bool isListSerializable() const = 0;
-    virtual QList<DataMap> serialize() const = 0;
+    virtual QList<DataMap> serialize(bool all) const = 0;
 
     QJsonObject toJsonObject() const;
     QJsonArray toJsonArray() const;

@@ -26,12 +26,6 @@ public:
     virtual void init(NamingConvention *convention) = 0;
     virtual bool multiple() const = 0;
 
-    // No need for full CRUD for now, insert/update not handled separately
-    bool save() override { return false; }
-    bool insert() override final { return save(); }
-    bool update() override final { return save(); };
-    bool deleteData() override { return false; }
-
     template<typename Model> QList<Model> &relatedModels() const
     { return *static_cast<QList<Model>*>(relatedList()); }
     virtual void *relatedList() const = 0;
@@ -53,6 +47,12 @@ public:
     static QExplicitlySharedDataPointer<RelationData> create(const std::source_location &location, const Model *parent, const std::function<RelationData *()> &creationCallback);
 
 protected:
+    // No need for full CRUD for now, insert/update not handled separately
+    virtual bool doSave() { return false; }
+    bool doInsert() override final { return doSave(); }
+    bool doUpdate() override final { return doSave(); };
+    bool doDelete() override { return false; }
+
     QVariant parentPrimary() const;
     void setParentPrimary(const QVariant &value);
 

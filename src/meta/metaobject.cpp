@@ -289,7 +289,7 @@ DataMap MetaObject::read(const Model *model, const QList<MetaProperty> &properti
             if (!model->data->relationData.contains(property.propertyName())) continue;
 
             auto relation = model->data->relationData.value(property.propertyName());
-            const QList<DataMap> maps = relation->serialize();
+            const QList<DataMap> maps = relation->serialize(false);
             if (relation->isListSerializable())
                 data.insert(name, maps);
             else if (maps.isEmpty())
@@ -302,6 +302,11 @@ DataMap MetaObject::read(const Model *model, const QList<MetaProperty> &properti
     }
 
     return data;
+}
+
+DataMap MetaObject::read(const Model *model, PropertyNameResolution resolution) const
+{
+    return read(model, d->properties, resolution);
 }
 
 int MetaObject::write(Model *model, const DataMap &data, PropertyNameResolution resolution) const

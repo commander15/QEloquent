@@ -8,6 +8,7 @@ namespace QEloquent {
 class ErrorData : public QSharedData
 {
 public:
+    QString info;
     QString text;
     QSqlError sqlError;
     Error::ErrorType type = Error::NoError;
@@ -88,7 +89,18 @@ Error::~Error()
  */
 QString Error::text() const
 {
-    return (data->text.isEmpty() ? data->sqlError.text() : data->text);
+    QStringList parts;
+
+    if (!data->info.isEmpty())
+        parts.append(data->info);
+
+    if (!data->text.isEmpty())
+        parts.append(data->text);
+
+    if (data->sqlError.isValid())
+        parts.append(data->sqlError.text());
+
+    return parts.join("\n");
 }
 
 /*!
@@ -114,7 +126,7 @@ Error Error::fromSqlQuery(const QSqlQuery &query)
 {
     const QSqlError sqlError = query.lastError();
     if (sqlError.type() != QSqlError::NoError)
-        return fromSqlError(sqlError);
+        return fromSqlError("query: " + query.executedQuery(), sqlError);
 
     if (query.isSelect() && query.size() < 1)
         return Error(NotFoundError);
@@ -122,12 +134,18 @@ Error Error::fromSqlQuery(const QSqlQuery &query)
     return Error();
 }
 
+Error Error::fromSqlError(const QSqlError &error)
+{
+    return fromSqlError(QString(), error);
+}
+
 /*!
  * \brief Creates an Error object from a QSqlError.
  */
-Error Error::fromSqlError(const QSqlError &error)
+Error Error::fromSqlError(const QString &info, const QSqlError &error)
 {
     ErrorData *data = new ErrorData();
+    data->info = info;
 
     if (error.type() != QSqlError::NoError) {
         data->type = DatabaseError;

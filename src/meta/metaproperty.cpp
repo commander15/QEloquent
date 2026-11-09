@@ -2,7 +2,7 @@
 #include "metaproperty_p.h"
 
 #include <QEloquent/model_a.h>
-#include <QEloquent/datatype.h>
+#include <QEloquent/data.h>
 #include "../orm/model_p.h"
 
 #include <QMetaType>
@@ -64,6 +64,14 @@ bool MetaProperty::hasAttribute(PropertyAttributeFlag flag) const
     return data->attributes.testFlag(flag);
 }
 
+bool MetaProperty::isNull(const Model *model) const
+{
+    if (model == nullptr)
+        return true;
+
+    return model->isPropertyNull(data->propertyName);
+}
+
 MetaProperty::PropertyAttributes MetaProperty::attributes() const
 {
     return data->attributes;
@@ -76,14 +84,17 @@ MetaProperty::PropertyType MetaProperty::propertyType() const
 
 QVariant MetaProperty::read(const Model *model) const
 {
+    if (isNull(model))
+        return QVariant();
+
     QVariant value;
 
     if (data->propertyType == StandardProperty && data->metaProperty.isValid()) {
         value = data->metaProperty.readOnGadget(model);
 
         const QMetaObject *metaObject = data->metaType.metaObject();
-        if (metaObject != nullptr && metaObject->inherits(&AbstractDataType::staticMetaObject)) {
-            const AbstractDataType *dataType = static_cast<const AbstractDataType *>(value.constData());
+        if (metaObject != nullptr && metaObject->inherits(&AbstractData::staticMetaObject)) {
+            const AbstractData *dataType = static_cast<const AbstractData *>(value.constData());
             value = dataType->value();
         }
     }
@@ -111,10 +122,13 @@ QVariant MetaProperty::read(const Model *model) const
 
 bool MetaProperty::write(Model *model, const QVariant &value) const
 {
+    if (model == nullptr)
+        return false;
+
     QVariant val = value;
 
     // Force UTC on datetime
-    if (data->metaType == QMetaType::fromType<QDateTime>()) {
+    if (!val.isNull() && data->metaType == QMetaType::fromType<QDateTime>()) {
         QDateTime timestamp = val.toDateTime();
         if (timestamp.timeZone() != QTimeZone::utc()) {
             timestamp.setTimeZone(QTimeZone::utc());
@@ -124,16 +138,16 @@ bool MetaProperty::write(Model *model, const QVariant &value) const
 
     if (data->propertyType == StandardProperty) {
         const QMetaObject *metaObject = data->metaType.metaObject();
-        if (metaObject != nullptr && metaObject->inherits(&AbstractDataType::staticMetaObject)) {
+        if (metaObject != nullptr && metaObject->inherits(&AbstractData::staticMetaObject)) {
             QVariant dataTypeVal = data->metaProperty.readOnGadget(model); // To have a good instance to start with
 
             // If the model doesn't have a valid instance yet, construct one using the metaType
             if (!dataTypeVal.isValid() || !dataTypeVal.metaType().metaObject() ||
-                !dataTypeVal.metaType().metaObject()->inherits(&AbstractDataType::staticMetaObject)) {
+                !dataTypeVal.metaType().metaObject()->inherits(&AbstractData::staticMetaObject)) {
                 dataTypeVal = QVariant(data->metaProperty.metaType());
             }
 
-            if (auto *dataTypeObj = static_cast<AbstractDataType *>(dataTypeVal.data())) {
+            if (auto *dataTypeObj = static_cast<AbstractData *>(dataTypeVal.data())) {
                 // Check the boolean return value of setValue
                 if (dataTypeObj->setValue(val)) {
                     val = dataTypeVal; // Success: pass the full gadget to writeOnGadget
@@ -141,12 +155,14 @@ bool MetaProperty::write(Model *model, const QVariant &value) const
                     qWarning() << "Failed to set value on"
                                << metaObject->className() << "::" << data->metaProperty.name()
                                << "property";
-                    return false;
                 }
             }
         }
 
-        return data->metaProperty.writeOnGadget(model, val);
+        if (val.isNull() && data->metaProperty.isResettable())
+            return data->metaProperty.resetOnGadget(model);
+        else
+            return data->metaProperty.writeOnGadget(model, val);
     }
 
     if (data->propertyType == DynamicProperty) {

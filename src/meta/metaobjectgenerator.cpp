@@ -16,6 +16,7 @@
 #define META_CREATED_AT     "createdAt"
 #define META_UPDATED_AT     "updatedAt"
 #define META_DELETED_AT     "deletedAt"
+#define META_DYNAMIC        "dynamic"
 #define META_FILLABLE       "fillable"
 #define META_HIDDEN         "hidden"
 #define META_APPEND         "append"
@@ -176,7 +177,7 @@ void MetaObjectGenerator::discoverProperties(MetaObjectGeneration *generation)
 
     // Dynamic properties
     // potential dynamic properties (from fillable, hidden, ...)
-    QStringList potentialDynamicProperties = generation->fillable + generation->hidden;
+    QStringList potentialDynamicProperties = generation->infoList(META_DYNAMIC) + generation->fillable + generation->hidden;
     potentialDynamicProperties.append(generation->info(META_CREATED_AT, "createdAt"));
     potentialDynamicProperties.append(generation->info(META_UPDATED_AT, "updatedAt"));
     potentialDynamicProperties.removeDuplicates();

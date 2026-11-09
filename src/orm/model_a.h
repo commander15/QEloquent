@@ -45,6 +45,8 @@ public:
 
     QVariant label() const;
 
+    bool isNull(const QString &name) const;
+
     QVariant property(const QString &name) const;
     void setProperty(const QString &name, const QVariant &value);
 
@@ -52,10 +54,6 @@ public:
     void setField(const QString &name, const QVariant &value);
 
     bool exists() override;
-    bool get() override;
-    bool insert() override;
-    bool update() override;
-    bool deleteData() override;
     bool deletePermanently();
 
     bool load(const QString &relation);
@@ -69,7 +67,7 @@ public:
 
     QString serializationContext() const override final;
     bool isListSerializable() const override final;
-    QList<DataMap> serialize() const override final;
+    QList<DataMap> serialize(bool all) const override final;
     void deserialize(const QList<DataMap> &data, bool all = false) override final;
 
     DataMap fullDataMap() const;
@@ -80,6 +78,13 @@ protected:
 
     Model(const QMetaObject &metaObject, ModelData *data = nullptr);
     Model(ModelData *data);
+
+    virtual bool isPropertyNull(const QString &name) const;
+
+    bool doGet() override;
+    bool doInsert() override;
+    bool doUpdate() override;
+    bool doDelete() override;
 
     QDateTime now() const;
 

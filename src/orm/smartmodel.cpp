@@ -141,15 +141,15 @@ QDateTime SmartModel::deletedAt() const
     return data.deletedAt;
 }
 
-bool SmartModel::insert()
+bool SmartModel::doInsert()
 {
     MODEL_DATA(SmartModel);
 
     if (data.id.isUuid() && data.id.isNull()) {
-        data.id.setValue(QUuid::createUuidV7());
+        data.id.generateValue(); // generate UUID
     }
 
-    return Model::insert();
+    return Model::doInsert();
 }
 
 void SmartModel::setCreatedAt(const QDateTime &time)

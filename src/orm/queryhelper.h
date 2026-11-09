@@ -228,7 +228,7 @@ public:
         if (result)
             return (result->next() ? result->value(0).toInt() : 0);
         else
-            return failWith(Error::fromSqlError(result.error()));
+            return failWith(Error::fromSqlError("SQL: " + statement, result.error()));
     }
 
     /**
@@ -286,7 +286,7 @@ public:
             m_executed = true;
             return models;
         } else {
-            return failWith(Error::fromSqlError(result.error()));
+            return failWith(Error::fromSqlError("SQL: " + statement, result.error()));
         }
     }
 
@@ -301,7 +301,7 @@ public:
         if (result)
             return result->numRowsAffected();
         else
-            return failWith(Error(Error::DatabaseError, QString(), result.error()));
+            return failWith(Error::fromSqlError("SQL: " + statement, result.error()));
     }
 
     /**

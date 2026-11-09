@@ -83,6 +83,8 @@ QString Serializable::serializationContext() const
  * The returned data is used by all public serialization methods (\c toJson(),
  * \c toYaml(), \c toCsv(), etc.) and by the streaming operators.
  *
+ * \param all Wheter to serialize all object fields or only allowed ones.
+ *
  * \return A list of \c DataMap objects representing the object's serialized state.
  *         An empty list indicates no data to serialize.
  */
@@ -98,7 +100,7 @@ QString Serializable::serializationContext() const
  */
 QJsonObject Serializable::toJsonObject() const
 {
-    const QList<DataMap> maps = serialize();
+    const QList<DataMap> maps = serialize(false);
     if (maps.isEmpty()) return QJsonObject();
     else return JsonSerializer::serializeMap(maps.first());
 }
@@ -113,7 +115,7 @@ QJsonObject Serializable::toJsonObject() const
  */
 QJsonArray Serializable::toJsonArray() const
 {
-    const QList<DataMap> maps = serialize();
+    const QList<DataMap> maps = serialize(false);
     if (maps.isEmpty()) return QJsonArray();
     else return JsonSerializer::serializeMaps(maps);
 }
@@ -129,7 +131,7 @@ QJsonArray Serializable::toJsonArray() const
  */
 QJsonValue Serializable::toJsonValue() const
 {
-    const QList<DataMap> maps = serialize();
+    const QList<DataMap> maps = serialize(false);
     if (maps.isEmpty()) return QJsonValue();
     if (isListSerializable())
         return JsonSerializer::serializeMaps(maps);
@@ -148,7 +150,7 @@ QJsonValue Serializable::toJsonValue() const
  */
 QByteArray Serializable::toJson(SerializationFormat format) const
 {
-    const QList<DataMap> maps = serialize();
+    const QList<DataMap> maps = serialize(false);
     QJsonDocument doc;
     if (isListSerializable())
         doc.setArray(JsonSerializer::serializeMaps(maps));
@@ -178,7 +180,7 @@ QByteArray Serializable::toJson(SerializationFormat format) const
  */
 QByteArray Serializable::toCsv(SerializationFormat format) const
 {
-    const QList<DataMap> maps = serialize();
+    const QList<DataMap> maps = serialize(false);
     return CsvSerializer::serializeMaps(maps, isListSerializable(), format);
 }
 
@@ -192,7 +194,7 @@ QByteArray Serializable::toCsv(SerializationFormat format) const
  */
 QByteArray Serializable::toYaml() const
 {
-    const QList<DataMap> maps = serialize();
+    const QList<DataMap> maps = serialize(false);
     if (maps.isEmpty()) return QByteArray();
     if (isListSerializable())
         return YamlSerializer::serializeMaps(maps);
@@ -215,7 +217,7 @@ QDebug operator<<(QDebug debug, const QEloquent::Serializable &serializable)
     // Serializer used for debugging (YAML)
     using Serializer = QEloquent::Private::YamlSerializer;
     const QString context = serializable.serializationContext();
-    const QList<QEloquent::DataMap> maps = serializable.serialize();
+    const QList<QEloquent::DataMap> maps = serializable.serialize(false);
 
     debug.noquote().nospace()
         << (context.isEmpty() ? context : context + '\n');
@@ -242,7 +244,7 @@ QDebug operator<<(QDebug debug, const QEloquent::Serializable &serializable)
  */
 QDataStream &operator<<(QDataStream &out, const QEloquent::Serializable &serializable)
 {
-    const QList<QEloquent::DataMap> maps = serializable.serialize();
+    const QList<QEloquent::DataMap> maps = serializable.serialize(false);
     return out << maps;
 }
 
@@ -263,7 +265,7 @@ QDebug operator<<(QDebug debug, const QEloquent::Serializable &serializable)
     // Serializer used for debugging (YAML)
     using Serializer = QEloquent::Private::YamlSerializer;
     const QString context = serializable.serializationContext();
-    const QList<QEloquent::DataMap> maps = serializable.serialize();
+    const QList<QEloquent::DataMap> maps = serializable.serialize(false);
 
     debug.noquote().nospace()
         << (context.isEmpty() ? context : context + '\n');
@@ -290,6 +292,6 @@ QDebug operator<<(QDebug debug, const QEloquent::Serializable &serializable)
  */
 QDataStream &operator<<(QDataStream &out, const QEloquent::Serializable &serializable)
 {
-    const QList<QEloquent::DataMap> maps = serializable.serialize();
+    const QList<QEloquent::DataMap> maps = serializable.serialize(false);
     return out << maps;
 }

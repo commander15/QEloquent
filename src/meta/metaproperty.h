@@ -52,6 +52,7 @@ public:
 
     PropertyType propertyType() const;
 
+    bool isNull(const Model *model) const;
     QVariant read(const Model *model) const;
     bool write(Model *model, const QVariant &value) const;
 

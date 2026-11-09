@@ -241,7 +241,7 @@ bool ID::setValue(const QVariant &id)
  * @brief Retrieves the abstract data format mapping corresponding to the ID type.
  * @return AbstractDataType::DataFormat The matching data format enum.
  */
-AbstractDataType::DataFormat ID::format() const
+AbstractData::DataFormat ID::format() const
 {
     switch (m_type) {
     case IntegerID:
@@ -257,7 +257,7 @@ AbstractDataType::DataFormat ID::format() const
         return DataFormat::UnknownData;
     }
 
-    return AbstractDataType::format();
+    return AbstractData::format();
 }
 
 } // namespace QEloquent

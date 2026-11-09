@@ -78,7 +78,7 @@ TEST_F(SimpleModel, UpdateValidInstanceOnDB) {
     apple.name = "Bio Apple"; // Changing name
 
     // Saving changes
-    ASSERT_TRUE(apple.save()) << TEST_STR(findResult ? "" : findResult.error().text());
+    ASSERT_TRUE(apple.save()) << TEST_STR(apple.lastError().text());
 
     // Checking
     auto result = connection.exec("SELECT name FROM Products WHERE id = 1");

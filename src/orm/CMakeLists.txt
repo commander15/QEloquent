@@ -1,6 +1,6 @@
 target_headers(QEloquent
     PUBLIC
-        datatype.h id.h
+        data.h id.h
         model.h model_a.h smartmodel.h
         modelhelpers.h modelmaker.h queryhelper.h
         relation.h
@@ -11,7 +11,7 @@ target_headers(QEloquent
 
 target_sources(QEloquent
     PRIVATE
-        datatype.cpp id.cpp
+        data.cpp id.cpp
         model.cpp smartmodel.cpp
         relation.cpp
 )

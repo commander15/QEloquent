@@ -79,6 +79,9 @@ public:
                  const QList<MetaProperty> &properties,
                  PropertyNameResolution resolution = ResolveByPropertyName) const;
 
+    DataMap read(const Model *model,
+                 PropertyNameResolution resolution = ResolveByPropertyName) const;
+
     int write(Model *model,
               const DataMap &data,
               PropertyNameResolution resolution = ResolveByPropertyName) const;

@@ -35,6 +35,8 @@ qt_add_executable(QEloquentTest
     serialization.h serialization.cpp
     simplemodel.h simplemodel.cpp
     complexmodel.h complexmodel.cpp
+    models/smartmodels.h models/smartmodels.cpp
+    smartmodel.h smartmodel.cpp
 )
 
 if (QELOQUENT_MIGRATIONS_SUPPORT)

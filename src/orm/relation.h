@@ -68,26 +68,25 @@ public:
 
     /** @brief Returns true if related models exist in the database (triggers load) */
     bool exists() override { ensureLoaded(); return data->exists(); }
-    /** @brief Manually fetches related models from the database */
-    bool get() override { ensureLoaded(); return data->get(); }
-    /** @brief Unsupported for relations directly */
-    bool save() override { return data->save(); }
-    /** @brief Unsupported for relations directly */
-    bool insert() override { return data->insert(); }
-    /** @brief Unsupported for relations directly */
-    bool update() override { return data->update(); }
-    /** @brief Unsupported for relations directly */
-    bool deleteData() override { return data->deleteData(); }
 
     /** @brief Explicitly returns the list of related models */
     QList<RelatedModel> related() const { ensureLoaded(); return data->relatedModels<RelatedModel>(); }
 
     QString serializationContext() const override final { return data->serializationContext(); }
     bool isListSerializable() const override final { return data->multiple(); }
-    QList<DataMap> serialize() const override final { return data->serialize(); }
+    QList<DataMap> serialize(bool all) const override final { return data->serialize(all); }
 
 private:
-    /** @brief Internal helper to trigger lazy loading if needed */
+    /** @internal @brief Manually fetches related models from the database */
+    bool doGet() override { ensureLoaded(); return data->get(); }
+    /** @internal @brief Unsupported for relations directly */
+    bool doInsert() override { return data->insert(); }
+    /** @internal @brief Unsupported for relations directly */
+    bool doUpdate() override { return data->update(); }
+    /** @internal @brief Unsupported for relations directly */
+    bool doDelete() override { return data->deleteData(); }
+
+    /** @internal @brief Internal helper to trigger lazy loading if needed */
     void ensureLoaded() const {
         if (!data->isLoaded) {
             data->get();

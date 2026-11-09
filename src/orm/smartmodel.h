@@ -1,5 +1,5 @@
-#ifndef SMARTMODEL_H
-#define SMARTMODEL_H
+#ifndef QELOQUENT_SMARTMODEL_H
+#define QELOQUENT_SMARTMODEL_H
 
 #include <QEloquent/global.h>
 #include <QEloquent/model_a.h>
@@ -31,15 +31,13 @@ public:
     SmartModel &operator=(SmartModel &&other);
     virtual ~SmartModel();
 
-    template<typename T> T id() const { return id().value().value<T>(); }
+    template<typename T> T id() const { return id().to<T>(); }
     QEloquent::ID id() const;
     bool setId(const QEloquent::ID &id);
 
     QDateTime createdAt() const;
     QDateTime updatedAt() const;
     QDateTime deletedAt() const;
-
-    bool insert() override;
 
 protected:
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<SmartModel, T>>>
@@ -49,6 +47,8 @@ protected:
     SmartModel(const QMetaObject &metaObject, IDType idType);
 
 private:
+    bool doInsert() override;
+
     void setCreatedAt(const QDateTime &time);
     void setUpdatedAt(const QDateTime &time);
     void setDeletedAt(const QDateTime &time);
@@ -56,4 +56,4 @@ private:
 
 } // namespace QEloquent
 
-#endif // SMARTMODEL_H
+#endif // QELOQUENT_SMARTMODEL_H

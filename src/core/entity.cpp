@@ -45,12 +45,19 @@ namespace QEloquent {
  */
 
 /*!
- * \fn bool Entity::get
  * \brief Fetch/retrieve operation (SELECT).
  *
  * Used when loading existing record(s) from the database.
  * \sa Entity::GetOperation and Entity::run
  */
+bool Entity::get()
+{
+    if (!onGet() || !doGet())
+        return false;
+
+    afterGet();
+    return true;
+}
 
 /*!
  * \brief Persists the entity (executes insert or update).
@@ -65,28 +72,49 @@ bool Entity::save()
 }
 
 /*!
- * \fn bool Entity::insert
  * \brief Insert/create operation (INSERT).
  *
  * Used when creating new record(s) that do not yet exist in the database.
  * \sa Entity::InsertOperation and Entity::run
  */
+bool Entity::insert()
+{
+    if (!onInsert() || !doInsert())
+        return false;
+
+    afterInsert();
+    return true;
+}
 
 /*!
- * \fn bool Entity::update
  * \brief Update/modify operation (UPDATE).
  *
  * Used when modifying existing record(s) that are already persisted.
  * \sa Entity::UpdateOperation and Entity::run
  */
+bool Entity::update()
+{
+    if (!onUpdate() || !doUpdate())
+        return false;
+
+    afterUpdate();
+    return true;
+}
 
 /*!
- * \fn bool Entity::deleteData
  * \brief Delete operation (DELETE).
  *
  * Used to delete existing record(s) that are already persisted.
  * \sa Entity::DeleteOperation and Entity::run
  */
+bool Entity::deleteData()
+{
+    if (!onDelete() || !doDelete())
+        return false;
+
+    afterDelete();
+    return true;
+}
 
 /*!
  * \brief Run the operation op on the entity.
@@ -112,6 +140,42 @@ bool Entity::run(Operation op)
     }
 
     return false;
+}
+
+bool Entity::onGet()
+{
+    return true;
+}
+
+void Entity::afterGet()
+{
+}
+
+bool Entity::onInsert()
+{
+    return true;
+}
+
+void Entity::afterInsert()
+{
+}
+
+bool Entity::onUpdate()
+{
+    return exists();
+}
+
+void Entity::afterUpdate()
+{
+}
+
+bool Entity::onDelete()
+{
+    return exists();
+}
+
+void Entity::afterDelete()
+{
 }
 
 }

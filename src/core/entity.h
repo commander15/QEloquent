@@ -21,15 +21,32 @@ public:
     virtual ~Entity() = default;
 
     virtual bool exists() = 0;
-    virtual bool get() = 0;
+    bool get();
 
-    virtual bool save();
-    virtual bool insert() = 0;
-    virtual bool update() = 0;
+    bool save();
+    bool insert();
+    bool update();
 
-    virtual bool deleteData() = 0;
+    bool deleteData();
 
     bool run(Operation op);
+
+protected:
+    virtual bool onGet();
+    virtual bool doGet() = 0;
+    virtual void afterGet();
+
+    virtual bool onInsert();
+    virtual bool doInsert() = 0;
+    virtual void afterInsert();
+
+    virtual bool onUpdate();
+    virtual bool doUpdate() = 0;
+    virtual void afterUpdate();
+
+    virtual bool onDelete();
+    virtual bool doDelete() = 0;
+    virtual void afterDelete();
 };
 
 } // namespace QEloquent
