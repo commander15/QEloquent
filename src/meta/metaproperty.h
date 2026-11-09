@@ -11,6 +11,7 @@ class QMetaMethod;
 namespace QEloquent {
 
 class Model;
+class AbstractData;
 
 class MetaPropertyData;
 class QELOQUENT_EXPORT MetaProperty
@@ -20,6 +21,7 @@ public:
         NoAttibutes = 0x0,
         PrimaryProperty = 0x1,
         LabelProperty = 0x2,
+        GeneratedProperty = 0x4,
         CreationTimestamp = 0x20,
         UpdateTimestamp = 0x40,
         DeletionTimestamp = 0x80,
@@ -32,8 +34,9 @@ public:
     enum PropertyType {
         StandardProperty = 0x0,
         DynamicProperty = 0x2,
-        AppendedProperty = 0x10,
+        ComputedProperty = 0x10,
         RelationProperty = 0x80,
+        AppendedProperty = ComputedProperty
     };
 
     MetaProperty();
@@ -55,6 +58,7 @@ public:
     bool isNull(const Model *model) const;
     QVariant read(const Model *model) const;
     bool write(Model *model, const QVariant &value) const;
+    bool generate(Model *model, bool overwrite = true) const;
 
     bool isWritable() const;
     bool isValid() const;
@@ -63,6 +67,9 @@ public:
 
 private:
     MetaProperty(MetaPropertyData *data);
+
+    QVariant readRaw(const Model *model) const;
+    bool writeRaw(Model *model, const QVariant &value) const;
 
     QExplicitlySharedDataPointer<MetaPropertyData> data;
 

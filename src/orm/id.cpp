@@ -27,7 +27,7 @@ ID::ID()
  */
 ID::ID(const QVariant &value, IDType type)
     : m_value(value)
-    , m_type(IntegerID)
+    , m_type(type)
 {
 }
 
@@ -146,6 +146,25 @@ bool ID::isNull() const
     return m_value.isNull();
 }
 
+bool ID::isDirty() const
+{
+    return true;
+}
+
+QMetaType ID::metaType() const
+{
+    switch (m_type) {
+    case IntegerID:
+        return QMetaType::fromType<qint64>();
+
+    case StringID:
+    case UuidID:
+        return QMetaType::fromType<QString>();
+    }
+
+    return QMetaType();
+}
+
 /**
  * @brief Retrieves the raw underlying QVariant value.
  * @return QVariant The stored variant.
@@ -159,7 +178,7 @@ QVariant ID::value() const
  * @brief Retrieves the specific ID type classification.
  * @return IDType The type enum value.
  */
-ID::IDType ID::type() const
+ID::IDType ID::idType() const
 {
     return m_type;
 }
@@ -237,27 +256,17 @@ bool ID::setValue(const QVariant &id)
     return false;
 }
 
-/**
- * @brief Retrieves the abstract data format mapping corresponding to the ID type.
- * @return AbstractDataType::DataFormat The matching data format enum.
- */
-AbstractData::DataFormat ID::format() const
+void ID::clear()
 {
-    switch (m_type) {
-    case IntegerID:
-        return DataFormat::IntegerData;
+    m_value = QVariant();
+}
 
-    case StringID:
-        return DataFormat::StringData;
+QVariant ID::generateValue(const QString &connection) const
+{
+    if (m_type == UuidID)
+        return Uuid::generateUuid(7);
 
-    case UuidID:
-        return DataFormat::UuidData;
-
-    default:
-        return DataFormat::UnknownData;
-    }
-
-    return AbstractData::format();
+    return AbstractData::generateValue(connection);
 }
 
 } // namespace QEloquent

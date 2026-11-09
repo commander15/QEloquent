@@ -15,7 +15,8 @@ using namespace Store;
 void initDatabase()
 {
     // Configure QEloquent
-    Connection::addConnection("default", "QSQLITE", "test.db");
+    //Connection::addConnection("default", "QSQLITE", "test.db");
+    Connection::addConnection("default", QUrl("sqlite://test.db"));
     auto conn = Connection::defaultConnection();
     if (!conn.open()) {
         qFatal("Could not open database connection");

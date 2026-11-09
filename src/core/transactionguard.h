@@ -19,9 +19,12 @@ public:
     QString errorString() const;
 
     bool commit();
+    bool rollback();
 
 private:
     Q_DISABLE_COPY_MOVE(TransactionGuard)
+
+    bool complete(bool commit);
 
     QString m_connection;
     bool m_started;

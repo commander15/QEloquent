@@ -122,13 +122,32 @@ QString TransactionGuard::errorString() const
  */
 bool TransactionGuard::commit()
 {
+    return complete(true);
+}
+
+/**
+ * @brief Explicitly rollbacks the active database transaction.
+ *
+ * Marks the transaction for rollback and executes `rollbackTransaction()` on the connection.
+ * Once done, the destructor will not perform a rollback.
+ *
+ * @return true if the rollback succeeded, false if it failed or if the transaction never started.
+ */
+bool TransactionGuard::rollback()
+{
+    return complete(false);
+}
+
+bool TransactionGuard::complete(bool commit)
+{
     if (!m_started)
         return false;
 
-    Connection con = Connection::connection(m_connection);    
-    m_commit = true;
+    Connection con = Connection::connection(m_connection);
+    bool ok = (commit ? con.commitTransaction() : con.rollbackTransaction());
 
-    if (con.commitTransaction()) {
+    if (ok) {
+        m_commit = true;
         return true;
     } else {
         m_errorString = con.lastError().text();

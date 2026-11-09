@@ -277,17 +277,30 @@ Connection Connection::connection(const QString &name)
 Connection Connection::addConnection(const QString &name, const QUrl &url)
 {
     const QString driver = url.scheme().toLower();
-
-    // Database name / file path from url path
-    QString path = url.path();
+    Connection con;
 
     // When using SQLite in memory db, the '/' on path is not needed (Linux only)
     // Also, for the others, it's even unwanted (since not file path based)
-    if ((driver == "sqlite" && path.startsWith("/:")) || driver != "sqlite")
-        path.remove(0, 1);
+    if ((driver == "sqlite")) {
+        QString dbName;
 
-    // Creating connection instance
-    Connection con = addConnection(name, driver, path, url.userName(), url.password(), url.host(), url.port());
+        // We try using url path first
+        dbName = url.path();
+        if (!dbName.isEmpty()) {
+            // Nothing to do
+        } else {
+            // We try using url host
+            dbName = url.host();
+        }
+
+        con = addConnection(name, "QSQLITE", dbName);
+    } else {
+        // Creating connection instance
+        QString path = url.path();
+        if (!path.isEmpty())
+            path.remove(0, 1); // We remove leading '/'
+        con = addConnection(name, driver, path, url.userName(), url.password(), url.host(), url.port());
+    }
 
     if (url.hasQuery()) {
         const QUrlQuery query(url.query());

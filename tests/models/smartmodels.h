@@ -26,4 +26,16 @@ public:
     QString barcode;
 };
 
+class SmartTestModel : public QEloquent::SmartModel
+{
+    Q_GADGET
+    Q_PROPERTY(QEloquent::Timestamp testedAt MEMBER testedAt)
+    Q_CLASSINFO("generated", "testedAt")
+
+public:
+    SmartTestModel() : QEloquent::SmartModel(this, UuidID) {}
+
+    QEloquent::Timestamp testedAt;
+};
+
 #endif // SMARTMODELS_H

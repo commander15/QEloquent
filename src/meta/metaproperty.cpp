@@ -87,16 +87,74 @@ QVariant MetaProperty::read(const Model *model) const
     if (isNull(model))
         return QVariant();
 
+    QVariant value = readRaw(model);
+
+    const AbstractData *d = AbstractData::fromVariant(value);
+    if (d != nullptr)
+        value = d->value();
+
+    return value;
+}
+
+bool MetaProperty::write(Model *model, const QVariant &value) const
+{
+    if (model == nullptr)
+        return false;
+
+    QVariant val = value;
+
+    // Force UTC on datetime
+    if (!val.isNull() && data->metaType == QMetaType::fromType<QDateTime>()) {
+        QDateTime timestamp = val.toDateTime();
+        if (timestamp.timeZone() != QTimeZone::utc()) {
+            timestamp.setTimeZone(QTimeZone::utc());
+            val = timestamp;
+        }
+    }
+
+    QVariant raw = readRaw(model);
+    AbstractData *d = AbstractData::fromVariant(raw);
+    if (d != nullptr) {
+        if (!d->setValue(val))
+            return false;
+        val = raw;
+    }
+
+    return writeRaw(model, val);
+}
+
+bool MetaProperty::generate(Model *model, bool overwrite) const
+{
+    QVariant data = readRaw(model);
+    AbstractData *d = AbstractData::fromVariant(data);
+
+    if (d == nullptr)
+        return false;
+
+    if (!overwrite && !d->isNull())
+        return true;
+
+    QString connection = model->connection().name();
+    if (!d->generate(connection))
+        return false;
+
+    return writeRaw(model, data);
+}
+
+bool MetaProperty::isValid() const
+{
+    return !data->propertyName.isEmpty() && data->metaType.isValid() && data->isReadable();
+}
+
+QVariant MetaProperty::readRaw(const Model *model) const
+{
     QVariant value;
+
+    if (model == nullptr)
+        return value;
 
     if (data->propertyType == StandardProperty && data->metaProperty.isValid()) {
         value = data->metaProperty.readOnGadget(model);
-
-        const QMetaObject *metaObject = data->metaType.metaObject();
-        if (metaObject != nullptr && metaObject->inherits(&AbstractData::staticMetaObject)) {
-            const AbstractData *dataType = static_cast<const AbstractData *>(value.constData());
-            value = dataType->value();
-        }
     }
 
     if (data->propertyType == DynamicProperty && model->data->dynamicProperties.contains(data->propertyName)) {
@@ -120,63 +178,22 @@ QVariant MetaProperty::read(const Model *model) const
     return value;
 }
 
-bool MetaProperty::write(Model *model, const QVariant &value) const
+bool MetaProperty::writeRaw(Model *model, const QVariant &value) const
 {
     if (model == nullptr)
         return false;
 
-    QVariant val = value;
-
-    // Force UTC on datetime
-    if (!val.isNull() && data->metaType == QMetaType::fromType<QDateTime>()) {
-        QDateTime timestamp = val.toDateTime();
-        if (timestamp.timeZone() != QTimeZone::utc()) {
-            timestamp.setTimeZone(QTimeZone::utc());
-            val = timestamp;
-        }
-    }
-
-    if (data->propertyType == StandardProperty) {
-        const QMetaObject *metaObject = data->metaType.metaObject();
-        if (metaObject != nullptr && metaObject->inherits(&AbstractData::staticMetaObject)) {
-            QVariant dataTypeVal = data->metaProperty.readOnGadget(model); // To have a good instance to start with
-
-            // If the model doesn't have a valid instance yet, construct one using the metaType
-            if (!dataTypeVal.isValid() || !dataTypeVal.metaType().metaObject() ||
-                !dataTypeVal.metaType().metaObject()->inherits(&AbstractData::staticMetaObject)) {
-                dataTypeVal = QVariant(data->metaProperty.metaType());
-            }
-
-            if (auto *dataTypeObj = static_cast<AbstractData *>(dataTypeVal.data())) {
-                // Check the boolean return value of setValue
-                if (dataTypeObj->setValue(val)) {
-                    val = dataTypeVal; // Success: pass the full gadget to writeOnGadget
-                } else {
-                    qWarning() << "Failed to set value on"
-                               << metaObject->className() << "::" << data->metaProperty.name()
-                               << "property";
-                }
-            }
-        }
-
-        if (val.isNull() && data->metaProperty.isResettable())
-            return data->metaProperty.resetOnGadget(model);
-        else
-            return data->metaProperty.writeOnGadget(model, val);
+    if (data->propertyType == StandardProperty && data->metaProperty.isValid()) {
+        return data->metaProperty.writeOnGadget(model, value);
     }
 
     if (data->propertyType == DynamicProperty) {
         DataMap &dynamic = model->data->dynamicProperties;
-        dynamic.insert(data->propertyName, val);
+        dynamic.insert(data->propertyName, value);
         return true;
     }
 
     return false;
-}
-
-bool MetaProperty::isValid() const
-{
-    return !data->propertyName.isEmpty() && data->metaType.isValid() && data->isReadable();
 }
 
 } // namespace QEloquent

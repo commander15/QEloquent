@@ -21,9 +21,9 @@ class SmartModelData : public ModelData
 {
 public:
     ID id;
-    QDateTime createdAt;
-    QDateTime updatedAt;
-    QDateTime deletedAt;
+    Timestamp createdAt;
+    Timestamp updatedAt;
+    Timestamp deletedAt;
 };
 
 SmartModel::SmartModel(const QMetaObject &metaObject, IDType idType)
@@ -94,7 +94,7 @@ bool SmartModel::setId(const ID &id)
 {
     MODEL_DATA(SmartModel);
 
-    if (id.type() != data.id.type())
+    if (id.idType() != data.id.idType())
         return false;
 
     data.id = id;
@@ -108,7 +108,7 @@ bool SmartModel::setId(const ID &id)
  *
  * \return The creation time as QDateTime (UTC).
  */
-QDateTime SmartModel::createdAt() const
+Timestamp SmartModel::createdAt() const
 {
     MODEL_DATA(const SmartModel);
     return data.createdAt;
@@ -121,7 +121,7 @@ QDateTime SmartModel::createdAt() const
  *
  * \return The last update time as QDateTime (UTC).
  */
-QDateTime SmartModel::updatedAt() const
+Timestamp SmartModel::updatedAt() const
 {
     MODEL_DATA(const SmartModel);
     return data.updatedAt;
@@ -135,36 +135,25 @@ QDateTime SmartModel::updatedAt() const
  * \return The deletion time as QDateTime (UTC).
  */
 
-QDateTime SmartModel::deletedAt() const
+Timestamp SmartModel::deletedAt() const
 {
     MODEL_DATA(const SmartModel);
     return data.deletedAt;
 }
 
-bool SmartModel::doInsert()
-{
-    MODEL_DATA(SmartModel);
-
-    if (data.id.isUuid() && data.id.isNull()) {
-        data.id.generateValue(); // generate UUID
-    }
-
-    return Model::doInsert();
-}
-
-void SmartModel::setCreatedAt(const QDateTime &time)
+void SmartModel::setCreatedAt(const Timestamp &time)
 {
     MODEL_DATA(SmartModel);
     data.createdAt = time;
 }
 
-void SmartModel::setUpdatedAt(const QDateTime &time)
+void SmartModel::setUpdatedAt(const Timestamp &time)
 {
     MODEL_DATA(SmartModel);
     data.updatedAt = time;
 }
 
-void SmartModel::setDeletedAt(const QDateTime &time)
+void SmartModel::setDeletedAt(const Timestamp &time)
 {
     MODEL_DATA(SmartModel);
     data.deletedAt = time;

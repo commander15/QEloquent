@@ -43,16 +43,20 @@ public:
     bool isUuid() const;
     QUuid uuid() const;
 
-    bool isNull() const;
-    IDType type() const;
-
     QVariant value() const override;
     bool setValue(qint64 id);
     bool setValue(const QString &id);
     bool setValue(const QUuid &id);
     bool setValue(const QVariant &id) override;
+    void clear() override;
 
-    DataFormat format() const override;
+    QVariant generateValue(const QString &connection) const override;
+
+    bool isNull() const override;
+    bool isDirty() const override;
+
+    IDType idType() const;
+    QMetaType metaType() const override;
 
     operator qint64() const { return integer(); }
     operator QString() const { return string(); }

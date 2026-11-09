@@ -86,6 +86,8 @@ public:
               const DataMap &data,
               PropertyNameResolution resolution = ResolveByPropertyName) const;
 
+    int generate(Model *model, bool overwrite = true) const;
+
     DataMap readFillableFields(const Model *model) const;
     bool writeFillableFields(Model *model, const DataMap &data);
 

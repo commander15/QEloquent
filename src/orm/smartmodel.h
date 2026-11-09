@@ -14,9 +14,9 @@ class QELOQUENT_EXPORT SmartModel : public Model
 {
     Q_GADGET
     Q_PROPERTY(QEloquent::ID id READ id WRITE setId FINAL)
-    Q_PROPERTY(QDateTime createdAt READ createdAt WRITE setCreatedAt FINAL)
-    Q_PROPERTY(QDateTime updatedAt READ updatedAt WRITE setUpdatedAt FINAL)
-    Q_PROPERTY(QDateTime deletedAt READ deletedAt WRITE setDeletedAt FINAL)
+    Q_PROPERTY(QEloquent::Timestamp createdAt READ createdAt WRITE setCreatedAt FINAL)
+    Q_PROPERTY(QEloquent::Timestamp updatedAt READ updatedAt WRITE setUpdatedAt FINAL)
+    Q_PROPERTY(QEloquent::Timestamp deletedAt READ deletedAt WRITE setDeletedAt FINAL)
 
 public:
     enum IDType {
@@ -31,13 +31,13 @@ public:
     SmartModel &operator=(SmartModel &&other);
     virtual ~SmartModel();
 
-    template<typename T> T id() const { return id().to<T>(); }
+    template<typename T> T id() const { return id().get<T>(); }
     QEloquent::ID id() const;
     bool setId(const QEloquent::ID &id);
 
-    QDateTime createdAt() const;
-    QDateTime updatedAt() const;
-    QDateTime deletedAt() const;
+    QEloquent::Timestamp createdAt() const;
+    QEloquent::Timestamp updatedAt() const;
+    QEloquent::Timestamp deletedAt() const;
 
 protected:
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<SmartModel, T>>>
@@ -47,11 +47,9 @@ protected:
     SmartModel(const QMetaObject &metaObject, IDType idType);
 
 private:
-    bool doInsert() override;
-
-    void setCreatedAt(const QDateTime &time);
-    void setUpdatedAt(const QDateTime &time);
-    void setDeletedAt(const QDateTime &time);
+    void setCreatedAt(const QEloquent::Timestamp &time);
+    void setUpdatedAt(const QEloquent::Timestamp &time);
+    void setDeletedAt(const QEloquent::Timestamp &time);
 };
 
 } // namespace QEloquent

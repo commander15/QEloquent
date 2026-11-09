@@ -442,6 +442,9 @@ bool Model::doInsert()
 {
     MODEL_DATA(Model);
 
+    // Auto gen
+    data.metaObject.generate(this, false);
+
     const MetaProperty primary = data.metaObject.primaryProperty();
 
     const MetaProperty timestamp = data.metaObject.creationTimestamp();

@@ -311,7 +311,7 @@ DataMap MetaObject::read(const Model *model, PropertyNameResolution resolution) 
 
 int MetaObject::write(Model *model, const DataMap &data, PropertyNameResolution resolution) const
 {
-    int written = true;
+    int written = 0;
 
     const QStringList properties = data.keys();
     for (const QString &propertyName : properties) {
@@ -324,6 +324,18 @@ int MetaObject::write(Model *model, const DataMap &data, PropertyNameResolution 
     }
 
     return written;
+}
+
+int MetaObject::generate(Model *model, bool overwrite) const
+{
+    int generated = 0;
+
+    for (const MetaProperty &prop : std::as_const(d->properties)) {
+        if (prop.hasAttribute(MetaProperty::GeneratedProperty) && prop.generate(model, overwrite))
+            ++generated;
+    }
+
+    return generated;
 }
 
 DataMap MetaObject::readFillableFields(const Model *model) const
