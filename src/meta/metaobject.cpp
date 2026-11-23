@@ -403,17 +403,21 @@ QString MetaObject::nammingConventionName() const
 
 QString MetaObject::connectionName() const
 {
+    if (d->connectionName.isEmpty())
+        return Connection::defaultConnectionName();
     return d->connectionName;
 }
 
 Connection MetaObject::connection() const
 {
+    if (d->connectionName.isEmpty())
+        return Connection::defaultConnection();
     return Connection::connection(d->connectionName);
 }
 
 bool MetaObject::isValid() const
 {
-    return d->primaryPropertyIndex >= 0 && !d->connectionName.isEmpty();
+    return d->primaryPropertyIndex >= 0;
 }
 
 MetaObject MetaObject::fromQtMetaObject(const QMetaObject &metaObject)

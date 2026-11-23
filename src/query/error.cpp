@@ -100,6 +100,21 @@ QString Error::text() const
     if (data->sqlError.isValid())
         parts.append(data->sqlError.text());
 
+    if (parts.isEmpty()) {
+        switch (data->type) {
+        case NoError:
+            break;
+
+        case NotFoundError:
+            parts.append("Record(s) not found");
+            break;
+
+        case DatabaseError:
+            parts.append("Unknown database error occured");
+            break;
+        }
+    }
+
     return parts.join("\n");
 }
 

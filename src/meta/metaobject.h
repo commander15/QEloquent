@@ -113,7 +113,7 @@ private:
 
     QExplicitlySharedDataPointer<MetaObjectPrivate> d;
 
-    friend class MetaObjectGenerator;
+    friend class MetaObjectGeneration;
 };
 
 }

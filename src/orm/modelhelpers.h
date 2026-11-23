@@ -99,7 +99,6 @@ inline Result<Model, Error> ModelHelpers<Model, Maker>::find(const QVariant &pri
 {
     return query()
         .where(Maker::metaObject().primaryProperty().fieldName(), primary)
-        .limit(1)
         .first();
 }
 

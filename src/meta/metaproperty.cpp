@@ -69,6 +69,10 @@ bool MetaProperty::isNull(const Model *model) const
     if (model == nullptr)
         return true;
 
+    const AbstractData *d = AbstractData::fromVariant(readRaw(model));
+    if (d != nullptr)
+        return d->isNull();
+
     return model->isPropertyNull(data->propertyName);
 }
 
@@ -84,7 +88,7 @@ MetaProperty::PropertyType MetaProperty::propertyType() const
 
 QVariant MetaProperty::read(const Model *model) const
 {
-    if (isNull(model))
+    if (model->isPropertyNull(data->propertyName))
         return QVariant();
 
     QVariant value = readRaw(model);
@@ -161,7 +165,7 @@ QVariant MetaProperty::readRaw(const Model *model) const
         value = model->data->dynamicProperties.value(data->propertyName);
     }
 
-    if (data->propertyType == AppendedProperty && data->getter.isValid()) {
+    if (data->propertyType == ComputedProperty && data->getter.isValid()) {
         void *val = data->metaType.create();
         data->getter.invokeOnGadget(const_cast<Model *>(model), QGenericReturnArgument(data->metaType.name(), val));
         value = QVariant(data->metaType, val);

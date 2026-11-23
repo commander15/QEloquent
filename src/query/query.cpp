@@ -152,7 +152,7 @@ Query &Query::andWhere(const QString &name, const QString &op, const QVariant &v
     ModelQueryData::Filter f;
     f.inclusive = true;
     f.field = name;
-    f.op = op;
+    f.op = (value.isNull() ? "IS" : op);
     f.value = value;
     data->filters.append(f);
     return *this;
@@ -178,7 +178,7 @@ Query &Query::orWhere(const QString &field, const QString &op, const QVariant &v
     ModelQueryData::Filter f;
     f.inclusive = false;
     f.field = field;
-    f.op = op;
+    f.op = (value.isNull() ? "IS" : op);
     f.value = value;
     data->filters.append(f);
     return *this;

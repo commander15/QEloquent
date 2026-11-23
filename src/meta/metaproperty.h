@@ -74,7 +74,7 @@ private:
     QExplicitlySharedDataPointer<MetaPropertyData> data;
 
     friend class MetaObject;
-    friend class MetaObjectGenerator;
+    friend class MetaObjectGeneration;
 };
 
 } // namespace QEloquent

@@ -18,10 +18,10 @@ class SimpleProduct : public QEloquent::Model, public QEloquent::ModelHelpers<Si
     Q_PROPERTY(QDateTime updatedAt MEMBER updatedAt)
     // categoryId: int (dynamic)
 
-    Q_CLASSINFO("table", "Products")
-    Q_CLASSINFO("foreign", "productId")
-    Q_CLASSINFO("hidden", "categoryId")
-    Q_CLASSINFO("append", "since")
+    Q_CLASSINFO("orm:table", "Products")
+    Q_CLASSINFO("orm:foreign", "productId")
+    Q_CLASSINFO("orm:hidden", "categoryId")
+    Q_CLASSINFO("orm:append", "since")
 
 public:
     SimpleProduct();

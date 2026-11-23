@@ -120,7 +120,7 @@ Result<int> seed()
 
     Seeder::disableAutoRegistration();
 
-    Product::with({"stock", "category"}).dumpAndDie();
+    Product::with({"stock", "category"}).dump();
     //
 
     qDebug() << "Seeding...";

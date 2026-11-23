@@ -17,7 +17,7 @@ class Product : public SmartModel, public ModelHelpers<Product>
     Q_PROPERTY(QString barcode MEMBER barcode)
     Q_PROPERTY(int categoryId MEMBER categoryId)
 
-    Q_CLASSINFO("hidden", "categoryId")
+    Q_CLASSINFO("orm:hidden", "categoryId")
 
 public:
     Product();

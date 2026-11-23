@@ -3,15 +3,14 @@ target_headers(QEloquent
         metaobjectregistry.h
         metaobject.h metaproperty.h
         metaobjectgenerator.h
-        # metaobjectbuilder.h
     PRIVATE
         metaobject_p.h metaproperty_p.h
+        metaobjectgeneration_p.h
 )
 
 target_sources(QEloquent
     PRIVATE
         metaobjectregistry.cpp
         metaobject.cpp metaproperty.cpp
-        metaobjectgenerator.cpp
-        # metaobjectbuilder.cpp
+        metaobjectgenerator.cpp metaobjectgeneration.cpp
 )

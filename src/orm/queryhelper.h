@@ -190,6 +190,12 @@ public:
      */
     QueryHelper &with(const QStringList &relations) { m_query.with(relations); return *this; }
 
+    /**
+     * @brief Allow interactions with soft deleted records.
+     * @return QueryHelper& A reference to this query helper for method chaining.
+     */
+    QueryHelper &trashed() { m_trashed = true; return *this; }
+
     // --- Execution & Conversion Operators ---
 
     /**
@@ -222,9 +228,10 @@ public:
      * @return Result<int, Error> The row count on success, or an Error object on failure.
      */
     Result<int, Error> count() {
-        const QString statement = QueryBuilder::selectStatement("COUNT(1)", m_query);
+        const Query query = prepareGet();
+        const QString statement = QueryBuilder::selectStatement("COUNT(1)", query);
 
-        auto result = QueryRunner::exec(statement, m_query.connectionName());
+        auto result = QueryRunner::exec(statement, query.connectionName());
         if (result)
             return (result->next() ? result->value(0).toInt() : 0);
         else
@@ -236,13 +243,16 @@ public:
      * @return Result<Model, Error> The matching model instance on success, or an Error object on failure.
      */
     Result<Model, Error> first() {
-        m_query.limit(1);
-        auto results = get();
+        Query query = prepareGet();
+        query.limit(1);
+
+        QString stmt;
+        auto results = doGet(query, &stmt);
         if (results) {
             if (results->count() > 0)
                 return results->constFirst();
             else
-                return failWith(Error(Error::NotFoundError));
+                return failWith(Error(Error::NotFoundError, "SQL: " + stmt));
         } else {
             return failWith(results.error());
         }
@@ -255,8 +265,9 @@ public:
      * @return Result<QList<Model>, Error> A list of models for the requested page, or an Error on failure.
      */
     Result<QList<Model>, Error> paginate(int page = 1, int itemsPerPage = 20) {
-        m_query.limit(itemsPerPage).offset((page - 1) * itemsPerPage);
-        return get();
+        Query query = prepareGet();
+        query.limit(itemsPerPage).offset((page - 1) * itemsPerPage);
+        return doGet(query);
     }
 
     /**
@@ -264,30 +275,8 @@ public:
      * @return Result<QList<Model>, Error> A list of populated model instances on success, or an Error object on failure.
      */
     Result<QList<Model>, Error> get() {
-        const MetaObject metaObject = Maker::metaObject();
-        const QString statement = QueryBuilder::selectStatement(m_query);
-
-        auto result = QueryRunner::exec(statement, m_query.connectionName());
-        if (result) {
-            QList<Model> models;
-
-            QStringList relations = metaObject.relations() + m_query.relations();
-            relations.removeDuplicates();
-
-            while (result->next()) {
-                Model m = Maker::make();
-                safeModel(m).fill(result->record());
-                if (safeModel(m).load(relations))
-                    models.append(m);
-                else
-                    return failWith(safeModel(m).lastError());
-            }
-
-            m_executed = true;
-            return models;
-        } else {
-            return failWith(Error::fromSqlError("SQL: " + statement, result.error()));
-        }
+        Query query = prepareGet();
+        return doGet(query);
     }
 
     /**
@@ -295,7 +284,12 @@ public:
      * @return Result<int, Error> The number of affected rows on success, or an Error object on failure.
      */
     Result<int, Error> deleteData() {
-        const QString statement = QueryBuilder::deleteStatement(m_query);
+        const MetaObject metaObject = Maker::metaObject();
+
+        Query query(m_query);
+        if (!m_trashed && metaObject.hasDeletionTimestamp())
+            query.where(metaObject.deletionTimestamp().fieldName(), QVariant());
+        const QString statement = QueryBuilder::deleteStatement(query);
 
         auto result = QueryRunner::exec(statement, m_query.connectionName());
         if (result)
@@ -352,8 +346,50 @@ public:
     static Query &fixQuery(Query &query);
 
 private:
+    Query prepareGet() const {
+        Query query(m_query);
+        const MetaObject metaObject = Maker::metaObject();
+
+        if (!m_trashed && metaObject.hasDeletionTimestamp())
+            if (metaObject.deletionTimestamp().hasAttribute(MetaProperty::DatabaseField))
+                query.where(metaObject.deletionTimestamp().fieldName(), QVariant());
+
+        return query;
+    }
+
+    Result<QList<Model>, Error> doGet(Query &query, QString *statement = nullptr) {
+        const MetaObject metaObject = Maker::metaObject();
+
+        const QString stmt = QueryBuilder::selectStatement(query);
+        if (statement != nullptr)
+            *statement = stmt;
+
+        auto result = QueryRunner::exec(stmt, m_query.connectionName());
+        if (result) {
+            QList<Model> models;
+
+            QStringList relations = metaObject.relations() + m_query.relations();
+            relations.removeDuplicates();
+
+            while (result->next()) {
+                Model m = Maker::make();
+                safeModel(m).fill(result->record());
+                if (safeModel(m).load(relations))
+                    models.append(m);
+                else
+                    return failWith(safeModel(m).lastError());
+            }
+
+            m_executed = true;
+            return models;
+        } else {
+            return failWith(Error::fromSqlError("SQL: " + stmt, result.error()));
+        }
+    }
+
     Query m_query;
     QList<Model> m_models;
+    bool m_trashed = false;
     bool m_executed = false;
 };
 

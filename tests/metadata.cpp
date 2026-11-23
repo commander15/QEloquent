@@ -132,7 +132,7 @@ TEST_F(MetaData, ValidComplexModelProducesValidMetaObject) {
     };
 
     // Append
-    ASSERT_EQ(properties(MetaProperty::NoAttibutes, MetaObject::AppendedProperties), "fullDescription, priced");
+    ASSERT_EQ(properties(MetaProperty::NoAttibutes, MetaObject::AppendedProperties), "since, fullDescription, priced");
 
     // Fillable
     ASSERT_EQ(properties(MetaProperty::FillableProperty), "name, description, price, barcode, categoryId") << "fillables retrieve failed";
