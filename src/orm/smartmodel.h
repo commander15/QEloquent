@@ -17,6 +17,7 @@ class QELOQUENT_EXPORT SmartModel : public Model
     Q_PROPERTY(QEloquent::Timestamp createdAt READ createdAt WRITE setCreatedAt FINAL)
     Q_PROPERTY(QEloquent::Timestamp updatedAt READ updatedAt WRITE setUpdatedAt FINAL)
     Q_PROPERTY(QEloquent::Timestamp deletedAt READ deletedAt WRITE setDeletedAt FINAL)
+    Q_CLASSINFO("orm:map-", "deletedAt")
 
 public:
     enum IDType {

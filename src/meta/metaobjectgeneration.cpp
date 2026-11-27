@@ -3,6 +3,7 @@
 #include "metaobject_p.h"
 #include "metaproperty_p.h"
 
+#include <QEloquent/private/debug_p.h>
 #include <QEloquent/namingconvention.h>
 
 #include <QMetaObject>
@@ -30,17 +31,18 @@ MetaObject MetaObjectGeneration::generate()
     const QString defaultTableName = convention->tableName(className);
     data->tableName = info(META_TABLE, defaultTableName);
 
-    QList<const QMetaObject *> metaObjects;
-    const QMetaObject *metaO = qtMetaObject;
-    do {
-        metaObjects.prepend(metaO);
-        metaO = metaO->superClass();
-    } while (metaO != nullptr);
+    // Discovering properties
+    discoverProperties();
+    QStringList propertyNames;
+    using Type = MetaProperty::PropertyType;
+    for (const MetaPropertyData *prop : std::as_const(m_properties))
+        if (prop->propertyType == Type::StandardProperty || prop->propertyType == Type::DynamicProperty)
+            propertyNames.append(prop->propertyName);
+    m_propertyAttributes = propertyAttributes(propertyNames);
 
-    for (const QMetaObject *metaObject : std::as_const(metaObjects)) {
-        MetaObjectContext context(metaObject);
-        context;
-    }
+    // Run pending tasks
+    for (const auto &task : std::as_const(m_pendingTasks))
+        task();
 
     std::transform(m_properties.begin(), m_properties.end(), std::back_inserter(data->properties), [this, &className, &convention](MetaPropertyData *d) {
         if (d->attributes.testFlag(MetaProperty::PrimaryProperty)) {
@@ -55,48 +57,52 @@ MetaObject MetaObjectGeneration::generate()
         return MetaProperty(d);
     });
 
+    if (data->primaryPropertyIndex < 0) {
+        qelWarning() << "MetaObject: " << qtMetaObject->className() << " model didn't have a primary key";
+    }
+
     return MetaObject(data);
 }
 
-QMap<MetaProperty::PropertyAttributeFlag, QStringList> MetaObjectGeneration::propertyAttributes() const
+QMap<MetaProperty::PropertyAttributeFlag, QStringList> MetaObjectGeneration::propertyAttributes(const QStringList &properties) const
 {
     using Attr = MetaProperty::PropertyAttributeFlag;
     QMap<Attr, QStringList> map;
 
-    MetaObjectContext context(qtMetaObject);
-    context.foreachProperty([&map](const MetaObjectContext::Prop &prop) {
-        if (prop.attribs.testFlag(Attr::PrimaryProperty))
-            map[Attr::PrimaryProperty].append(prop.name);
-    });
+    struct Value {
+        Value(const char *str) : string(str) {}
+        Value(const QStringList &lst) : list(lst) {}
+
+        QString string;
+        QStringList list;
+    };
 
     struct Entry {
         Attr attribute;
         QString info;
-        QString defaultValue;
+        Value defaultValue;
         bool list = true;
     };
 
-    const QStringList allProperties = context.propertyNames();
-
     const QList<Entry> entries = {
         Entry{ Attr::PrimaryProperty, META_PRIMARY, "id", false },
-        Entry{ Attr::LabelProperty, META_LABEL, context.userPropertyName(), false },
+        Entry{ Attr::LabelProperty, META_LABEL, "", false },
         Entry{ Attr::GeneratedProperty, META_GENERATED, "", true },
         Entry{ Attr::CreationTimestamp, META_CREATED_AT, "createdAt", false },
         Entry{ Attr::UpdateTimestamp, META_UPDATED_AT, "updatedAt", false },
         Entry{ Attr::DeletionTimestamp, META_DELETED_AT, "deletedAt", false },
         Entry{ Attr::HiddenProperty, META_HIDDEN, "", true },
-        Entry{ Attr::FillableProperty, META_FILLABLE, allProperties.join(","), true },
-        Entry{ Attr::DatabaseField, META_MAPPED, s_propertyAll, true },
+        Entry{ Attr::FillableProperty, META_FILLABLE, properties, true },
+        Entry{ Attr::DatabaseField, META_MAPPED, properties, true },
     };
 
     for (const Entry &entry : entries) {
         QStringList values;
 
         if (entry.list) {
-            values = context.infoList(entry.info, entry.defaultValue);
+            values = infoList(entry.info, entry.defaultValue.list);
         } else {
-            const QString value = context.info(entry.info, entry.defaultValue);
+            const QString value = info(entry.info, entry.defaultValue.string);
             if (!value.isEmpty())
                 values.append(value);
         }
@@ -110,17 +116,26 @@ QMap<MetaProperty::PropertyAttributeFlag, QStringList> MetaObjectGeneration::pro
 
 bool MetaObjectGeneration::hasInfo(const QString &name) const
 {
-    const QStringList result = rawInfo(name);
+    const RawInfoList result = rawInfo(name) + rawInfo(name, { META_OPERATOR_INCLUSIVE });
     return !result.isEmpty();
 }
 
 QString MetaObjectGeneration::info(const QString &name, const QString &defaultValue) const
 {
-    const QStringList result = rawInfo(name);
+    const RawInfoList raw = rawInfo(name);
+    const QStringList result = (raw.isEmpty() ? QStringList() : raw.first().second);
     return (result.isEmpty() ? defaultValue : result.first());
 }
 
 QStringList MetaObjectGeneration::infoList(const QString &name, const QString &defaultValue) const
+{
+    QStringList def = defaultValue.split(',', Qt::SkipEmptyParts);
+    for (QString &item : def)
+        item = item.trimmed();
+    return infoList(name, def);
+}
+
+QStringList MetaObjectGeneration::infoList(const QString &name, const QStringList &defaultValue) const
 {
     auto parse = [](const QString &input) {
         QStringList output = input.split(',', Qt::SkipEmptyParts);
@@ -129,55 +144,103 @@ QStringList MetaObjectGeneration::infoList(const QString &name, const QString &d
         return output;
     };
 
-    const QStringList result = rawInfo(name);
-    if (result.isEmpty())
-        return parse(defaultValue);
-
-    QStringList values;
-
-    for (const QString &res : result) {
-        const QStringList list = parse(res);
-        if (!list.isEmpty())
-            values.append(list);
-    }
-
-    values.removeDuplicates();
-    return values;
-}
-
-QStringList MetaObjectGeneration::rawInfo(const QString &name, int depth) const
-{
     QStringList result;
 
-    QByteArrayList names;
-    {
-        const QStringList infoNames = name.split(',', Qt::SkipEmptyParts);
-        for (const QString &iName : infoNames) {
-            names.append(("orm:" + iName.trimmed()).toLatin1());
-            names.append(iName.trimmed().toLatin1());
+    RawInfoList raw = rawInfo(name, QStringList() << META_OPERATOR_INCLUSIVE << META_OPERATOR_EXCLUSIVE);
+
+    if (!defaultValue.isEmpty()) {
+        auto it = std::find_if(raw.begin(), raw.end(), [](const RawInfo &info) {
+            return info.first.isEmpty();
+        });
+
+        if (it == raw.end())
+            raw.prepend({"", defaultValue});
+        else if (it->second.isEmpty())
+            it->second = defaultValue;
+    }
+
+    for (const RawInfo &info : std::as_const(raw)) {
+        if (info.first.isEmpty() || info.first == META_OPERATOR_INCLUSIVE) {
+            for (const QString &item : info.second) {
+                for (const QString &token : parse(item)) {
+                    if (!result.contains(token))
+                        result.append(token);
+                }
+            }
+        } else if (info.first == META_OPERATOR_EXCLUSIVE) {
+            for (const QString &item : info.second) {
+                for (const QString &token : parse(item)) {
+                    result.removeAll(token);
+                }
+            }
         }
     }
 
+    return result;
+}
 
-    const QMetaObject *metaObject = qtMetaObject;
+MetaObjectGeneration::RawInfoList MetaObjectGeneration::rawInfo(const QString &name, const QStringList suffixes, int depth) const
+{
+    QList<QPair<QString, QStringList>> result;
 
-    do {
-        for (const QByteArray &name : names) {
-            int index = metaObject->indexOfClassInfo(name.constData());
-            if (index < 0)
-                continue;
+    static const QStringList defaultSuffix = { "" };
+    auto getNames = [&name](const QString &suffix) {
+        QByteArrayList names;
 
-            QString value(metaObject->classInfo(index).value());
-            value = value.trimmed();
-            if (!value.isEmpty())
-                result.append(value);
+        const QStringList topNames = name.split(",", Qt::SkipEmptyParts);
+        for (const QString &topName : topNames) {
+            const QByteArray baseName = (topName.trimmed() + suffix).toLatin1();
+            names << "orm:" + baseName << baseName;
         }
 
-        metaObject = metaObject->superClass();
+        return names;
+    };
+
+    const QList<const QMetaObject *> metaObjects = getMetaObjects(true);
+    for (const QMetaObject *metaObject : metaObjects) {
+        for (const QString &suffix : defaultSuffix + suffixes) {
+            const QByteArrayList names = getNames(suffix);
+            QStringList values;
+
+            for (const QByteArray &name : names) {
+                int index = metaObject->indexOfClassInfo(name.constData());
+                if (index < 0)
+                    continue;
+
+                QString value(metaObject->classInfo(index).value());
+                value = value.trimmed();
+
+                if (!value.isEmpty())
+                    values.append(value);
+            }
+
+            if (!values.isEmpty())
+                result.append({ suffix, values });
+        }
+
         --depth;
-    } while (metaObject != nullptr && depth > 0);
+        if (depth == 0)
+            break;
+    }
 
     return result;
+}
+
+QList<const QMetaObject *> MetaObjectGeneration::getMetaObjects(bool fromBaseToChild) const
+{
+    QList<const QMetaObject *> chain;
+    const QMetaObject *current = qtMetaObject;
+
+    while (current != nullptr) {
+        if (fromBaseToChild) {
+            chain.prepend(current);
+        } else {
+            chain.append(current);
+        }
+        current = current->superClass();
+    }
+
+    return chain;
 }
 
 void MetaObjectGeneration::discoverProperties()
@@ -187,11 +250,9 @@ void MetaObjectGeneration::discoverProperties()
 
     QStringList potentialDynamicProperties;
     potentialDynamicProperties.append(infoList(META_DYNAMIC));
-    potentialDynamicProperties.append(m_propertyAttributes[Attr::GeneratedProperty]);
-    potentialDynamicProperties.append(m_propertyAttributes[Attr::FillableProperty]);
-    potentialDynamicProperties.append(m_propertyAttributes[Attr::HiddenProperty]);
-    potentialDynamicProperties.append(m_propertyAttributes[Attr::DatabaseField]);
-    potentialDynamicProperties.removeAll(s_propertyAll);
+    potentialDynamicProperties.append(infoList(META_FILLABLE));
+    potentialDynamicProperties.append(infoList(META_HIDDEN));
+    potentialDynamicProperties.append(infoList(META_MAPPED));
     potentialDynamicProperties.removeDuplicates();
 
     // Standard properties
@@ -257,284 +318,59 @@ MetaPropertyData *MetaObjectGeneration::addProperty(const QString &name, MetaPro
 
     using Attr = MetaProperty::PropertyAttributeFlag;
 
-    for (const auto &i : std::as_const(m_propertyAttributes).asKeyValueRange())
-        if (i.second.contains(s_propertyAll) || i.second.contains(name))
-            property->attributes.setFlag(i.first, true);
+    auto finalize = [this, name, property, propertyIndex, options, save]() {
+        for (const auto &i : std::as_const(m_propertyAttributes).asKeyValueRange())
+            if (i.second.contains(name))
+                property->attributes.setFlag(i.first, true);
 
-    auto is = [&property](Attr a) { return property->attributes.testFlag(a); };
-    auto set = [&property](Attr a, bool on) { property->attributes.setFlag(a, on); };
-    auto index = [&property, &propertyIndex](Attr a, int &index) {
-        if (property->attributes.testAnyFlag(a))
-            index = propertyIndex;
+        auto is = [&property](Attr a) { return property->attributes.testFlag(a); };
+        auto set = [&property](Attr a, bool on) { property->attributes.setFlag(a, on); };
+        auto index = [&property, &propertyIndex](Attr a, int &index) {
+            if (property->attributes.testAnyFlag(a))
+                index = propertyIndex;
+        };
+
+        if (is(Attr::PrimaryProperty)) {
+            set(Attr::PrimaryProperty, true);
+            set(Attr::GeneratedProperty, true);
+            set(Attr::FillableProperty, false);
+        }
+
+        if (is(Attr::CreationTimestamp)) {
+            set(Attr::FillableProperty, false);
+            set(Attr::GeneratedProperty, false);
+        }
+
+        if (is(Attr::UpdateTimestamp)) {
+            set(Attr::FillableProperty, false);
+            set(Attr::GeneratedProperty, false);
+        }
+
+        if (is(Attr::DeletionTimestamp)) {
+            set(Attr::FillableProperty, false);
+            set(Attr::GeneratedProperty, false);
+        }
+
+        if (!options.mappable)
+            set(Attr::DatabaseField, false);
+
+        if (save) {
+            index(Attr::PrimaryProperty, data->primaryPropertyIndex);
+            index(Attr::LabelProperty, data->labelPropertyIndex);
+            index(Attr::CreationTimestamp, data->creationTimestampIndex);
+            index(Attr::UpdateTimestamp, data->updateTimestampIndex);
+            index(Attr::DeletionTimestamp, data->deletionTimestampIndex);
+        }
     };
 
-    if (is(Attr::PrimaryProperty)) {
-        set(Attr::PrimaryProperty, true);
-        set(Attr::GeneratedProperty, true);
-        set(Attr::FillableProperty, false);
-    }
-
-    if (is(Attr::CreationTimestamp)) {
-        set(Attr::FillableProperty, false);
-        set(Attr::GeneratedProperty, false);
-    }
-
-    if (is(Attr::UpdateTimestamp)) {
-        set(Attr::FillableProperty, false);
-        set(Attr::GeneratedProperty, false);
-    }
-
-    if (is(Attr::DeletionTimestamp)) {
-        set(Attr::FillableProperty, false);
-        set(Attr::GeneratedProperty, false);
-    }
-
-    if (!options.mappable)
-        set(Attr::DatabaseField, false);
-
-    if (save) {
+    if (save)
         m_properties.append(property);
 
-        index(Attr::PrimaryProperty, data->primaryPropertyIndex);
-        index(Attr::LabelProperty, data->labelPropertyIndex);
-        index(Attr::CreationTimestamp, data->creationTimestampIndex);
-        index(Attr::UpdateTimestamp, data->updateTimestampIndex);
-        index(Attr::DeletionTimestamp, data->deletionTimestampIndex);
-    }
+    m_pendingTasks.append(finalize);
 
     return property;
 }
 
 const QString MetaObjectGeneration::s_propertyAll("__all_properties__");
-
-MetaObjectContext::MetaObjectContext(const QMetaObject *metaObject)
-    : m_metaObject(metaObject)
-{
-    QStringList standard;
-    QStringList computed;
-    QStringList relations;
-
-    for (int i(metaObject->propertyOffset()); i < metaObject->propertyCount(); ++i) {
-        const QMetaProperty prop = metaObject->property(i);
-        standard.append(prop.name());
-        m_metaTypes.insert(prop.name(), prop.metaType());
-    }
-
-    const QStringList computedList = infoList(META_COMPUTED, "__all__");
-    for (int i(metaObject->methodOffset()); i < metaObject->methodCount(); ++i) {
-        const QMetaMethod method = metaObject->method(i);
-        const QString type(method.returnMetaType().name());
-
-        if (type.contains("Relation<"))
-            relations.append(method.name());
-        else if (computedList.contains("__all__") || computedList.contains(method.name()))
-            computed.append(method.name());
-        else
-            continue;
-
-        m_metaTypes.insert(method.name(), method.returnMetaType());
-    }
-
-    if (!standard.isEmpty())
-        m_properties.insert(MetaProperty::StandardProperty, standard);
-
-    if (!computed.isEmpty())
-        m_properties.insert(MetaProperty::ComputedProperty, computed);
-
-    if (!relations.isEmpty())
-        m_properties.insert(MetaProperty::RelationProperty, relations);
-}
-
-QString MetaObjectContext::primaryProperty() const
-{
-    if (hasInfo(META_PRIMARY))
-        return info(META_PRIMARY);
-
-    if (!m_properties[MetaProperty::StandardProperty].isEmpty())
-        return m_properties[MetaProperty::StandardProperty].constFirst();
-
-    return QString();
-}
-
-QString MetaObjectContext::labelProperty() const
-{
-    if (hasInfo(META_LABEL))
-        return info(META_LABEL);
-
-    QMetaProperty userProp = m_metaObject->userProperty();
-    if (userProp.isValid())
-        return userProp.name();
-
-    if (m_properties[MetaProperty::StandardProperty].count() > 1)
-        return m_properties[MetaProperty::StandardProperty].at(1);
-
-    return QString();
-}
-
-QStringList MetaObjectContext::generatedProperties() const
-{
-    return infoList(META_GENERATED);
-}
-
-QStringList MetaObjectContext::fillableProperties() const
-{
-    if (hasInfo(META_FILLABLE))
-        return infoList(META_FILLABLE);
-
-    QStringList props;
-    props.append(m_properties[MetaProperty::StandardProperty]);
-    props.append(m_properties[MetaProperty::DynamicProperty]);
-    return props;
-}
-
-QStringList MetaObjectContext::hiddenProperties() const
-{
-    return infoList(META_HIDDEN);
-}
-
-QStringList MetaObjectContext::mappedProperties() const
-{
-    if (hasInfo(META_MAPPED))
-        return infoList(META_MAPPED);
-
-    QStringList props;
-    props.append(m_properties[MetaProperty::StandardProperty]);
-    props.append(m_properties[MetaProperty::DynamicProperty]);
-    return props;
-}
-
-QStringList MetaObjectContext::typedProperties(MetaProperty::PropertyType type) const
-{
-    if (type != MetaProperty::DynamicProperty)
-        return m_properties[type];
-
-    QStringList props = infoList(META_DYNAMIC);
-    {
-        QStringList lookIn;
-        lookIn << META_PRIMARY << META_LABEL << META_GENERATED
-               << META_CREATED_AT << META_UPDATED_AT << META_DELETED_AT
-               << META_MAPPED << META_FILLABLE << META_HIDDEN;
-
-        for (const QString &info : std::as_const(lookIn)) {
-            const QStringList values = infoList(info);
-            if (!values.isEmpty())
-                props.append(values);
-        }
-    }
-
-    props.removeIf([this](const QString &prop) {
-        bool standard = m_properties[MetaProperty::StandardProperty].contains(prop);
-        bool computed = m_properties[MetaProperty::ComputedProperty].contains(prop);
-        bool relation = m_properties[MetaProperty::RelationProperty].contains(prop);
-        return standard || computed || relation;
-    });
-
-    props.removeDuplicates();
-    return props;
-}
-
-void MetaObjectContext::foreachProperty(std::function<void(const Prop &)> callback)
-{
-    using Attr = MetaProperty::PropertyAttributeFlag;
-    using Type = MetaProperty::PropertyType;
-
-    auto loop = [this, &callback](Type t) {
-        const QStringList props = typedProperties(t);
-        for (const QString &propName : props) {
-            MetaProperty::PropertyAttributes attribs;
-            auto attrib = [&propName, this, &attribs](Attr a, bool o) {
-                if (o)
-                    attribs.setFlag(a, true);
-            };
-
-            attrib(Attr::PrimaryProperty, propName == primaryProperty());
-            attrib(Attr::LabelProperty, propName == labelProperty());
-            attrib(Attr::GeneratedProperty, generatedProperties().contains(propName));
-            attrib(Attr::CreationTimestamp, propName == info(META_CREATED_AT, "createdAt"));
-            attrib(Attr::UpdateTimestamp, propName == info(META_UPDATED_AT, "updatedAt"));
-            attrib(Attr::DeletionTimestamp, propName == info(META_DELETED_AT, "deletedAt"));
-            attrib(Attr::FillableProperty, fillableProperties().contains(propName));
-            attrib(Attr::HiddenProperty, hiddenProperties().contains(propName));
-            attrib(Attr::DatabaseField, mappedProperties().contains(propName));
-
-            const QMetaType metaType = m_metaTypes.value(propName, QMetaType::fromType<QVariant>());
-            callback({ .name = propName, .attribs = attribs, .type = t, .metaType = metaType });
-        }
-    };
-
-    loop(MetaProperty::StandardProperty);
-    loop(MetaProperty::DynamicProperty);
-    loop(MetaProperty::ComputedProperty);
-    loop(MetaProperty::RelationProperty);
-}
-
-bool MetaObjectContext::hasInfo(const QString &name) const
-{
-    const QStringList result = rawInfo(name);
-    return !result.isEmpty();
-}
-
-QString MetaObjectContext::info(const QString &name, const QString &defaultValue) const
-{
-    const QStringList result = rawInfo(name);
-    return (result.isEmpty() ? defaultValue : result.first());
-}
-
-QStringList MetaObjectContext::infoList(const QString &name, const QString &defaultValue) const
-{
-    auto parse = [](const QString &input) {
-        QStringList output = input.split(',', Qt::SkipEmptyParts);
-        for (QString &o : output)
-            o = o.trimmed();
-        return output;
-    };
-
-    const QStringList result = rawInfo(name);
-    if (result.isEmpty())
-        return parse(defaultValue);
-
-    QStringList values;
-
-    for (const QString &res : result) {
-        const QStringList list = parse(res);
-        if (!list.isEmpty())
-            values.append(list);
-    }
-
-    values.removeDuplicates();
-    return values;
-}
-
-QStringList MetaObjectContext::infoList(const QString &name, const QStringList &defaultValue) const
-{
-    return infoList(name, defaultValue.join(','));
-}
-
-QStringList MetaObjectContext::rawInfo(const QString &name) const
-{
-    QStringList result;
-
-    QByteArrayList names;
-    {
-        const QStringList infoNames = name.split(',', Qt::SkipEmptyParts);
-        for (const QString &iName : infoNames) {
-            names.append(("orm:" + iName.trimmed()).toLatin1());
-            names.append(iName.trimmed().toLatin1());
-        }
-    }
-
-    for (const QByteArray &name : names) {
-        int index = m_metaObject->indexOfClassInfo(name.constData());
-        if (index < 0 || index < m_metaObject->classInfoOffset())
-            continue;
-
-        QString value(m_metaObject->classInfo(index).value());
-        value = value.trimmed();
-        if (!value.isEmpty())
-            result.append(value);
-    }
-
-    return result;
-}
 
 } // namespace QEloquent

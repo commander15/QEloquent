@@ -7,6 +7,7 @@ class Migration : public MyTest
 {
 protected:
     void SetUp() override;
+    void TearDown() override;
 };
 
 #endif // MIGRATION_H

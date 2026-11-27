@@ -29,20 +29,29 @@
 #define META_NAMING             "naming"
 #define META_CONNECTION         "connection"
 
+#define META_OPERATOR_INCLUSIVE "+"
+#define META_OPERATOR_EXCLUSIVE "-"
+
 namespace QEloquent {
 
 class MetaObjectGeneration
 {
 public:
+    using RawInfo = QPair<QString, QStringList>;
+    using RawInfoList = QList<RawInfo>;
     MetaObjectGeneration(const QMetaObject *qtMetaObject);
 
     MetaObject generate();
-    QMap<MetaProperty::PropertyAttributeFlag, QStringList> propertyAttributes() const;
+    QMap<MetaProperty::PropertyType, QStringList> propertyTypes() const;
+    QStringList propertyNames() const;
+    QMap<MetaProperty::PropertyAttributeFlag, QStringList> propertyAttributes(const QStringList &properties) const;
 
     bool hasInfo(const QString &name) const;
     QString info(const QString &name, const QString &defaultValue = QString()) const;
-    QStringList infoList(const QString &name, const QString &defaultValue = QString()) const;
-    QStringList rawInfo(const QString &name, int depth = 100) const;
+    QStringList infoList(const QString &name, const QString &defaultValue) const;
+    QStringList infoList(const QString &name, const QStringList &defaultValue = QStringList()) const;
+    RawInfoList rawInfo(const QString &name, const QStringList suffixes = QStringList(), int depth = 100) const;
+    QList<const QMetaObject *> getMetaObjects(bool fromBaseToChild) const;
 
 private:
     struct PropertyOptions {
@@ -57,46 +66,10 @@ private:
     MetaObjectPrivate *data;
     const QMetaObject *qtMetaObject;
 
-    QMap<MetaProperty::PropertyAttributeFlag, QStringList> m_propertyAttributes;
     QList<MetaPropertyData *> m_properties;
+    QMap<MetaProperty::PropertyAttributeFlag, QStringList> m_propertyAttributes;
+    QList<std::function<void()>> m_pendingTasks;
     static const QString s_propertyAll;
-};
-
-class MetaObjectContext
-{
-public:
-    MetaObjectContext(const QMetaObject *metaObject);
-
-    QString primaryProperty() const;
-    QString labelProperty() const;
-    QStringList generatedProperties() const;
-    QStringList fillableProperties() const;
-    QStringList hiddenProperties() const;
-    QStringList mappedProperties() const;
-    QStringList typedProperties(MetaProperty::PropertyType type) const;
-
-    struct Prop { QString name; MetaProperty::PropertyAttributes attribs; MetaProperty::PropertyType type; QMetaType metaType; };
-    void foreachProperty(std::function<void(const Prop &prop)> callback);
-
-    bool hasUserProperty() const;
-    QString userPropertyName() const;
-
-    bool hasProperty(const QString &name) const;
-    QStringList propertyNames() const;
-
-    bool hasMethod(const QString &name) const;
-    QStringList methodNames() const;
-
-    bool hasInfo(const QString &name) const;
-    QString info(const QString &name, const QString &defaultValue = QString()) const;
-    QStringList infoList(const QString &name, const QString &defaultValue = QString()) const;
-    QStringList infoList(const QString &name, const QStringList &defaultValue) const;
-    QStringList rawInfo(const QString &name) const;
-
-private:
-    const QMetaObject *m_metaObject;
-    QMap<MetaProperty::PropertyType, QStringList> m_properties;
-    QMap<QString, QMetaType> m_metaTypes;
 };
 
 } // namespace QEloquent

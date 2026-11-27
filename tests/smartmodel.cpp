@@ -2,6 +2,18 @@
 
 #include "models/smartmodels.h"
 
+#include <QEloquent/metaobject.h>
+
+TEST_F(SmartModel, metaTest)
+{
+    using QEloquent::MetaObject;
+    using Attr = QEloquent::MetaProperty::PropertyAttributeFlag;
+    const MetaObject meta = MetaObject::from<QEloquent::SmartModel>();
+
+    ASSERT_TRUE(meta.isValid());
+    ASSERT_FALSE(meta.deletionTimestamp().hasAttribute(Attr::DatabaseField));
+}
+
 TEST_F(SmartModel, getTest)
 {
     // Migration and seeding
@@ -35,6 +47,9 @@ TEST_F(SmartModel, getTest)
     ASSERT_EQ(p->property("categoryId").toInt(), categoryId);
 
     ASSERT_TRUE(p->createdAt()->isValid());
+    ASSERT_EQ(p->createdAt()->date(), QDate::currentDate());
+
+    ASSERT_FALSE(p->updatedAt()->isValid()) << TEST_STR(p->updatedAt()->toString());
 }
 
 TEST_F(SmartModel, uuidGenerationSucceed)

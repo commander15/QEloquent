@@ -10,8 +10,9 @@ protected:
     void SetUp() override {
         MyTest::SetUp();
 
-        auto result = migrate();
-        ASSERT_TRUE(result);
+        // No more needed since QEloquent didn't rely on DB to detect mappable fields anymore
+        //auto result = migrate();
+        //ASSERT_TRUE(result);
     }
 };
 

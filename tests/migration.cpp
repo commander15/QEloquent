@@ -13,6 +13,11 @@ void Migration::SetUp() {
     Migrator::clear();
 }
 
+void Migration::TearDown() {
+    Migrator::clear();
+    MyTest::TearDown();
+}
+
 TEST_F(Migration, InvalidMigrationMakesMigrateToFail) {
     auto userUp = [] {
         Schema::drop("users");
@@ -55,4 +60,5 @@ TEST_F(Migration, ValidMigrationMakesMigrateToSucceed) {
 
     auto result = Migrator::migrate();
     ASSERT_TRUE(result) << (result ? "" : TEST_STR(result.error().text()));
+    ASSERT_EQ(result.value(), 1);
 }

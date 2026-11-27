@@ -12,8 +12,8 @@ class UserGroup;
 class Product : public SimpleProduct, public QEloquent::ModelHelpers<Product>
 {
     Q_GADGET
-    Q_CLASSINFO("with", "stock")
-    Q_CLASSINFO("append", "fullDescription, priced")
+    Q_CLASSINFO("orm:with+", "stock")
+    Q_CLASSINFO("orm:append+", "fullDescription, priced")
     QELOQUENT_HELPERS(Product)
 
 public:
@@ -40,7 +40,7 @@ public:
 class Category : public SimpleCategory, public QEloquent::ModelHelpers<Category>
 {
     Q_GADGET
-    Q_CLASSINFO("append", "productCount")
+    Q_CLASSINFO("orm:append+", "productCount")
     QELOQUENT_HELPERS(Category)
 
 public:

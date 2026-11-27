@@ -48,7 +48,7 @@ CREATE TABLE Categories (
     name        VARCHAR(30) NOT NULL,
     description VARCHAR(255),
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at  TIMESTAMP
 );
 
 CREATE TABLE Products (
@@ -59,7 +59,7 @@ CREATE TABLE Products (
     barcode     VARCHAR(64) UNIQUE,
     category_id INTEGER,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP,
     FOREIGN KEY(category_id) REFERENCES Categories(id) ON DELETE SET NULL
 );
 
@@ -68,7 +68,7 @@ CREATE TABLE Stocks (
     quantity    INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
     product_id  INTEGER NOT NULL,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE CASCADE
 );
 

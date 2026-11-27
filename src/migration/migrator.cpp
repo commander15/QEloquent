@@ -9,6 +9,8 @@
 #include <QEloquent/connection.h>
 #include <QEloquent/datamap.h>
 
+#include <QEloquent/private/debug_p.h>
+
 #include <QDebug>
 #include <QVariant>
 #include <QDateTime>
@@ -349,12 +351,7 @@ Result<int, Error> Migrator::saveMigrationRecord(Migration *migration, bool exec
 
 void Migrator::logError(const QString &text, const SchemaException &e)
 {
-    qDebug()
-            .noquote()
-            .nospace()
-        << text
-        << ", executed statement:\n" << e.statement << '\n'
-        << ", error: " << e.error.text();
+    qelWarning() << text << ", failed on: " << e.statement << " | error: " << e.error.databaseText();
 }
 
 QScopedPointer<MigratorStorage> Migrator::storage(new MigratorStorage());

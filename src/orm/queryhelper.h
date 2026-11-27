@@ -252,7 +252,7 @@ public:
             if (results->count() > 0)
                 return results->constFirst();
             else
-                return failWith(Error(Error::NotFoundError, "SQL: " + stmt));
+                return failWith(Error(Error::NotFoundError, "No record(s), SQL: " + stmt));
         } else {
             return failWith(results.error());
         }
@@ -350,9 +350,11 @@ private:
         Query query(m_query);
         const MetaObject metaObject = Maker::metaObject();
 
-        if (!m_trashed && metaObject.hasDeletionTimestamp())
-            if (metaObject.deletionTimestamp().hasAttribute(MetaProperty::DatabaseField))
-                query.where(metaObject.deletionTimestamp().fieldName(), QVariant());
+        if (!m_trashed && metaObject.hasDeletionTimestamp()) {
+            const MetaProperty deletedAt = metaObject.deletionTimestamp();
+            if (deletedAt.hasAttribute(MetaProperty::DatabaseField))
+                query.where(deletedAt.fieldName(), QVariant());
+        }
 
         return query;
     }

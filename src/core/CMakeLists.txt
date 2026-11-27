@@ -4,10 +4,13 @@ target_headers(QEloquent
         entity.h
         connection.h
         transactionguard.h
+    PRIVATE
+        debug_p.h
 )
 
 target_sources(QEloquent
     PRIVATE
+        debug.cpp
         entity.cpp
         connection.cpp
         transactionguard.cpp
